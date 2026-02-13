@@ -26,12 +26,13 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      if (result.error.includes("database") || result.error.includes("prisma")) {
+      console.log("Login error:", result.error);
+      if (result.error.includes("database") || result.error.includes("prisma") || result.error.includes("Cannot open server")) {
         setError("Database connection error. Please try again later.");
       } else if (result.error.includes("ECONNREFUSED")) {
         setError("Server temporarily unavailable. Please try again.");
       } else {
-        setError("Invalid email or password");
+        setError("Login failed: " + result.error);
       }
     } else {
       router.push("/dashboard");
