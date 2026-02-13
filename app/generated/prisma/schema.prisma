@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlserver"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique @db.NVarChar(255)
+  name      String?  @db.NVarChar(255)
+  password  String   @db.NVarChar(255)
+  createdAt DateTime @default(now()) @db.DateTime2
+  updatedAt DateTime @updatedAt @db.DateTime2
+
+  @@map("User")
+}
+
+model AircraftMaster {
+  nNumber        String  @id @map("N_NUMBER") @db.NVarChar(10)
+  name           String? @map("NAME") @db.NVarChar(255)
+  typeRegistrant String? @map("TYPE_REGISTRANT") @db.NVarChar(50)
+  lastActionDate String? @map("LAST_ACTION_DATE") @db.NVarChar(50)
+  airWorthDate   String? @map("AIR_WORTH_DATE") @db.NVarChar(50)
+  mfr            String? @map("MFR") @db.NVarChar(255)
+  model          String? @map("MODEL") @db.NVarChar(255)
+  serialNumber   String? @map("SERIAL_NUMBER") @db.NVarChar(255)
+  engMfr         String? @map("ENG_MFR") @db.NVarChar(255)
+  engineModel    String? @map("ENGINE_MODEL") @db.NVarChar(255)
+  engCount       Int?    @map("ENG_COUNT") @db.Int
+  statusCode     String? @map("STATUS_CODE") @db.NVarChar(50)
+
+  @@map("AircraftMaster")
+}
