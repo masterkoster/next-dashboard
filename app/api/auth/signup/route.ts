@@ -35,7 +35,9 @@ export async function POST(request: Request) {
       data: {
         name: name || email.split("@")[0],
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        purchasedModules: "[]",
+        credits: 10
       } as any
     })
     
