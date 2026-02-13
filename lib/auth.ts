@@ -46,10 +46,24 @@ export const authOptions: any = {
             return null
           }
           
-          const isValid = await bcrypt.compare(
-            credentials.password as string, 
-            user.password
-          )
+          let isValid = false
+          
+          // Check if password is bcrypt hash (starts with $2) or plain text
+          if (user.password.startsWith('$2')) {
+            // It's a hashed password
+            isValid = await bcrypt.compare(credentials.password as string, user.password)
+          } else {
+            // Plain text password - direct comparison
+            isValid = user.password === credentials.password
+            // If valid, upgrade to hashed password
+            if (isValid) {
+              const hashed = await bcrypt.hash(credentials.password as string, 10)
+              await prisma.user.update({
+                where: { id: user.id },
+                data: { password: hashed }
+              })
+            }
+          }
           
           console.log("Password valid:", isValid)
           
