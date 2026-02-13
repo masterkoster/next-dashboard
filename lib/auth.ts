@@ -78,5 +78,3 @@ export const authOptions: any = {
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authOptions)
-
-handlers.secret = authSecret
