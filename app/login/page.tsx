@@ -17,20 +17,26 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
+    console.log("Attempting login with:", email);
+
     const result = await signIn("credentials", {
       email,
       password,
       redirect: false,
     });
 
+    console.log("Login result:", result);
+
     setLoading(false);
 
     if (result?.error) {
       console.log("Login error:", result.error);
-      // Show full error for debugging
       setError("Error: " + result.error);
-    } else {
+    } else if (result?.ok) {
+      console.log("Login success, redirecting...");
       router.push("/dashboard");
+    } else {
+      setError("Unexpected response");
     }
   };
 
