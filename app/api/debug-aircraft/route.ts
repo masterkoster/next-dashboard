@@ -4,22 +4,20 @@ import { PrismaClient } from "@prisma/client"
 const prisma = new PrismaClient()
 
 export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs'
 
 export async function GET() {
   try {
-    const count = await prisma.aircraftMaster.count()
-    const sample = await prisma.aircraftMaster.findMany({ take: 5 })
+    // Try to get table info via raw query
+    const result = await prisma.$queryRaw`SELECT TOP 5 * FROM AircraftMaster`
     
-    return NextResponse.json({
-      totalAircraft: count,
-      sample: sample.map(a => ({
-        nNumber: a.nNumber,
-        mfr: a.mfr,
-        model: a.model
-      }))
+    return NextResponse.json({ 
+      success: true, 
+      data: result 
     })
-  } catch (error) {
-    return NextResponse.json({ error: String(error) }, { status: 500 })
+  } catch (error: any) {
+    return NextResponse.json({ 
+      error: error.message || String(error),
+      hint: "Table may not exist"
+    }, { status: 500 })
   }
 }

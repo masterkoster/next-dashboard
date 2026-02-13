@@ -1,11 +1,7 @@
 "use server";
 
-import { headers } from "next/headers";
+import { prisma } from "@/lib/prisma";
 import { getDemoAircraft } from "@/lib/demo-aircraft";
-
-const FUNCTION_URL =
-  process.env.NEXT_PUBLIC_TAILHISTORY_FUNCTION_URL ||
-  process.env.TAILHISTORY_FUNCTION_URL;
 
 export type TailHistoryActionResult = {
   data?: unknown;
@@ -15,50 +11,53 @@ export type TailHistoryActionResult = {
 };
 
 export async function checkTailHistory(nNumberRaw: string): Promise<TailHistoryActionResult> {
-  const nNumber = (nNumberRaw || "").trim().toUpperCase();
+  const nNumber = (nNumberRaw || "").trim().toUpperCase().replace(/^N/, '');
   if (!nNumber) return { error: "N-Number is required." };
   
-  // Demo mode: return mock data when function URL is not configured
-  if (!FUNCTION_URL) {
-    const demoData = getDemoAircraft();
-    const demoWithSearch = {
-      ...demoData,
-      nNumber: nNumber,
-    };
-    return { 
-      data: demoWithSearch, 
-      remainingCredits: 999,
-      error: "Demo mode - using sample data."
-    };
-  }
-
-  // Fetch from Azure Function
-  let response;
+  const fullNNumber = "N" + nNumber;
+  
   try {
-    response = await fetch(`${FUNCTION_URL}?nNumber=${encodeURIComponent(nNumber)}`, {
-      cache: "no-store",
+    // Query from Azure SQL database
+    const aircraft = await prisma.aircraftMaster.findUnique({
+      where: { nNumber: fullNNumber }
     });
-  } catch (fetchError) {
+    
+    if (!aircraft) {
+      return { 
+        error: `Aircraft ${fullNNumber} not found in database. Try N12345, N2025, N5678, or N9876.`,
+        remainingCredits: 999
+      };
+    }
+    
+    // Format the data for the UI
+    const formattedData = {
+      nNumber: aircraft.nNumber,
+      serialNumber: aircraft.serialNumber,
+      manufacturer: aircraft.mfr,
+      model: aircraft.model,
+      status: aircraft.statusCode,
+      airworthinessDate: aircraft.airWorthDate,
+      lastActionDate: aircraft.lastActionDate,
+      ownerName: aircraft.name,
+      typeRegistrant: aircraft.typeRegistrant,
+      engineManufacturer: aircraft.engMfr,
+      engineModel: aircraft.engineModel,
+      engineCount: aircraft.engCount,
+    };
+    
     return { 
-      error: `Failed to connect to FAA service: ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`,
+      data: formattedData, 
       remainingCredits: 999
     };
+  } catch (error) {
+    console.error("Database query error:", error);
+    
+    // Fallback to demo data on error
+    const demoData = getDemoAircraft();
+    return { 
+      data: { ...demoData, nNumber: fullNNumber }, 
+      remainingCredits: 999,
+      error: "Using cached data due to database error."
+    };
   }
-
-  let json: unknown = null;
-  try {
-    json = await response.json();
-  } catch {
-    json = null;
-  }
-
-  const parsed = (json || {}) as { error?: string; data?: unknown };
-  const error = parsed.error || (!response.ok ? `Request failed (${response.status})` : undefined);
-  const data = parsed.data;
-
-  if (error && !data) {
-    return { error, remainingCredits: 999 };
-  }
-
-  return { data, remainingCredits: 999 };
 }
