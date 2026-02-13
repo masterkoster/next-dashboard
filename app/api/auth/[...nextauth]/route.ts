@@ -5,6 +5,8 @@ import bcrypt from "bcrypt"
 
 const prisma = new PrismaClient()
 
+export const dynamic = 'force-dynamic'
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     CredentialsProvider({
