@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-// Landing page - public entry point v2
+// Landing page - public entry point v3
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800">
