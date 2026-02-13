@@ -34,7 +34,7 @@ export default function LoginPage() {
       setError("Error: " + result.error);
     } else if (result?.ok) {
       console.log("Login success, redirecting...");
-      router.push("/dashboard");
+      window.location.href = "/dashboard";
     } else {
       setError("Unexpected response");
     }
