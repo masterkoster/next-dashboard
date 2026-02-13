@@ -7,10 +7,12 @@ const prisma = new PrismaClient()
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export async function POST(request: Request) {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const email = searchParams.get("email") || "demo@demo.com"
+  const password = searchParams.get("password") || "password123"
+  
   try {
-    const { email, password } = await request.json()
-    
     console.log("Test login for:", email)
     console.log("Password provided:", password)
     
@@ -19,11 +21,11 @@ export async function POST(request: Request) {
     })
     
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 401 })
+      return NextResponse.json({ error: "User not found", searchedEmail: email.trim().toLowerCase() }, { status: 401 })
     }
     
     if (!user.password) {
-      return NextResponse.json({ error: "No password" }, { status: 401 })
+      return NextResponse.json({ error: "No password in DB" }, { status: 401 })
     }
     
     const isValid = await bcrypt.compare(password, user.password)
@@ -34,7 +36,8 @@ export async function POST(request: Request) {
       hasPassword: true,
       passwordValid: isValid,
       userEmail: user.email,
-      storedPasswordLength: user.password.length
+      storedPasswordLength: user.password.length,
+      storedPasswordPrefix: user.password.substring(0, 10)
     })
   } catch (error) {
     console.error("Test login error:", error)
