@@ -10,6 +10,9 @@ export const prisma = globalForPrisma.prisma ?? new PrismaClient()
 
 if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 
+// Auth secret - use env or fallback
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret-change-in-production-12345"
+
 export const authOptions: any = {
   providers: [
     CredentialsProvider({
@@ -55,6 +58,7 @@ export const authOptions: any = {
       }
     })
   ],
+  secret: authSecret,
   session: { strategy: "jwt" as const },
   pages: { signIn: "/login" },
   callbacks: {
