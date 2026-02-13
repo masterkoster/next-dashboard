@@ -8,13 +8,14 @@ datasource db {
 }
 
 model User {
-  id               String   @id @default(uuid())
-  email            String   @unique @db.NVarChar(255)
-  name             String?  @db.NVarChar(255)
-  purchasedModules String   @default("[]") @db.NVarChar(Max)
-  credits          Int      @default(0)
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id        String   @id @default(uuid())
+  email     String   @unique @db.NVarChar(255)
+  name      String?  @db.NVarChar(255)
+  password  String   @db.NVarChar(255)
+  createdAt DateTime @default(now()) @db.DateTime2
+  updatedAt DateTime @updatedAt @db.DateTime2
+
+  @@map("User")
 }
 
 model AircraftMaster {
