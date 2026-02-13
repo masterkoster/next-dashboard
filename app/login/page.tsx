@@ -27,15 +27,8 @@ export default function LoginPage() {
 
     if (result?.error) {
       console.log("Login error:", result.error);
-      if (result.error === "Configuration") {
-        setError("Auth configuration error. Check NEXTAUTH_SECRET env var.");
-      } else if (result.error.includes("database") || result.error.includes("prisma") || result.error.includes("Cannot open server")) {
-        setError("Database connection error. Please try again later.");
-      } else if (result.error.includes("ECONNREFUSED")) {
-        setError("Server temporarily unavailable. Please try again.");
-      } else {
-        setError("Login failed: " + result.error);
-      }
+      // Show full error for debugging
+      setError("Error: " + result.error);
     } else {
       router.push("/dashboard");
     }
