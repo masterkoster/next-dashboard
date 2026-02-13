@@ -25,10 +25,12 @@ export async function POST(request: Request) {
       )
     }
     
-    console.log("Checking existing user:", email)
+    const normalizedEmail = email.trim().toLowerCase()
+    
+    console.log("Checking existing user:", normalizedEmail)
     
     const existingUser = await prisma.user.findUnique({
-      where: { email }
+      where: { email: normalizedEmail }
     })
     
     if (existingUser) {
@@ -44,12 +46,12 @@ export async function POST(request: Request) {
     console.log("Creating user")
     const user = await prisma.user.create({
       data: {
-        name: name || email.split("@")[0],
-        email,
+        name: name || normalizedEmail.split("@")[0],
+        email: normalizedEmail,
         password: hashedPassword,
         purchasedModules: "[]",
         credits: 10
-      } as any
+      }
     })
     
     console.log("User created:", user.id)

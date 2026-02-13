@@ -30,8 +30,10 @@ export const authOptions: any = {
         }
         
         try {
+          const email = (credentials.email as string).trim().toLowerCase()
+          
           const user: any = await prisma.user.findUnique({
-            where: { email: credentials.email as string }
+            where: { email }
           })
           
           console.log("User found:", !!user, "Has password:", !!user?.password)
