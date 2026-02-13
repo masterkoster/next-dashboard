@@ -35,7 +35,7 @@ export async function POST(request: Request) {
         name: name || email.split("@")[0],
         email,
         password: hashedPassword
-      }
+      } as any
     })
     
     return NextResponse.json({ 
