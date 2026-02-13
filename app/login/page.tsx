@@ -17,26 +17,20 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
-    console.log("Attempting login with:", email);
-
     const result = await signIn("credentials", {
       email,
       password,
       redirect: false,
     });
 
-    console.log("Login result:", result);
-
     setLoading(false);
 
     if (result?.error) {
-      console.log("Login error:", result.error);
-      setError("Error: " + result.error);
+      setError("Invalid email or password");
     } else if (result?.ok) {
-      console.log("Login success, redirecting...");
       window.location.href = "/dashboard";
     } else {
-      setError("Unexpected response");
+      setError("Something went wrong");
     }
   };
 
