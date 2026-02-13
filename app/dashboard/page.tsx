@@ -1,16 +1,34 @@
 import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { moduleCatalog } from "@/lib/modules";
+
+function parsePurchasedModules(input: string): string[] {
+  try {
+    const parsed = JSON.parse(input);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 export default async function DashboardPage() {
   const session = await auth();
   
-  if (!session?.user) {
+  if (!session?.user?.email) {
     redirect("/login");
   }
 
-  const user = session.user;
-  const purchased = new Set(["overview", "analytics", "settings"]);
+  const dbUser = await prisma.user.findUnique({
+    where: { email: session.user.email },
+    select: { name: true, purchasedModules: true, credits: true }
+  });
+
+  if (!dbUser) {
+    redirect("/login");
+  }
+
+  const purchased = new Set(parsePurchasedModules(dbUser.purchasedModules));
   const availableModules = moduleCatalog.filter((module) =>
     purchased.has(module.id),
   );
@@ -28,9 +46,9 @@ export default async function DashboardPage() {
                 Signed in
               </p>
               <p className="text-sm font-semibold text-slate-100">
-                {user.name ?? user.email}
+                {dbUser.name ?? session.user.email}
               </p>
-              <p className="text-xs text-slate-400">{user.email}</p>
+              <p className="text-xs text-slate-400">{session.user.email}</p>
             </div>
 
             <div className="space-y-1">
@@ -74,11 +92,10 @@ export default async function DashboardPage() {
               Dashboard
             </p>
             <h1 className="mt-2 text-3xl font-semibold text-slate-100">
-              Welcome back, {user.name ?? user.email}
+              Welcome back, {dbUser.name ?? session.user.email}
             </h1>
             <p className="mt-3 max-w-2xl text-sm text-slate-300">
-              Sidebar visibility is driven by your purchased modules. Update the
-              mock user to see links appear or disappear.
+              Your available modules are shown in the sidebar based on your purchased modules and credits.
             </p>
           </div>
 
