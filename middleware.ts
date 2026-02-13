@@ -1,30 +1,34 @@
-import { auth } from "@/lib/auth"
 import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
 
-export default auth((req) => {
-  const isLoggedIn = !!req.auth
-  const isOnDashboard = req.nextUrl.pathname.startsWith("/dashboard")
-  const isOnModules = req.nextUrl.pathname.startsWith("/modules")
-
-  if (isOnDashboard || isOnModules) {
-    if (!isLoggedIn) {
-      return NextResponse.redirect(new URL("/login", req.nextUrl))
-    }
+export function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+  
+  // Skip auth check for public routes
+  if (
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/signup") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/favicon") ||
+    pathname === "/"
+  ) {
+    return NextResponse.next()
   }
-
+  
+  // Check for auth token
+  const authToken = request.cookies.get("next-auth.session-token")
+  
+  if (!authToken && pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/login", request.url))
+  }
+  
   return NextResponse.next()
-})
+}
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     * - api routes
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\..*$).*)'
+    "/dashboard/:path*",
+    "/modules/:path*"
   ],
 }
