@@ -52,19 +52,18 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     const { groupId } = await params;
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
 
     // Check admin role
-    try {
-      const membership = await prisma.groupMember.findFirst({
-        where: { groupId, userId: user?.id, role: 'ADMIN' },
-      });
+    const membership = await prisma.groupMember.findFirst({
+      where: { groupId, userId: user.id, role: 'ADMIN' },
+    });
 
-      if (!membership) {
-        return NextResponse.json({ error: 'Only admins can create invites' }, { status: 403 });
-      }
-    } catch (e) {
-      console.error('Admin check error:', e);
-      return NextResponse.json({ error: 'Failed to verify admin status' }, { status: 500 });
+    if (!membership) {
+      return NextResponse.json({ error: 'Only admins can create invites' }, { status: 403 });
     }
 
     const body = await request.json();
@@ -81,7 +80,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         token,
         email: email || null,
         role: role || 'VIEWER',
-        createdBy: user!.id,
+        createdBy: user.id,
         expiresAt,
       },
     });
@@ -89,7 +88,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ token, expiresAt: invite.expiresAt });
   } catch (error) {
     console.error('Error creating invite:', error);
-    return NextResponse.json({ error: 'Failed to create invite' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create invite: ' + String(error) }, { status: 500 });
   }
 }
 
