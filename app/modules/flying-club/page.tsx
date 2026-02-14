@@ -831,16 +831,18 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
     }
   };
 
-  const userGroupIds = userGroups.map((g: any) => g.id);
-  let filteredMaintenance = maintenance.filter((m: any) => {
-    return m.groupId && userGroupIds.includes(m.groupId);
-  });
-  
-  if (selectedGroupId) {
-    filteredMaintenance = filteredMaintenance.filter((m: any) => m.groupId === selectedGroupId);
-  }
-  if (selectedAircraftId) {
-    filteredMaintenance = filteredMaintenance.filter((m: any) => m.aircraftId === selectedAircraftId);
+  // Show all maintenance if user has no groups or groups not loaded, otherwise filter by group
+  let filteredMaintenance = maintenance;
+  const userGroupIds = userGroups?.map((g: any) => g.id) || [];
+  if (userGroupIds.length > 0) {
+    filteredMaintenance = maintenance.filter((m: any) => m.groupId && userGroupIds.includes(m.groupId));
+    
+    if (selectedGroupId) {
+      filteredMaintenance = filteredMaintenance.filter((m: any) => m.groupId === selectedGroupId);
+    }
+    if (selectedAircraftId) {
+      filteredMaintenance = filteredMaintenance.filter((m: any) => m.aircraftId === selectedAircraftId);
+    }
   }
   
   const needed = filteredMaintenance.filter((m: any) => m.status === 'NEEDED' || m.status === 'IN_PROGRESS');
