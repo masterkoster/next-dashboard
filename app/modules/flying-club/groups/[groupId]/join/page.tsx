@@ -37,14 +37,15 @@ export default function JoinGroupPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token }),
         })
-          .then(res => res.json())
-          .then(data => {
+          .then(res => {
             if (res.ok) {
               setStatus('success');
               setMessage('You have successfully joined the group!');
             } else {
-              setStatus('error');
-              setMessage(data.error || 'Failed to join group');
+              return res.json().then(data => {
+                setStatus('error');
+                setMessage(data.error || 'Failed to join group');
+              });
             }
           })
           .catch(() => {
