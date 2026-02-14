@@ -779,6 +779,7 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState('');
+  const [selectedAircraftId, setSelectedAircraftId] = useState('');
   const [formData, setFormData] = useState({ aircraftId: '', description: '', notes: '' });
 
   useEffect(() => {
@@ -792,12 +793,10 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
       .finally(() => setLoading(false));
   }, []);
 
-  // Get user's groups with their aircraft
   const userGroups = groups?.filter((g: any) => g.role === 'ADMIN' || g.role === 'MEMBER') || [];
   
-  // Get aircraft for the selected group
   const selectedGroup = userGroups.find((g: any) => g.id === selectedGroupId);
-  const groupAircraft = selectedGroup?.aircraft || [];
+  const groupAircraft = selectedGroupId ? (selectedGroup?.aircraft || []) : userGroups.flatMap((g: any) => g.aircraft || []);
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -809,22 +808,26 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
     setShowAddForm(false);
     setFormData({ aircraftId: '', description: '', notes: '' });
     setSelectedGroupId('');
-    // Reload
     const res = await fetch('/api/maintenance');
     if (res.ok) {
       setMaintenance(await res.json());
     }
   };
 
-  // Filter maintenance to show only user's groups
   const userGroupIds = userGroups.map((g: any) => g.id);
-  const filteredMaintenance = maintenance.filter((m: any) => m.groupId && userGroupIds.includes(m.groupId));
+  let filteredMaintenance = maintenance.filter((m: any) => m.groupId && userGroupIds.includes(m.groupId));
+  
+  if (selectedGroupId) {
+    filteredMaintenance = filteredMaintenance.filter((m: any) => m.groupId === selectedGroupId);
+  }
+  if (selectedAircraftId) {
+    filteredMaintenance = filteredMaintenance.filter((m: any) => m.aircraftId === selectedAircraftId);
+  }
   
   const needed = filteredMaintenance.filter((m: any) => m.status === 'NEEDED' || m.status === 'IN_PROGRESS');
   const done = filteredMaintenance.filter((m: any) => m.status === 'DONE');
 
   if (loading) return <div className="text-center py-12">Loading...</div>;
-
   if (error) return <div className="text-center py-12 text-red-400">Error: {error}</div>;
 
   return (
@@ -836,6 +839,47 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
             + Report Issue
           </button>
         )}
+      </div>
+
+      <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Group</label>
+            <select
+              value={selectedGroupId}
+              onChange={(e) => { setSelectedGroupId(e.target.value); setSelectedAircraftId(''); }}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="">All Groups</option>
+              {userGroups.map((g: any) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Aircraft</label>
+            <select
+              value={selectedAircraftId}
+              onChange={(e) => setSelectedAircraftId(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="">All Aircraft</option>
+              {groupAircraft.map((a: any) => (
+                <option key={a.id} value={a.id}>{a.nNumber || a.customName || a.nickname || 'Unknown'}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-end">
+            {(selectedGroupId || selectedAircraftId) && (
+              <button
+                onClick={() => { setSelectedGroupId(''); setSelectedAircraftId(''); }}
+                className="text-sm text-sky-400 hover:text-sky-300"
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {showAddForm && (
