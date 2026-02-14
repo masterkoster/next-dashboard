@@ -36,3 +36,61 @@ model AircraftMaster {
 
   @@map("AircraftMaster")
 }
+
+model AircraftPerformance {
+  id              Int     @id @default(autoincrement())
+  designation     String  @db.VarChar(100)
+  manufacturer    String? @db.VarChar(100)
+  model           String? @db.VarChar(100)
+  
+  // TLAR
+  eis             String? @db.VarChar(50)
+  maxpax          Int?
+  pax             Int?
+  
+  // Performance
+  range_nm        String? @db.VarChar(50)
+  tofl            String? @db.VarChar(50)
+  
+  // Weight
+  mrw             String? @db.VarChar(50)
+  mtow            String? @db.VarChar(50)
+  mlw             String? @db.VarChar(50)
+  mzfw            String? @db.VarChar(50)
+  oew             String? @db.VarChar(50)
+  fuel            String? @db.VarChar(50)
+  
+  // Propulsion
+  engine_designation String? @db.VarChar(100)
+  alternate_engines  String? @db.VarChar(100)
+  num_engines        Int?
+  thrust_sls         String? @db.VarChar(50)
+  thrust_max         String? @db.VarChar(50)
+  fuel_type          String? @db.VarChar(50)
+  fuel_density       String? @db.VarChar(50)
+  fuel_cap_usable    String? @db.VarChar(50)
+  fuel_cap_unusable  String? @db.VarChar(50)
+  
+  // Aero
+  span_ft         String? @db.VarChar(50)
+  length_ft       String? @db.VarChar(50)
+  height_ft       String? @db.VarChar(50)
+  tip_chord       String? @db.VarChar(50)
+  sweep_deg       String? @db.VarChar(50)
+  root_chord      String? @db.VarChar(50)
+  wing_area       String? @db.VarChar(50)
+  wingtip_device  String? @db.VarChar(50)
+  mac             String? @db.VarChar(50)
+  
+  // Velocities
+  vmo_mo          String? @db.VarChar(50)
+  vc_cruise       String? @db.VarChar(50)
+  v_takeoff       String? @db.VarChar(50)
+  
+  // Altitudes
+  cruise_alt      String? @db.VarChar(50)
+  
+  created_at      DateTime? @default(now()) @db.DateTime2
+
+  @@map("AircraftPerformance")
+}
