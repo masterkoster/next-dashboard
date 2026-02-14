@@ -1,122 +1,717 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
 
-async function getUserGroups() {
-  const session = await auth();
-  if (!session?.user?.email) return [];
-
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: {
-      memberships: {
-        include: {
-          group: true,
-        },
-      },
-    },
-  });
-
-  return user?.memberships || [];
+interface Group {
+  id: string;
+  name: string;
+  description: string | null;
+  dryRate: number | null;
+  wetRate: number | null;
 }
 
-export default async function FlyingClubPage() {
-  const memberships = await getUserGroups();
-  const groups = memberships.map((m: any) => m.group);
+interface Aircraft {
+  id: string;
+  nNumber: string | null;
+  nickname: string | null;
+  customName: string | null;
+  make: string | null;
+  model: string | null;
+  year: number | null;
+  totalTachHours: number | null;
+  totalHobbsHours: number | null;
+  registrationType: string | null;
+  hasInsurance: boolean | null;
+  maxPassengers: number | null;
+  hourlyRate: number | null;
+  aircraftNotes: string | null;
+}
+
+interface Booking {
+  id: string;
+  aircraftId: string;
+  userId: string;
+  startTime: string;
+  endTime: string;
+  purpose: string | null;
+  aircraft: Aircraft;
+  groupName: string;
+}
+
+interface Member {
+  userId: string;
+  role: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+}
+
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+export default function FlyingClubPage() {
+  const router = useRouter();
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedGroup, setSelectedGroup] = useState<string>('all');
+  const [hoveredBooking, setHoveredBooking] = useState<Booking | null>(null);
+  const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
+  const [userGroups, setUserGroups] = useState<{ group: Group; role: string; members: Member[] }[]>([]);
+
+  const loadData = useCallback(async () => {
+    try {
+      const [groupsRes, bookingsRes] = await Promise.all([
+        fetch('/api/groups'),
+        fetch('/api/groups/all-bookings')
+      ]);
+      
+      const groupsData = groupsRes.ok ? await groupsRes.json() : [];
+      const bookingsData = bookingsRes.ok ? await bookingsRes.json() : [];
+      
+      setGroups(groupsData);
+      setBookings(bookingsData);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const getDaysInMonth = (date: Date) => {
+    const year = date.getFullYear();
+    const month = date.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startingDay = firstDay.getDay();
+    
+    const days: (number | null)[] = [];
+    
+    // Add empty slots for days before the first day of the month
+    for (let i = 0; i < startingDay; i++) {
+      days.push(null);
+    }
+    
+    // Add days of the month
+    for (let i = 1; i <= daysInMonth; i++) {
+      days.push(i);
+    }
+    
+    return days;
+  };
+
+  const getBookingsForDay = (day: number) => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    return bookings.filter(booking => {
+      if (selectedGroup !== 'all' && booking.groupName !== selectedGroup) return false;
+      const bookingDate = new Date(booking.startTime).toISOString().split('T')[0];
+      return bookingDate === dateStr;
+    });
+  };
+
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+  };
+
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const handleBookingHover = (booking: Booking, event: React.MouseEvent) => {
+    const rect = (event.target as HTMLElement).getBoundingClientRect();
+    setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
+    setHoveredBooking(booking);
+  };
+
+  const filteredBookings = selectedGroup === 'all' 
+    ? bookings 
+    : bookings.filter(b => b.groupName === selectedGroup);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
+      </div>
+    );
+  }
+
+  // If no groups, show create group prompt
+  if (groups.length === 0) {
+    return (
+      <NoGroupsPage />
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
+    <div className="min-h-screen bg-slate-900 text-white p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
           <div>
             <h1 className="text-3xl font-bold text-sky-400">Flying Club</h1>
-            <p className="text-slate-400 mt-1">Manage your flying groups, bookings, and flight logs</p>
+            <p className="text-slate-400">Book flights and track your group&apos;s schedule</p>
           </div>
-          <Link
-            href="/modules/flying-club/groups/new"
-            className="bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 rounded-lg font-medium transition-colors"
-          >
-            + Create Group
-          </Link>
-        </div>
-
-        {groups.length === 0 ? (
-          <div className="bg-slate-800 rounded-xl p-12 text-center border border-slate-700">
-            <div className="text-6xl mb-4">🛩️</div>
-            <h2 className="text-2xl font-semibold mb-2">No Flying Groups Yet</h2>
-            <p className="text-slate-400 mb-6">
-              Create a flying club to share aircraft with friends, track bookings, and log flights together.
-            </p>
+          <div className="flex gap-3">
+            {groups.length > 1 && (
+              <select
+                value={selectedGroup}
+                onChange={(e) => setSelectedGroup(e.target.value)}
+                className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white"
+              >
+                <option value="all">All Groups</option>
+                {groups.map(group => (
+                  <option key={group.id} value={group.name}>{group.name}</option>
+                ))}
+              </select>
+            )}
             <Link
               href="/modules/flying-club/groups/new"
-              className="inline-block bg-sky-500 hover:bg-sky-600 text-white px-8 py-3 rounded-lg font-medium transition-colors"
+              className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium transition-colors"
             >
-              Create Your First Group
+              + New Group
             </Link>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {groups.map((group: any) => (
-              <Link
-                key={group.id}
-                href={`/modules/flying-club/groups/${group.id}`}
-                className="bg-slate-800 rounded-xl p-6 border border-slate-700 hover:border-sky-500 transition-all hover:shadow-lg hover:shadow-sky-500/10 group"
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-sky-500/20 rounded-lg flex items-center justify-center text-2xl">
-                    🛩
-                  </div>
-                  <span className="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">
-                    Active
-                  </span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2 group-hover:text-sky-400 transition-colors">
-                  {group.name}
-                </h3>
-                {group.description && (
-                  <p className="text-slate-400 text-sm mb-4 line-clamp-2">
-                    {group.description}
-                  </p>
-                )}
-                <div className="flex gap-4 text-sm text-slate-500">
-                  {group.dryRate && (
-                    <span>Dry: ${Number(group.dryRate).toFixed(0)}/hr</span>
-                  )}
-                  {group.wetRate && (
-                    <span>Wet: ${Number(group.wetRate).toFixed(0)}/hr</span>
-                  )}
-                </div>
-              </Link>
+        </div>
+
+        {/* Calendar */}
+        <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+          {/* Calendar Header */}
+          <div className="flex items-center justify-between p-4 bg-slate-750 border-b border-slate-700">
+            <button
+              onClick={handlePrevMonth}
+              className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              ←
+            </button>
+            <h2 className="text-xl font-semibold">
+              {MONTHS[currentDate.getMonth()]} {currentDate.getFullYear()}
+            </h2>
+            <button
+              onClick={handleNextMonth}
+              className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+            >
+              →
+            </button>
+          </div>
+
+          {/* Day Headers */}
+          <div className="grid grid-cols-7 border-b border-slate-700">
+            {DAYS.map(day => (
+              <div key={day} className="p-3 text-center text-sm font-medium text-slate-400">
+                {day}
+              </div>
             ))}
+          </div>
+
+          {/* Calendar Grid */}
+          <div className="grid grid-cols-7">
+            {getDaysInMonth(currentDate).map((day, index) => (
+              <div
+                key={index}
+                className={`min-h-[100px] border-b border-r border-slate-700 p-2 ${
+                  day ? 'hover:bg-slate-750' : 'bg-slate-800/50'
+                }`}
+              >
+                {day && (
+                  <>
+                    <div className="text-sm font-medium mb-1">{day}</div>
+                    <div className="space-y-1">
+                      {getBookingsForDay(day).map(booking => (
+                        <div
+                          key={booking.id}
+                          onMouseEnter={(e) => handleBookingHover(booking, e)}
+                          onMouseLeave={() => setHoveredBooking(null)}
+                          className="text-xs bg-sky-500/20 text-sky-400 px-2 py-1 rounded truncate cursor-pointer hover:bg-sky-500/30 transition-colors"
+                        >
+                          {new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {booking.aircraft.nNumber || booking.aircraft.customName || 'Aircraft'}
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Tooltip */}
+        {hoveredBooking && (
+          <div
+            className="fixed z-50 bg-slate-700 text-white text-sm rounded-lg shadow-xl p-3 pointer-events-none"
+            style={{
+              left: tooltipPos.x,
+              top: tooltipPos.y - 10,
+              transform: 'translate(-50%, -100%)'
+            }}
+          >
+            <div className="font-semibold">{hoveredBooking.groupName}</div>
+            <div className="text-sky-400">
+              {hoveredBooking.aircraft.nNumber} - {hoveredBooking.aircraft.customName || hoveredBooking.aircraft.nickname || 'Aircraft'}
+            </div>
+            <div className="text-slate-300 text-xs mt-1">
+              {new Date(hoveredBooking.startTime).toLocaleString()} - {new Date(hoveredBooking.endTime).toLocaleTimeString()}
+            </div>
+            {hoveredBooking.purpose && (
+              <div className="text-slate-400 text-xs">{hoveredBooking.purpose}</div>
+            )}
           </div>
         )}
 
-        <div className="mt-12">
-          <h2 className="text-xl font-semibold mb-6">How It Works</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-              <div className="text-3xl mb-3">👥</div>
-              <h3 className="font-semibold mb-2">Create a Group</h3>
-              <p className="text-slate-400 text-sm">
-                Start a flying club, set hourly rates, and invite members to join.
-              </p>
-            </div>
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-              <div className="text-3xl mb-3">📅</div>
-              <h3 className="font-semibold mb-2">Book Aircraft</h3>
-              <p className="text-slate-400 text-sm">
-                Members can book aircraft for specific dates and times using the calendar.
-              </p>
-            </div>
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-              <div className="text-3xl mb-3">✈️</div>
-              <h3 className="font-semibold mb-2">Log Flights</h3>
-              <p className="text-slate-400 text-sm">
-                Record tach and hobbs time. Costs are calculated automatically based on rates.
-              </p>
-            </div>
+        {/* Upcoming Bookings */}
+        <div className="mt-6">
+          <h3 className="text-lg font-semibold mb-4">Upcoming Flights</h3>
+          <div className="space-y-2">
+            {filteredBookings
+              .filter(b => new Date(b.startTime) > new Date())
+              .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+              .slice(0, 5)
+              .map(booking => (
+                <div key={booking.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700 flex justify-between items-center">
+                  <div>
+                    <div className="font-medium">{booking.groupName}</div>
+                    <div className="text-sky-400">{booking.aircraft.nNumber} - {booking.aircraft.customName || booking.aircraft.nickname}</div>
+                    <div className="text-slate-400 text-sm">
+                      {new Date(booking.startTime).toLocaleDateString()} at {new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <Link
+                    href={`/modules/flying-club/groups/${groups.find(g => g.name === booking.groupName)?.id}`}
+                    className="text-sky-400 hover:text-sky-300"
+                  >
+                    View →
+                  </Link>
+                </div>
+              ))}
+            {filteredBookings.filter(b => new Date(b.startTime) > new Date()).length === 0 && (
+              <div className="text-slate-400 text-center py-8">No upcoming flights</div>
+            )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function NoGroupsPage() {
+  const router = useRouter();
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [groupData, setGroupData] = useState({
+    name: '',
+    description: '',
+    dryRate: '',
+    wetRate: ''
+  });
+  const [invites, setInvites] = useState([{ email: '', name: '' }]);
+  const [aircraftData, setAircraftData] = useState({
+    nNumber: '',
+    nickname: '',
+    customName: '',
+    make: '',
+    model: '',
+    year: '',
+    totalTachHours: '',
+    totalHobbsHours: '',
+    registrationType: 'Standard',
+    hasInsurance: false,
+    maxPassengers: '4',
+    hourlyRate: '',
+    notes: ''
+  });
+
+  const handleCreateGroup = async () => {
+    if (!groupData.name) {
+      setError('Group name is required');
+      return;
+    }
+    setLoading(true);
+    setError('');
+
+    try {
+      const res = await fetch('/api/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...groupData,
+          dryRate: groupData.dryRate ? parseFloat(groupData.dryRate) : null,
+          wetRate: groupData.wetRate ? parseFloat(groupData.wetRate) : null,
+        }),
+      });
+
+      if (!res.ok) throw new Error('Failed to create group');
+      const group = await res.json();
+      
+      // Send invites
+      for (const invite of invites) {
+        if (invite.email) {
+          await fetch(`/api/groups/${group.id}/invites`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: invite.email, role: 'MEMBER', name: invite.name }),
+          });
+        }
+      }
+      
+      setStep(3);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddAircraft = async () => {
+    if (!groupData.name) return;
+    
+    setLoading(true);
+    try {
+      const groupsRes = await fetch('/api/groups');
+      const groups = await groupsRes.json();
+      const group = groups.find((g: any) => g.name === groupData.name);
+      
+      if (group) {
+        await fetch(`/api/groups/${group.id}/aircraft`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nNumber: aircraftData.nNumber || null,
+            nickname: aircraftData.nickname || null,
+            customName: aircraftData.customName || null,
+            make: aircraftData.make || null,
+            model: aircraftData.model || null,
+            year: aircraftData.year ? parseInt(aircraftData.year) : null,
+            totalTachHours: aircraftData.totalTachHours ? parseFloat(aircraftData.totalTachHours) : null,
+            totalHobbsHours: aircraftData.totalHobbsHours ? parseFloat(aircraftData.totalHobbsHours) : null,
+            registrationType: aircraftData.registrationType || null,
+            hasInsurance: aircraftData.hasInsurance,
+            maxPassengers: aircraftData.maxPassengers ? parseInt(aircraftData.maxPassengers) : null,
+            hourlyRate: aircraftData.hourlyRate ? parseFloat(aircraftData.hourlyRate) : null,
+            notes: aircraftData.notes || null,
+          }),
+        });
+      }
+      router.push('/modules/flying-club');
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-slate-900 text-white p-8">
+      <div className="max-w-2xl mx-auto">
+        {/* Progress Steps */}
+        <div className="flex justify-center mb-8">
+          {[1, 2, 3].map(s => (
+            <div key={s} className="flex items-center">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold ${
+                step >= s ? 'bg-sky-500 text-white' : 'bg-slate-700 text-slate-400'
+              }`}>
+                {s}
+              </div>
+              {s < 3 && <div className={`w-16 h-1 ${step > s ? 'bg-sky-500' : 'bg-slate-700'}`} />}
+            </div>
+          ))}
+        </div>
+
+        {step === 1 && (
+          <>
+            <h1 className="text-3xl font-bold text-sky-400 mb-2">Create Your Flying Group</h1>
+            <p className="text-slate-400 mb-8">Start by naming your group and setting rates</p>
+
+            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 space-y-4">
+              {error && <div className="bg-red-500/20 text-red-400 p-3 rounded-lg">{error}</div>}
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Group Name *</label>
+                <input
+                  type="text"
+                  value={groupData.name}
+                  onChange={(e) => setGroupData({ ...groupData, name: e.target.value })}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3"
+                  placeholder="e.g., Bay Area Flying Club"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+                <textarea
+                  value={groupData.description}
+                  onChange={(e) => setGroupData({ ...groupData, description: e.target.value })}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 h-24"
+                  placeholder="What's your club about?"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Dry Rate ($/hr)</label>
+                  <input
+                    type="number"
+                    value={groupData.dryRate}
+                    onChange={(e) => setGroupData({ ...groupData, dryRate: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3"
+                    placeholder="150"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Wet Rate ($/hr)</label>
+                  <input
+                    type="number"
+                    value={groupData.wetRate}
+                    onChange={(e) => setGroupData({ ...groupData, wetRate: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3"
+                    placeholder="200"
+                  />
+                </div>
+              </div>
+
+              <button
+                onClick={handleCreateGroup}
+                disabled={loading}
+                className="w-full bg-sky-500 hover:bg-sky-600 py-3 rounded-lg font-medium disabled:opacity-50"
+              >
+                {loading ? 'Creating...' : 'Continue →'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <h1 className="text-3xl font-bold text-sky-400 mb-2">Invite Members</h1>
+            <p className="text-slate-400 mb-8">Add people by email (they&apos;ll need to create an account)</p>
+
+            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 space-y-4">
+              {invites.map((invite, i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    type="text"
+                    value={invite.name}
+                    onChange={(e) => {
+                      const newInvites = [...invites];
+                      newInvites[i].name = e.target.value;
+                      setInvites(newInvites);
+                    }}
+                    className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                    placeholder="Name"
+                  />
+                  <input
+                    type="email"
+                    value={invite.email}
+                    onChange={(e) => {
+                      const newInvites = [...invites];
+                      newInvites[i].email = e.target.value;
+                      setInvites(newInvites);
+                    }}
+                    className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                    placeholder="Email"
+                  />
+                </div>
+              ))}
+
+              <button
+                onClick={() => setInvites([...invites, { email: '', name: '' }])}
+                className="text-sky-400 hover:text-sky-300 text-sm"
+              >
+                + Add another person
+              </button>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => setStep(3)}
+                  className="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-lg font-medium"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={handleCreateGroup}
+                  disabled={loading}
+                  className="flex-1 bg-sky-500 hover:bg-sky-600 py-3 rounded-lg font-medium disabled:opacity-50"
+                >
+                  {loading ? 'Sending...' : 'Continue →'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
+        {step === 3 && (
+          <>
+            <h1 className="text-3xl font-bold text-sky-400 mb-2">Add Your First Aircraft</h1>
+            <p className="text-slate-400 mb-8">Enter the aircraft details (you can add more later)</p>
+
+            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">N-Number</label>
+                  <input
+                    type="text"
+                    value={aircraftData.nNumber}
+                    onChange={(e) => setAircraftData({ ...aircraftData, nNumber: e.target.value.toUpperCase() })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                    placeholder="N123AB"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Nickname</label>
+                  <input
+                    type="text"
+                    value={aircraftData.nickname}
+                    onChange={(e) => setAircraftData({ ...aircraftData, nickname: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                    placeholder="e.g., Skyhawk"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Make</label>
+                  <input
+                    type="text"
+                    value={aircraftData.make}
+                    onChange={(e) => setAircraftData({ ...aircraftData, make: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                    placeholder="Cessna"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Model</label>
+                  <input
+                    type="text"
+                    value={aircraftData.model}
+                    onChange={(e) => setAircraftData({ ...aircraftData, model: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                    placeholder="172S"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Year</label>
+                  <input
+                    type="number"
+                    value={aircraftData.year}
+                    onChange={(e) => setAircraftData({ ...aircraftData, year: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                    placeholder="2018"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Total Tach Hours</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={aircraftData.totalTachHours}
+                    onChange={(e) => setAircraftData({ ...aircraftData, totalTachHours: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                    placeholder="0.0"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Total Hobbs Hours</label>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={aircraftData.totalHobbsHours}
+                    onChange={(e) => setAircraftData({ ...aircraftData, totalHobbsHours: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                    placeholder="0.0"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Registration Type</label>
+                  <select
+                    value={aircraftData.registrationType}
+                    onChange={(e) => setAircraftData({ ...aircraftData, registrationType: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                  >
+                    <option value="Standard">Standard</option>
+                    <option value="Experimental">Experimental</option>
+                    <option value="Light Sport">Light Sport</option>
+                    <option value="Ultralight">Ultralight</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Max Passengers</label>
+                  <input
+                    type="number"
+                    value={aircraftData.maxPassengers}
+                    onChange={(e) => setAircraftData({ ...aircraftData, maxPassengers: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Hourly Rate ($)</label>
+                  <input
+                    type="number"
+                    value={aircraftData.hourlyRate}
+                    onChange={(e) => setAircraftData({ ...aircraftData, hourlyRate: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                    placeholder="165"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  id="hasInsurance"
+                  checked={aircraftData.hasInsurance}
+                  onChange={(e) => setAircraftData({ ...aircraftData, hasInsurance: e.target.checked })}
+                  className="w-5 h-5 rounded"
+                />
+                <label htmlFor="hasInsurance" className="text-slate-300">Has Insurance</label>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Notes</label>
+                <textarea
+                  value={aircraftData.notes}
+                  onChange={(e) => setAircraftData({ ...aircraftData, notes: e.target.value })}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 h-20"
+                  placeholder="Any restrictions, annual due date, etc."
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={() => router.push('/modules/flying-club')}
+                  className="flex-1 bg-slate-700 hover:bg-slate-600 py-3 rounded-lg font-medium"
+                >
+                  Skip
+                </button>
+                <button
+                  onClick={handleAddAircraft}
+                  disabled={loading}
+                  className="flex-1 bg-sky-500 hover:bg-sky-600 py-3 rounded-lg font-medium disabled:opacity-50"
+                >
+                  {loading ? 'Adding...' : 'Add Aircraft'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
