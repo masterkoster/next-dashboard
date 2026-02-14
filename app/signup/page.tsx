@@ -10,11 +10,18 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    
+    if (!agreedToTerms) {
+      setError("You must agree to the Terms of Use to create an account");
+      return;
+    }
+    
     setLoading(true);
 
     try {
@@ -93,11 +100,27 @@ export default function SignupPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !agreedToTerms}
               className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition-all hover:bg-emerald-400 disabled:opacity-50"
             >
               {loading ? "Creating account..." : "Create Account"}
             </button>
+
+            <div className="bg-slate-800 rounded-lg p-3 text-xs text-slate-400">
+              <label className="flex items-start gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={agreedToTerms}
+                  onChange={(e) => setAgreedToTerms(e.target.checked)}
+                  className="mt-0.5 w-4 h-4 rounded"
+                />
+                <span>
+                  I acknowledge that this software is a financial and administrative tool only. 
+                  I am the Pilot in Command (PIC) and am solely responsible for the safe operation 
+                  of the aircraft and verifying all data with official sources.
+                </span>
+              </label>
+            </div>
           </form>
 
           <p className="mt-6 text-center text-slate-400">

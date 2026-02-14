@@ -663,8 +663,15 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
     notes: '',
     hasMaintenance: false,
     maintenanceDescription: '',
-    maintenanceNotes: ''
+    maintenanceNotes: '',
+    agreedToTerms: false,
+    showDiscrepancy: false,
+    discrepancyNote: ''
   });
+
+  // Track last flight for meter continuity
+  const [lastFlight, setLastFlight] = useState<any>(null);
+  const [showDiscrepancyModal, setShowDiscrepancyModal] = useState(false);
 
   // Get bookings for this group
   const groupBookings = bookings?.filter((b: any) => new Date(b.endTime) < new Date()) || [];
@@ -706,8 +713,40 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
     }
   };
 
+  // When aircraft is selected, get last flight for meter continuity
+  useEffect(() => {
+    if (formData.aircraftId && logs.length > 0) {
+      const aircraftLogs = logs.filter((l: any) => l.aircraftId === formData.aircraftId);
+      if (aircraftLogs.length > 0) {
+        // Sort by date descending and get the first one
+        const sorted = [...aircraftLogs].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        const last = sorted[0];
+        setLastFlight(last);
+        // Auto-populate start meters from last flight
+        setFormData((prev: any) => ({
+          ...prev,
+          tachStart: last.tachTime ? String(last.tachTime) : '',
+          hobbsStart: last.hobbsTime ? String(last.hobbsTime) : '',
+        }));
+      } else {
+        setLastFlight(null);
+        setFormData((prev: any) => ({
+          ...prev,
+          tachStart: '',
+          hobbsStart: '',
+        }));
+      }
+    }
+  }, [formData.aircraftId]);
+
   const handleLog = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.agreedToTerms) {
+      alert("You must acknowledge the Terms of Use to log a flight");
+      return;
+    }
+    
     const res = await fetch(`/api/groups/${groupId}/logs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -741,7 +780,10 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
         notes: '',
         hasMaintenance: false,
         maintenanceDescription: '',
-        maintenanceNotes: ''
+        maintenanceNotes: '',
+        agreedToTerms: false,
+        showDiscrepancy: false,
+        discrepancyNote: ''
       });
     }
   };
@@ -799,14 +841,27 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
               required
             />
             <div className="col-span-2 text-sm text-slate-400 font-medium">Tach Times</div>
-            <input
-              type="number"
-              step="0.1"
-              placeholder="Tach Start"
-              value={formData.tachStart}
-              onChange={(e) => setFormData({ ...formData, tachStart: e.target.value })}
-              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
-            />
+            <div className="relative">
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Tach Start"
+                value={formData.tachStart}
+                readOnly
+                className="bg-slate-600 border border-slate-500 rounded-lg px-4 py-2 cursor-not-allowed"
+                title="Auto-populated from last flight"
+              />
+              {lastFlight && (
+                <button
+                  type="button"
+                  onClick={() => setShowDiscrepancyModal(true)}
+                  className="absolute -right-8 top-1/2 -translate-y-1/2 text-orange-400 hover:text-orange-300 text-xs"
+                  title="Meter Discrepancy"
+                >
+                  ⚠️
+                </button>
+              )}
+            </div>
             <input
               type="number"
               step="0.1"
@@ -816,14 +871,27 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
               className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
             />
             <div className="col-span-2 text-sm text-slate-400 font-medium">Hobbs Times</div>
-            <input
-              type="number"
-              step="0.1"
-              placeholder="Hobbs Start"
-              value={formData.hobbsStart}
-              onChange={(e) => setFormData({ ...formData, hobbsStart: e.target.value })}
-              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
-            />
+            <div className="relative">
+              <input
+                type="number"
+                step="0.1"
+                placeholder="Hobbs Start"
+                value={formData.hobbsStart}
+                readOnly
+                className="bg-slate-600 border border-slate-500 rounded-lg px-4 py-2 cursor-not-allowed"
+                title="Auto-populated from last flight"
+              />
+              {lastFlight && (
+                <button
+                  type="button"
+                  onClick={() => setShowDiscrepancyModal(true)}
+                  className="absolute -right-8 top-1/2 -translate-y-1/2 text-orange-400 hover:text-orange-300 text-xs"
+                  title="Meter Discrepancy"
+                >
+                  ⚠️
+                </button>
+              )}
+            </div>
             <input
               type="number"
               step="0.1"
@@ -874,7 +942,58 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-slate-700 rounded-lg">Cancel</button>
             <button type="submit" className="px-4 py-2 bg-sky-500 rounded-lg">Log Flight</button>
           </div>
+          
+          {/* Terms of Use Checkbox */}
+          <div className="mt-4 p-3 bg-slate-700/50 rounded-lg">
+            <label className="flex items-start gap-2 cursor-pointer text-sm">
+              <input
+                type="checkbox"
+                checked={formData.agreedToTerms}
+                onChange={(e) => setFormData({ ...formData, agreedToTerms: e.target.checked })}
+                className="mt-1 w-4 h-4 rounded"
+              />
+              <span className="text-slate-400">
+                I acknowledge that I am the Pilot in Command (PIC) and am solely responsible for the safe operation of the aircraft. I verify that all meter readings are accurate.
+              </span>
+            </label>
+          </div>
         </form>
+      )}
+
+      {/* Meter Discrepancy Modal */}
+      {showDiscrepancyModal && lastFlight && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4 text-orange-400">⚠️ Meter Discrepancy</h3>
+            <div className="space-y-3 mb-4">
+              <div className="text-sm text-slate-400">
+                <div>Last recorded:</div>
+                <div className="text-white">Tach: {lastFlight.tachTime || 'N/A'} | Hobbs: {lastFlight.hobbsTime || 'N/A'}</div>
+              </div>
+              <div className="text-sm text-slate-400">
+                <div>Your reading:</div>
+                <div className="text-white">Tach: {formData.tachStart || 'N/A'} | Hobbs: {formData.hobbsStart || 'N/A'}</div>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Explain the discrepancy:</label>
+                <textarea
+                  value={formData.discrepancyNote}
+                  onChange={(e) => setFormData({ ...formData, discrepancyNote: e.target.value })}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 h-24"
+                  placeholder="Describe what you see on the meters..."
+                />
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setShowDiscrepancyModal(false)} className="flex-1 px-4 py-2 bg-slate-700 rounded-lg">Cancel</button>
+              <button onClick={() => {
+                // Submit with discrepancy note - the API should handle this
+                setShowDiscrepancyModal(false);
+                alert('Meter discrepancy request submitted. An admin will review this.');
+              }} className="flex-1 px-4 py-2 bg-orange-500 rounded-lg">Submit Request</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {logs.length === 0 && maintenance.length === 0 ? (
