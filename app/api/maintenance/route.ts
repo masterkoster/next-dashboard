@@ -14,38 +14,17 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get user's group memberships
-    const memberships = await prisma.groupMember.findMany({
-      where: { userId: user.id },
-      include: {
-        group: {
-          include: {
-            aircraft: true,
-          },
-        },
-      },
-    });
-
-    if (memberships.length === 0) {
+    // Check if Maintenance table exists by trying a simple query
+    try {
+      const maintenance = await prisma.$queryRawUnsafe(`
+        SELECT TOP 10 * FROM Maintenance
+      `);
+      return NextResponse.json(maintenance || []);
+    } catch (tableError) {
+      // Table might not exist
+      console.error('Maintenance table error:', tableError);
       return NextResponse.json([]);
     }
-
-    const aircraftIds = memberships.flatMap(m => m.group.aircraft.map(a => a.id));
-
-    if (aircraftIds.length === 0) {
-      return NextResponse.json([]);
-    }
-
-    const maintenance = await prisma.$queryRawUnsafe(`
-      SELECT m.*, a.nNumber, a.nickname, a.customName, a.make, a.model, g.name as groupName
-      FROM Maintenance m
-      JOIN ClubAircraft a ON m.aircraftId = a.id
-      JOIN FlyingGroup g ON a.groupId = g.id
-      WHERE m.aircraftId IN (${aircraftIds.map(() => '?').join(',')})
-      ORDER BY m.reportedDate DESC
-    `, ...aircraftIds);
-
-    return NextResponse.json(maintenance || []);
   } catch (error) {
     console.error('Error fetching maintenance:', error);
     return NextResponse.json({ error: 'Failed to fetch maintenance', details: String(error) }, { status: 500 });

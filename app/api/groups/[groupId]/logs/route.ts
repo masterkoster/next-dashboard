@@ -30,16 +30,16 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Not a member' }, { status: 403 });
     }
 
-    const logs = await prisma.flightLog.findMany({
-      where: { aircraft: { groupId } },
-      include: {
-        aircraft: true,
-        user: { select: { id: true, name: true, email: true } },
-      },
-      orderBy: { date: 'desc' },
-    });
+    // Simple query without complex include
+    const logs = await prisma.$queryRawUnsafe(`
+      SELECT f.*, a.nNumber, a.nickname, a.customName, u.name as userName, u.email as userEmail
+      FROM FlightLog f
+      JOIN ClubAircraft a ON f.aircraftId = a.id
+      JOIN User u ON f.userId = u.id
+      WHERE a.groupId = ?
+      ORDER BY f.date DESC
+    `, groupId);
 
-    // Handle case where logs might not be an array
     return NextResponse.json(Array.isArray(logs) ? logs : []);
   } catch (error) {
     console.error('Error fetching logs:', error);
