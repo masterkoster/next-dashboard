@@ -81,6 +81,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         maxPassengers: maxPassengers ? parseInt(maxPassengers) : null,
         hourlyRate: hourlyRate ? parseFloat(hourlyRate) : null,
         aircraftNotes: notes || null,
+        status: 'Available',
       },
     });
 

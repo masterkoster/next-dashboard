@@ -26,11 +26,15 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { notes } = body;
+    const { notes, status } = body;
+
+    const updateData: any = {};
+    if (notes !== undefined) updateData.aircraftNotes = notes;
+    if (status !== undefined) updateData.status = status;
 
     const aircraft = await prisma.clubAircraft.update({
       where: { id: aircraftId },
-      data: { aircraftNotes: notes },
+      data: updateData,
     });
 
     return NextResponse.json(aircraft);

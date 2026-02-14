@@ -214,6 +214,7 @@ model ClubAircraft {
   maxPassengers    Int?
   hourlyRate       Decimal? @db.Decimal(10, 2)
   aircraftNotes    String?  @db.NVarChar(Max)
+  status            String?  @db.NVarChar(50)  // Available, In Use, Maintenance Required, Grounded
   createdAt        DateTime @default(now()) @db.DateTime2
   updatedAt        DateTime @updatedAt @db.DateTime2
 

@@ -566,9 +566,10 @@ function AircraftList({ groups }: { groups: Group[] }) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {allAircraft.map(({ aircraft, groupName }) => {
+          // Read status from database status field, fallback to JSON parsing
           let statusData: any = {};
           try { statusData = aircraft.aircraftNotes ? JSON.parse(aircraft.aircraftNotes) : {}; } catch {}
-          const aircraftStatus = statusData?.aircraftStatus || 'Available';
+          const aircraftStatus = aircraft.status || statusData?.aircraftStatus || 'Available';
           const statusColor = aircraftStatus === 'Available' ? 'bg-green-500/20 text-green-400' : 
                             aircraftStatus === 'In Use' ? 'bg-blue-500/20 text-blue-400' :
                             aircraftStatus === 'Grounded' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400';
@@ -2130,9 +2131,12 @@ function AircraftStatus({ groups }: { groups: Group[] }) {
   useEffect(() => {
     if (selectedAircraftId) {
       const aircraft = aircraftList.find((a: any) => a.id === selectedAircraftId);
-      if (aircraft?.aircraftNotes) {
-        try { setStatusData(JSON.parse(aircraft.aircraftNotes)); } catch { setStatusData({}); }
-      } else { setStatusData({}); }
+      const parsed = aircraft?.aircraftNotes ? JSON.parse(aircraft.aircraftNotes) : {};
+      // Combine parsed notes with the status field from database
+      setStatusData({
+        ...parsed,
+        aircraftStatus: aircraft?.status || parsed.aircraftStatus || 'Available'
+      });
     }
     setLoading(false);
   }, [selectedAircraftId, aircraftList]);
@@ -2140,10 +2144,16 @@ function AircraftStatus({ groups }: { groups: Group[] }) {
   const handleSave = async () => {
     setSaving(true);
     try {
+      // Extract status from statusData
+      const aircraftStatus = statusData.aircraftStatus || 'Available';
+      
       const res = await fetch(`/api/groups/${selectedGroupId}/aircraft/${selectedAircraftId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ notes: JSON.stringify(statusData) }),
+        body: JSON.stringify({ 
+          notes: JSON.stringify(statusData),
+          status: aircraftStatus
+        }),
       });
       if (res.ok) { setMessage('Status saved!'); setTimeout(() => setMessage(''), 3000); }
     } catch { setMessage('Error saving'); }
