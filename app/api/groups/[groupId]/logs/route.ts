@@ -1,0 +1,111 @@
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { prisma } from '@/lib/prisma';
+
+interface RouteParams {
+  params: Promise<{ groupId: string }>;
+}
+
+// GET all flight logs for a group
+export async function GET(request: Request, { params }: RouteParams) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { groupId } = await params;
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    
+    // Check membership (VIEWERS can also see logs)
+    const membership = await prisma.groupMember.findFirst({
+      where: { groupId, userId: user?.id },
+    });
+
+    if (!membership) {
+      return NextResponse.json({ error: 'Not a member' }, { status: 403 });
+    }
+
+    const logs = await prisma.flightLog.findMany({
+      where: { aircraft: { groupId } },
+      include: {
+        aircraft: true,
+        user: { select: { id: true, name: true, email: true } },
+      },
+      orderBy: { date: 'desc' },
+    });
+
+    return NextResponse.json(logs);
+  } catch (error) {
+    console.error('Error fetching logs:', error);
+    return NextResponse.json({ error: 'Failed to fetch flight logs' }, { status: 500 });
+  }
+}
+
+// POST create a flight log
+export async function POST(request: Request, { params }: RouteParams) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { groupId } = await params;
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+
+    // Check membership and role (MEMBER or ADMIN can log flights)
+    const membership = await prisma.groupMember.findFirst({
+      where: { 
+        groupId, 
+        userId: user?.id,
+        role: { in: ['MEMBER', 'ADMIN'] },
+      },
+    });
+
+    if (!membership) {
+      return NextResponse.json({ error: 'Only members can log flights' }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { aircraftId, date, tachTime, hobbsTime, notes } = body;
+
+    // Verify aircraft belongs to group
+    const aircraft = await prisma.clubAircraft.findFirst({
+      where: { id: aircraftId, groupId },
+      include: { group: true },
+    });
+
+    if (!aircraft) {
+      return NextResponse.json({ error: 'Aircraft not found in group' }, { status: 404 });
+    }
+
+    // Calculate cost based on hourly rate
+    let calculatedCost = null;
+    if ((tachTime || hobbsTime) && aircraft.hourlyRate) {
+      const time = Math.max(tachTime || 0, hobbsTime || 0);
+      calculatedCost = time * Number(aircraft.hourlyRate);
+    }
+
+    const flightLog = await prisma.flightLog.create({
+      data: {
+        aircraftId,
+        userId: user!.id,
+        date: new Date(date),
+        tachTime: tachTime || null,
+        hobbsTime: hobbsTime || null,
+        calculatedCost,
+        notes: notes || null,
+      },
+      include: {
+        aircraft: true,
+        user: { select: { id: true, name: true, email: true } },
+      },
+    });
+
+    return NextResponse.json(flightLog);
+  } catch (error) {
+    console.error('Error creating flight log:', error);
+    return NextResponse.json({ error: 'Failed to create flight log' }, { status: 500 });
+  }
+}
