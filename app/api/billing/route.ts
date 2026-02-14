@@ -89,10 +89,8 @@ export async function GET(request: Request) {
       const userName = log.user?.name || log.user?.email || 'Unknown';
       const userEmail = log.user?.email || '';
       
-      // Calculate hobbs hours used
-      const hobbsUsed = log.hobbsEnd && log.hobbsStart 
-        ? Number(log.hobbsEnd) - Number(log.hobbsStart) 
-        : 0;
+      // Use existing hobbsTime or calculate from start/end
+      const hobbsUsed = log.hobbsTime ? Number(log.hobbsTime) : 0;
       const tachUsed = log.tachTime || 0;
       
       // Calculate cost based on aircraft hourly rate
@@ -144,7 +142,7 @@ export async function GET(request: Request) {
     });
   } catch (error) {
     console.error('Error fetching billing:', error);
-    return NextResponse.json({ error: 'Failed to fetch billing' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch billing', details: String(error) }, { status: 500 });
   }
 }
 
