@@ -183,6 +183,7 @@ model Maintenance {
   id          String   @id @default(uuid())
   aircraftId  String
   userId      String
+  groupId     String?
   description String   @db.NVarChar(500)
   notes       String?  @db.NVarChar(Max)
   status      String   @default("NEEDED") @db.NVarChar(20)
@@ -191,6 +192,8 @@ model Maintenance {
   cost         Decimal? @db.Decimal(10, 2)
   createdAt   DateTime @default(now()) @db.DateTime2
   updatedAt   DateTime @updatedAt @db.DateTime2
+
+  aircraft    ClubAircraft @relation(fields: [aircraftId], references: [id])
 
   @@map("Maintenance")
 }
@@ -217,6 +220,7 @@ model ClubAircraft {
   group      FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   bookings   Booking[]
   flightLogs FlightLog[]
+  maintenance Maintenance[]
 
   @@map("ClubAircraft")
 }

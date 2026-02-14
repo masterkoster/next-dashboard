@@ -38,7 +38,15 @@ export async function GET(request: Request, { params }: RouteParams) {
       take: 100,
     });
 
-    return NextResponse.json(logs || []);
+    // Get maintenance for this group
+    const maintenance = await prisma.maintenance.findMany({
+      where: { groupId },
+      orderBy: { reportedDate: 'desc' },
+      take: 20,
+      include: { aircraft: true },
+    });
+
+    return NextResponse.json({ logs: logs || [], maintenance });
   } catch (error) {
     console.error('Error fetching logs:', error);
     return NextResponse.json({ 
@@ -108,6 +116,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         data: {
           aircraftId,
           userId: user!.id,
+          groupId: groupId,
           description: maintenance.description,
           notes: maintenance.notes || null,
           status: 'NEEDED',

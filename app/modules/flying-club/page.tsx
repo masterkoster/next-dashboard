@@ -800,25 +800,39 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
 
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
-    await fetch('/api/maintenance', {
+    const res = await fetch('/api/maintenance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(formData),
+      body: JSON.stringify({
+        ...formData,
+        groupId: selectedGroupId,
+      }),
     });
-    setShowAddForm(false);
-    setFormData({ aircraftId: '', description: '', notes: '' });
-    setSelectedGroupId('');
-    const res = await fetch('/api/maintenance');
     if (res.ok) {
-      setMaintenance(await res.json());
+      setShowAddForm(false);
+      setFormData({ aircraftId: '', description: '', notes: '' });
+      setSelectedGroupId('');
+      const reloadRes = await fetch('/api/maintenance');
+      if (reloadRes.ok) {
+        setMaintenance(await reloadRes.json());
+      }
+    } else {
+      const err = await res.json();
+      alert('Error: ' + (err.error || 'Failed to submit'));
     }
   };
 
   const userGroupIds = userGroups.map((g: any) => g.id);
-  let filteredMaintenance = maintenance.filter((m: any) => m.groupId && userGroupIds.includes(m.groupId));
+  let filteredMaintenance = maintenance.filter((m: any) => {
+    const groupId = m.groupId || m.aircraft?.groupId;
+    return groupId && userGroupIds.includes(groupId);
+  });
   
   if (selectedGroupId) {
-    filteredMaintenance = filteredMaintenance.filter((m: any) => m.groupId === selectedGroupId);
+    filteredMaintenance = filteredMaintenance.filter((m: any) => {
+      const groupId = m.groupId || m.aircraft?.groupId;
+      return groupId === selectedGroupId;
+    });
   }
   if (selectedAircraftId) {
     filteredMaintenance = filteredMaintenance.filter((m: any) => m.aircraftId === selectedAircraftId);
@@ -943,10 +957,10 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
               <div key={m.id} className="bg-slate-800 rounded-lg p-4 border border-orange-500/30">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium">{m.nNumber} - {m.customName || m.nickname}</div>
+                    <div className="font-medium">{m.aircraft?.nNumber || m.aircraft?.customName || m.aircraft?.nickname || 'Unknown'} - {m.aircraft?.customName || m.aircraft?.nickname || ''}</div>
                     <div className="text-slate-400 text-sm">{m.description}</div>
                     <div className="text-slate-500 text-xs mt-1">
-                      Reported {new Date(m.reportedDate).toLocaleDateString()} • {m.groupName}
+                      Reported {new Date(m.reportedDate).toLocaleDateString()} • {m.aircraft?.group?.name || 'Unknown Group'}
                     </div>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded ${
@@ -969,7 +983,7 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
               <div key={m.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700 opacity-60">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium">{m.nNumber} - {m.customName || m.nickname}</div>
+                    <div className="font-medium">{m.aircraft?.nNumber || 'Unknown'} - {m.aircraft?.customName || m.aircraft?.nickname || ''}</div>
                     <div className="text-slate-400 text-sm">{m.description}</div>
                     <div className="text-slate-500 text-xs mt-1">
                       {m.resolvedDate ? `Resolved ${new Date(m.resolvedDate).toLocaleDateString()}` : ''}

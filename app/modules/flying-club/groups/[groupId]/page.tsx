@@ -649,6 +649,7 @@ function BookingsTab({ groupId, aircraft, canBook }: { groupId: string; aircraft
 
 function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; aircraft: Aircraft[]; bookings?: any[]; canLog: boolean }) {
   const [logs, setLogs] = useState<any[]>([]);
+  const [maintenance, setMaintenance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ 
@@ -677,7 +678,14 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
   useEffect(() => {
     fetch(`/api/groups/${groupId}/logs`)
       .then(res => res.ok ? res.json() : Promise.reject(new Error('Failed to load')))
-      .then(data => setLogs(Array.isArray(data) ? data : []))
+      .then(data => {
+        if (data.logs) {
+          setLogs(Array.isArray(data.logs) ? data.logs : []);
+          setMaintenance(Array.isArray(data.maintenance) ? data.maintenance : []);
+        } else {
+          setLogs(Array.isArray(data) ? data : []);
+        }
+      })
       .catch(e => {
         console.error('Error loading logs:', e);
         setLogs([]);
@@ -869,27 +877,55 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
         </form>
       )}
 
-      {logs.length === 0 ? (
-        <div className="text-center py-12 text-slate-400">No flight logs yet.</div>
+      {logs.length === 0 && maintenance.length === 0 ? (
+        <div className="text-center py-12 text-slate-400">No flight logs or maintenance yet.</div>
       ) : (
-        <div className="space-y-3">
-          {logs.map((log: any) => (
-            <div key={log.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-              <div className="flex justify-between items-start">
-                <div>
-                  <div className="font-medium">
-                    {new Date(log.date).toLocaleDateString()} • {log.aircraft?.nNumber || log.aircraft?.customName || 'Aircraft'}
+        <>
+          {logs.length > 0 && (
+            <div className="space-y-3 mb-8">
+              <h3 className="text-lg font-semibold text-sky-400">Flight Logs</h3>
+              {logs.map((log: any) => (
+                <div key={log.id} className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium">
+                        {new Date(log.date).toLocaleDateString()} • {log.aircraft?.nNumber || log.aircraft?.customName || 'Aircraft'}
+                      </div>
+                      <div className="text-slate-400 text-sm">
+                        Tach: {log.tachTime ? Number(log.tachTime).toFixed(1) : '—'} hrs • Hobbs: {log.hobbsTime ? Number(log.hobbsTime).toFixed(1) : '—'} hrs
+                        {log.calculatedCost && <span className="ml-2 text-sky-400">• ${Number(log.calculatedCost).toFixed(2)}</span>}
+                      </div>
+                      {log.notes && <div className="text-slate-500 text-sm mt-1">{log.notes}</div>}
+                    </div>
                   </div>
-                  <div className="text-slate-400 text-sm">
-                    Tach: {log.tachTime ? Number(log.tachTime).toFixed(1) : '—'} hrs • Hobbs: {log.hobbsTime ? Number(log.hobbsTime).toFixed(1) : '—'} hrs
-                    {log.calculatedCost && <span className="ml-2 text-sky-400">• ${Number(log.calculatedCost).toFixed(2)}</span>}
-                  </div>
-                  {log.notes && <div className="text-slate-500 text-sm mt-1">{log.notes}</div>}
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+          
+          {maintenance.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-orange-400">🔧 Maintenance Issues</h3>
+              {maintenance.map((m: any) => (
+                <div key={m.id} className={`rounded-xl p-4 border ${m.status === 'NEEDED' ? 'bg-slate-800 border-orange-500/30' : 'bg-slate-800 border-yellow-500/30'}`}>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <div className="font-medium">{m.aircraft?.nNumber || m.aircraft?.customName || 'Aircraft'}</div>
+                      <div className="text-slate-400 text-sm">{m.description}</div>
+                      {m.notes && <div className="text-slate-500 text-sm mt-1">{m.notes}</div>}
+                      <div className="text-slate-500 text-xs mt-1">
+                        Reported {new Date(m.reportedDate).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <span className={`text-xs px-2 py-1 rounded ${m.status === 'NEEDED' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                      {m.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
       )}
     </div>
   );

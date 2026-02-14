@@ -14,10 +14,15 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get all maintenance
+    // Get all maintenance with aircraft and group info
     const maintenance = await prisma.maintenance.findMany({
       orderBy: { reportedDate: 'desc' },
       take: 50,
+      include: {
+        aircraft: {
+          include: { group: true }
+        }
+      },
     });
 
     return NextResponse.json(maintenance || []);
@@ -40,7 +45,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { aircraftId, description, notes } = body;
+    const { aircraftId, description, notes, groupId } = body;
 
     if (!aircraftId || !description) {
       return NextResponse.json({ error: 'Aircraft and description required' }, { status: 400 });
@@ -54,6 +59,7 @@ export async function POST(request: Request) {
         notes: notes || null,
         status: 'NEEDED',
         reportedDate: new Date(),
+        groupId: groupId || null,
       },
     });
 
