@@ -784,8 +784,17 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
 
   useEffect(() => {
     fetch('/api/maintenance')
-      .then(res => res.ok ? res.json() : Promise.reject(new Error('Failed to load')))
-      .then(data => setMaintenance(Array.isArray(data) ? data : []))
+      .then(async (res) => {
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || err.details || 'Failed to load');
+        }
+        return res.json();
+      })
+      .then(data => {
+        console.log('Maintenance data:', data);
+        setMaintenance(Array.isArray(data) ? data : []);
+      })
       .catch(e => {
         console.error('Maintenance load error:', e);
         setError(e.message);

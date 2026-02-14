@@ -20,10 +20,11 @@ export async function GET(request: Request) {
       take: 50,
     });
 
-    return NextResponse.json(maintenance || []);
+    console.log('Maintenance fetched:', maintenance.length);
+    return NextResponse.json(maintenance);
   } catch (error) {
     console.error('Error fetching maintenance:', error);
-    return NextResponse.json({ error: 'Failed to fetch maintenance', details: String(error) }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch maintenance', details: String(error), stack: error instanceof Error ? error.stack : undefined }, { status: 500 });
   }
 }
 
