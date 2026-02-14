@@ -16,12 +16,8 @@ model User {
   credits          Int       @default(0)
   createdAt        DateTime  @default(now()) @db.DateTime2
   updatedAt        DateTime  @updatedAt @db.DateTime2
-  
-  // Password reset fields
   resetToken       String?   @db.NVarChar(255)
   resetTokenExpiry DateTime? @db.DateTime2
-
-  // User's aircraft
   aircraft         UserAircraft[]
 
   @@map("User")
@@ -63,25 +59,17 @@ model AircraftPerformance {
   designation     String  @db.VarChar(100)
   manufacturer    String? @db.VarChar(100)
   model           String? @db.VarChar(100)
-  
-  // TLAR
   eis             String? @db.VarChar(50)
   maxpax          Int?
   pax             Int?
-  
-  // Performance
   range_nm        String? @db.VarChar(50)
   tofl            String? @db.VarChar(50)
-  
-  // Weight
   mrw             String? @db.VarChar(50)
   mtow            String? @db.VarChar(50)
   mlw             String? @db.VarChar(50)
   mzfw            String? @db.VarChar(50)
   oew             String? @db.VarChar(50)
   fuel            String? @db.VarChar(50)
-  
-  // Propulsion
   engine_designation String? @db.VarChar(100)
   alternate_engines  String? @db.VarChar(100)
   num_engines        Int?
@@ -91,8 +79,6 @@ model AircraftPerformance {
   fuel_density       String? @db.VarChar(50)
   fuel_cap_usable    String? @db.VarChar(50)
   fuel_cap_unusable  String? @db.VarChar(50)
-  
-  // Aero
   span_ft         String? @db.VarChar(50)
   length_ft       String? @db.VarChar(50)
   height_ft       String? @db.VarChar(50)
@@ -102,15 +88,10 @@ model AircraftPerformance {
   wing_area       String? @db.VarChar(50)
   wingtip_device  String? @db.VarChar(50)
   mac             String? @db.VarChar(50)
-  
-  // Velocities
   vmo_mo          String? @db.VarChar(50)
   vc_cruise       String? @db.VarChar(50)
   v_takeoff       String? @db.VarChar(50)
-  
-  // Altitudes
   cruise_alt      String? @db.VarChar(50)
-  
   created_at      DateTime? @default(now()) @db.DateTime2
 
   @@map("AircraftPerformance")
@@ -120,42 +101,109 @@ model AircraftSpecs {
   id                      Int     @id @default(autoincrement())
   manufacturer            String  @db.NVarChar(100)
   model                   String  @db.NVarChar(255)
-  
-  // Dimensions
   length_ft               String? @db.NVarChar(50)
   wingspan_ft             String? @db.NVarChar(50)
   height_ft               String? @db.NVarChar(50)
-  
-  // Takeoff/Landing
   takeoff_ground_roll_ft  String? @db.NVarChar(50)
   takeoff_over_50ft_ft    String? @db.NVarChar(50)
   landing_ground_roll_ft  String? @db.NVarChar(50)
   landing_over_50ft_ft    String? @db.NVarChar(50)
-  
-  // Speeds
   top_speed_kts           String? @db.NVarChar(50)
   cruise_speed_kts        String? @db.NVarChar(50)
   stall_speed_dirty_kts   String? @db.NVarChar(50)
   stall_speed_clean_kts   String? @db.NVarChar(50)
-  
-  // Weights
   empty_weight_lbs        String? @db.NVarChar(50)
   gross_weight_lbs        String? @db.NVarChar(50)
-  
-  // Range & Fuel
   range_nm                String? @db.NVarChar(50)
   fuel_capacity_gal       String? @db.NVarChar(50)
-  
-  // Engine
   horsepower              String? @db.NVarChar(50)
-  
-  // Performance
   rate_of_climb_fpm       String? @db.NVarChar(50)
   service_ceiling_ft     String? @db.NVarChar(50)
-  
-  // Metadata
   source_url              String? @db.NVarChar(500)
   scraped_at              DateTime? @db.DateTime2
 
   @@map("AircraftSpecs")
+}
+
+// ============================================
+// Flying Club Models
+// ============================================
+
+model FlyingGroup {
+  id          String   @id @default(uuid())
+  name        String   @db.NVarChar(255)
+  description String?  @db.NVarChar(Max)
+  ownerId     String
+  dryRate     Decimal? @db.Decimal(10,2)
+  wetRate     Decimal? @db.Decimal(10,2)
+  customRates String?  @db.NVarChar(Max)
+  createdAt   DateTime @default(now()) @db.DateTime2
+  updatedAt   DateTime @updatedAt @db.DateTime2
+
+  @@map("FlyingGroup")
+}
+
+model GroupMember {
+  id        String    @id @default(uuid())
+  userId    String
+  groupId   String
+  role      String    @default("VIEWER") @db.NVarChar(20)
+  joinedAt  DateTime  @default(now()) @db.DateTime2
+
+  @@unique([userId, groupId])
+  @@map("GroupMember")
+}
+
+model Invite {
+  id          String    @id @default(uuid())
+  groupId     String
+  token       String    @unique @db.NVarChar(255)
+  email       String?   @db.NVarChar(255)
+  role        String    @default("VIEWER") @db.NVarChar(20)
+  expiresAt   DateTime  @db.DateTime2
+  createdBy   String
+  createdAt   DateTime  @default(now()) @db.DateTime2
+
+  @@map("Invite")
+}
+
+model ClubAircraft {
+  id          String    @id @default(uuid())
+  groupId     String
+  nNumber     String?   @db.NVarChar(10)
+  nickname    String?   @db.NVarChar(100)
+  customName  String?   @db.NVarChar(255)
+  hourlyRate  Decimal?  @db.Decimal(10,2)
+  createdAt   DateTime  @default(now()) @db.DateTime2
+  updatedAt   DateTime  @updatedAt @db.DateTime2
+
+  @@map("ClubAircraft")
+}
+
+model Booking {
+  id          String    @id @default(uuid())
+  aircraftId  String
+  userId      String
+  startTime   DateTime  @db.DateTime2
+  endTime     DateTime  @db.DateTime2
+  purpose     String?   @db.NVarChar(500)
+  createdAt   DateTime  @default(now()) @db.DateTime2
+  updatedAt   DateTime  @updatedAt @db.DateTime2
+
+  @@map("Booking")
+}
+
+model FlightLog {
+  id              String    @id @default(uuid())
+  aircraftId      String
+  userId          String
+  date            DateTime  @db.DateTime2
+  tachTime        Decimal?  @db.Decimal(6,2)
+  hobbsTime       Decimal?  @db.Decimal(6,2)
+  calculatedCost  Decimal?  @db.Decimal(10,2)
+  notes           String?   @db.NVarChar(Max)
+  createdAt       DateTime  @default(now()) @db.DateTime2
+  updatedAt       DateTime  @updatedAt @db.DateTime2
+
+  @@map("FlightLog")
 }
