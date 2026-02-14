@@ -214,7 +214,7 @@ export default function GroupDetailPage() {
         )}
 
         {activeTab === 'logs' && (
-          <LogsTab groupId={group.id} aircraft={group.aircraft} canLog={!!getUserRole()} />
+          <LogsTab groupId={group.id} aircraft={group.aircraft} bookings={group.bookings} canLog={!!getUserRole()} />
         )}
 
         {activeTab === 'members' && (
@@ -646,11 +646,12 @@ function BookingsTab({ groupId, aircraft, canBook }: { groupId: string; aircraft
   );
 }
 
-function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Aircraft[]; canLog: boolean }) {
+function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; aircraft: Aircraft[]; bookings?: any[]; canLog: boolean }) {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ 
+    bookingId: '', 
     aircraftId: '', 
     date: '', 
     tachStart: '', 
@@ -662,6 +663,15 @@ function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Air
     maintenanceNotes: ''
   });
 
+  // Get bookings for this group
+  const groupBookings = bookings?.filter((b: any) => new Date(b.endTime) < new Date()) || [];
+  
+  // Get unique aircraft from bookings
+  const aircraftWithBookings = [...new Set(groupBookings.map((b: any) => b.aircraftId))];
+  
+  // Filter bookings to only show completed ones (past end time)
+  const completedBookings = groupBookings.filter((b: any) => new Date(b.endTime) < new Date());
+
   useEffect(() => {
     fetch(`/api/groups/${groupId}/logs`)
       .then(res => res.ok ? res.json() : Promise.reject(new Error('Failed to load')))
@@ -672,6 +682,19 @@ function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Air
       })
       .finally(() => setLoading(false));
   }, [groupId]);
+
+  const handleBookingSelect = (bookingId: string) => {
+    const booking = completedBookings.find((b: any) => b.id === bookingId);
+    if (booking) {
+      setFormData({
+        ...formData,
+        bookingId,
+        aircraftId: booking.aircraftId,
+        date: new Date(booking.startTime).toISOString().split('T')[0],
+        notes: booking.purpose || '',
+      });
+    }
+  };
 
   const handleLog = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -725,9 +748,29 @@ function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Air
         <form onSubmit={handleLog} className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-6">
           <h3 className="text-lg font-semibold mb-4">Log Flight Time</h3>
           <div className="grid grid-cols-2 gap-4">
+            {completedBookings.length > 0 ? (
+              <>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-slate-300 mb-2">Select Booking (optional - pre-fills details)</label>
+                  <select
+                    value={formData.bookingId}
+                    onChange={(e) => handleBookingSelect(e.target.value)}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                  >
+                    <option value="">-- Select a past booking --</option>
+                    {completedBookings.map((booking: any) => (
+                      <option key={booking.id} value={booking.id}>
+                        {new Date(booking.startTime).toLocaleDateString()} - {booking.aircraft?.nNumber || booking.aircraft?.customName || 'Aircraft'} - {booking.purpose || 'Flight'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
+            ) : null}
+            
             <select
               value={formData.aircraftId}
-              onChange={(e) => setFormData({ ...formData, aircraftId: e.target.value })}
+              onChange={(e) => setFormData({ ...formData, aircraftId: e.target.value, bookingId: '' })}
               className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
               required
             >
