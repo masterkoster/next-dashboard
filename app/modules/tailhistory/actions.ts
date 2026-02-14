@@ -97,18 +97,22 @@ async function getGAPerformanceData(mfrUpper: string, modelUpper: string) {
     // Strategy 1: Try to match model numbers (e.g., "150" matches "150 L", "172" matches "172 M")
     const modelNumbers = modelUpper.match(/\d+/g) || []
     
+    console.log('[GA] Looking for performance data:', { mfrUpper, modelUpper, modelNumbers })
+    
     if (modelNumbers.length > 0) {
       // Search for any model containing any of the numbers
       for (const num of modelNumbers) {
-        // Fix: include wildcards in parameter values, not in query
-        const mfrPattern = `%${mfrUpper}%`
-        const modelPattern = `%${num}%`
+        // Try direct query without parameter binding
+        const mfrLike = `%${mfrUpper}%`
+        const modelLike = `%${num}%`
+        
+        console.log('[GA] Querying with:', mfrLike, modelLike)
         
         const specs = await prisma.$queryRawUnsafe(`
           SELECT TOP 1 * FROM AircraftSpecs 
-          WHERE UPPER(manufacturer) LIKE @mfrPattern
-            AND UPPER(model) LIKE @modelPattern
-        `, { mfrPattern, modelPattern }) as any[]
+          WHERE UPPER(manufacturer) LIKE '${mfrLike}'
+            AND UPPER(model) LIKE '${modelLike}'
+        `) as any[]
         
         if (specs && specs.length > 0) {
           const s = specs[0]
