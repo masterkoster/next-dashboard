@@ -5,16 +5,44 @@ import { checkTailHistory, TailHistoryActionResult } from "../actions";
 import { SearchBar } from "./search-bar";
 import { Timeline3D, TailHistoryRecord } from "./timeline-3d";
 
+type PerformanceData = {
+  designation: string;
+  mtow: string | null;
+  mlw: string | null;
+  mzfw: string | null;
+  oew: string | null;
+  fuelCapacity: string | null;
+  rangeNm: string | null;
+  takeoffFieldLength: string | null;
+  numEngines: number | null;
+  engineModel: string | null;
+  thrustMax: string | null;
+  spanFt: string | null;
+  lengthFt: string | null;
+  heightFt: string | null;
+  wingArea: string | null;
+  cruiseSpeed: string | null;
+  maxOperatingSpeed: string | null;
+  cruiseAltitude: string | null;
+  maxPax: number | null;
+};
+
+type ExtendedRecord = TailHistoryRecord & {
+  performance: PerformanceData | null;
+};
+
 export default function TailHistoryClient() {
   const [isPending, startTransition] = useTransition();
-  const [record, setRecord] = useState<TailHistoryRecord | null>(null);
+  const [record, setRecord] = useState<ExtendedRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | undefined>(undefined);
   const [showBuyModal, setShowBuyModal] = useState(false);
+  const [showPerformance, setShowPerformance] = useState(false);
 
   const handleSubmit = useCallback((value: string) => {
     startTransition(async () => {
       setError(null);
+      setShowPerformance(false);
       const result: TailHistoryActionResult = await checkTailHistory(value);
       if (result.needsCredits) {
         setShowBuyModal(true);
@@ -28,7 +56,7 @@ export default function TailHistoryClient() {
         setRecord(null);
         return;
       }
-      setRecord(result.data as TailHistoryRecord);
+      setRecord(result.data as ExtendedRecord);
       setRemaining(result.remainingCredits);
     });
   }, []);
@@ -94,6 +122,73 @@ export default function TailHistoryClient() {
               <div className="flex justify-between"><span>Engine</span><span className="text-slate-300">{record.engineManufacturer ?? "?"} {record.engineModel ?? ""}</span></div>
               <div className="flex justify-between"><span>Engine Count</span><span className="text-slate-300">{record.engineCount ?? "?"}</span></div>
             </div>
+
+            {/* Performance Data Section */}
+            {record.performance && (
+              <div className="rounded-2xl border border-blue-900/50 bg-blue-950/30 p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs uppercase tracking-[0.2em] text-blue-400">Performance Specs</p>
+                  <span className="text-xs text-blue-500">{record.performance.designation}</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {record.performance.mtow && (
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <span className="text-slate-400">MTOW</span>
+                      <p className="text-slate-200 font-semibold">{record.performance.mtow} lbs</p>
+                    </div>
+                  )}
+                  {record.performance.rangeNm && (
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <span className="text-slate-400">Range</span>
+                      <p className="text-slate-200 font-semibold">{record.performance.rangeNm} nm</p>
+                    </div>
+                  )}
+                  {record.performance.numEngines && (
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <span className="text-slate-400">Engines</span>
+                      <p className="text-slate-200 font-semibold">{record.performance.numEngines}x</p>
+                    </div>
+                  )}
+                  {record.performance.engineModel && (
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <span className="text-slate-400">Engine</span>
+                      <p className="text-slate-200 font-semibold text-xs">{record.performance.engineModel}</p>
+                    </div>
+                  )}
+                  {record.performance.spanFt && (
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <span className="text-slate-400">Wingspan</span>
+                      <p className="text-slate-200 font-semibold">{record.performance.spanFt} ft</p>
+                    </div>
+                  )}
+                  {record.performance.lengthFt && (
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <span className="text-slate-400">Length</span>
+                      <p className="text-slate-200 font-semibold">{record.performance.lengthFt} ft</p>
+                    </div>
+                  )}
+                  {record.performance.cruiseSpeed && (
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <span className="text-slate-400">Cruise Speed</span>
+                      <p className="text-slate-200 font-semibold">{record.performance.cruiseSpeed} kts</p>
+                    </div>
+                  )}
+                  {record.performance.maxPax && (
+                    <div className="bg-slate-800/50 rounded-lg p-2">
+                      <span className="text-slate-400">Max Pax</span>
+                      <p className="text-slate-200 font-semibold">{record.performance.maxPax}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!record.performance && (
+              <div className="rounded-2xl border border-slate-800 bg-slate-900/30 p-4 text-xs text-slate-400">
+                No performance data available for this aircraft model.
+              </div>
+            )}
           </div>
 
           <Timeline3D record={record} />

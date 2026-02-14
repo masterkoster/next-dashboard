@@ -10,6 +10,73 @@ export type TailHistoryActionResult = {
   needsCredits?: boolean;
 };
 
+// Get performance data from FAST AEROBASE
+async function getPerformanceData(mfr: string | null, model: string | null) {
+  if (!mfr || !model) return null
+  
+  const mfrUpper = mfr.toUpperCase()
+  const modelUpper = model.toUpperCase()
+  
+  let searchPatterns: string[] = []
+  
+  if (mfrUpper.includes('BOEING')) {
+    const familyMatch = modelUpper.match(/(\d{3})/)
+    if (familyMatch) {
+      const family = familyMatch[1]
+      searchPatterns.push(`B${family}%`)
+      searchPatterns.push(`B73${family.slice(-1)}%`)
+    }
+    if (modelUpper.includes('MAX')) {
+      searchPatterns.push(`B73MAX%`)
+    }
+  }
+  
+  if (mfrUpper.includes('AIRBUS')) {
+    const familyMatch = modelUpper.match(/A(\d{3})/)
+    if (familyMatch) {
+      searchPatterns.push(`A${familyMatch[1]}%`)
+    }
+    if (modelUpper.includes('A380')) searchPatterns.push('A380%')
+    if (modelUpper.includes('A350')) searchPatterns.push('A350%')
+  }
+  
+  if (mfrUpper.includes('EMBRAER')) {
+    if (modelUpper.includes('ERJ') || modelUpper.includes('EMB-145')) {
+      searchPatterns.push('ERJ_145%')
+    }
+    if (modelUpper.includes('ERJ190') || modelUpper.includes('EMB-190')) {
+      searchPatterns.push('ERJ_190%')
+    }
+    if (modelUpper.includes('ERJ170') || modelUpper.includes('EMB-170')) {
+      searchPatterns.push('ERJ_170%')
+    }
+  }
+  
+  if (mfrUpper.includes('BOMBARDIER')) {
+    if (modelUpper.includes('CRJ')) {
+      searchPatterns.push('CRJ_%')
+    }
+    searchPatterns.push('BD_%')
+  }
+  
+  for (const pattern of searchPatterns) {
+    try {
+      const perf = await prisma.$queryRawUnsafe(`
+        SELECT TOP 1 * FROM AircraftPerformance 
+        WHERE designation LIKE @pattern
+      `, { pattern }) as any[]
+      
+      if (perf && perf.length > 0) {
+        return perf[0]
+      }
+    } catch (e) {
+      console.log('Performance query error:', e)
+    }
+  }
+  
+  return null
+}
+
 export async function checkTailHistory(nNumberRaw: string): Promise<TailHistoryActionResult> {
   const nNumber = (nNumberRaw || "").trim().toUpperCase().replace(/^N/, '');
   if (!nNumber) return { error: "N-Number is required." };
@@ -29,6 +96,9 @@ export async function checkTailHistory(nNumberRaw: string): Promise<TailHistoryA
       };
     }
     
+    // Get performance data
+    const performance = await getPerformanceData(aircraft.mfr, aircraft.model)
+    
     // Format the data for the UI
     const formattedData = {
       nNumber: aircraft.nNumber,
@@ -43,6 +113,28 @@ export async function checkTailHistory(nNumberRaw: string): Promise<TailHistoryA
       engineManufacturer: aircraft.engMfr,
       engineModel: aircraft.engineModel,
       engineCount: aircraft.engCount,
+      // Performance data
+      performance: performance ? {
+        designation: performance.designation,
+        mtow: performance.mtow,
+        mlw: performance.mlw,
+        mzfw: performance.mzfw,
+        oew: performance.oew,
+        fuelCapacity: performance.fuel,
+        rangeNm: performance.range_nm,
+        takeoffFieldLength: performance.tofl,
+        numEngines: performance.num_engines,
+        engineModel: performance.engine_designation,
+        thrustMax: performance.thrust_max,
+        spanFt: performance.span_ft,
+        lengthFt: performance.length_ft,
+        heightFt: performance.height_ft,
+        wingArea: performance.wing_area,
+        cruiseSpeed: performance.vc_cruise,
+        maxOperatingSpeed: performance.vmo_mo,
+        cruiseAltitude: performance.cruise_alt,
+        maxPax: performance.maxpax,
+      } : null,
     };
     
     return { 
