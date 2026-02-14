@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface Group {
   id: string;
@@ -776,7 +778,10 @@ function FlightsList({ groups }: { groups: Group[] }) {
 function MembersList({ groups }: { groups: Group[] }) {
   const router = useRouter();
   const [allMembers, setAllMembers] = useState<{ member: any; groupName: string }[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const userGroups = groups?.filter((g: any) => g.role === 'ADMIN' || g.role === 'MEMBER') || [];
+  const isAdmin = userGroups.some((g: any) => g.role === 'ADMIN');
 
   useEffect(() => {
     const loadMembers = async () => {
@@ -785,7 +790,9 @@ function MembersList({ groups }: { groups: Group[] }) {
         return;
       }
       const data: { member: any; groupName: string }[] = [];
-      for (const group of groups) {
+      
+      // Load members for each group the user belongs to
+      for (const group of userGroups) {
         if (!group?.id) continue;
         try {
           const res = await fetch(`/api/groups/${group.id}/members`);
@@ -800,10 +807,27 @@ function MembersList({ groups }: { groups: Group[] }) {
         }
       }
       setAllMembers(data);
+      
+      // Load pending invites for admin groups
+      if (isAdmin) {
+        for (const group of userGroups.filter((g: any) => g.role === 'ADMIN')) {
+          try {
+            const res = await fetch(`/api/groups/${group.id}/invites`);
+            if (res.ok) {
+              const invites = await res.json();
+              if (Array.isArray(invites)) {
+                setPendingInvites(prev => [...prev, ...invites.map((i: any) => ({ ...i, groupName: group.name }))]);
+              }
+            }
+          } catch (e) {
+            console.error('Error loading invites:', e);
+          }
+        }
+      }
       setLoading(false);
     };
     loadMembers();
-  }, [groups]);
+  }, [groups, userGroups, isAdmin]);
 
   if (loading) return <div className="text-center py-12">Loading...</div>;
 
@@ -814,7 +838,9 @@ function MembersList({ groups }: { groups: Group[] }) {
     if (!membersByEmail[email]) {
       membersByEmail[email] = { member, groups: [] };
     }
-    membersByEmail[email].groups.push(groupName);
+    if (!membersByEmail[email].groups.includes(groupName)) {
+      membersByEmail[email].groups.push(groupName);
+    }
   });
 
   return (
@@ -822,6 +848,26 @@ function MembersList({ groups }: { groups: Group[] }) {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Members</h2>
       </div>
+
+      {/* Pending Invitations */}
+      {pendingInvites.length > 0 && (
+        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+          <h3 className="text-lg font-medium mb-3 text-yellow-400">📧 Pending Invitations</h3>
+          <div className="space-y-2">
+            {pendingInvites.map((invite) => (
+              <div key={invite.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                <div>
+                  <div className="font-medium">{invite.email || 'No email specified'}</div>
+                  <div className="text-sm text-slate-400">
+                    {invite.groupName} • Role: {invite.role} • Sent {new Date(invite.createdAt).toLocaleDateString()}
+                  </div>
+                </div>
+                <span className="text-yellow-400 text-sm">Invitation Sent</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {Object.entries(membersByEmail).map(([email, { member, groups }]) => (
@@ -1261,10 +1307,62 @@ function BillingView({ groups }: { groups: Group[] }) {
   const [error, setError] = useState<string | null>(null);
   const [finalizing, setFinalizing] = useState(false);
   const [showDetail, setShowDetail] = useState<string | null>(null);
+  const [selectedMemberDetails, setSelectedMemberDetails] = useState<any>(null);
+
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   // Get groups where user is admin
   const adminGroups = groups?.filter((g: any) => g.role === 'ADMIN') || [];
   const isAdmin = adminGroups.length > 0;
+  const selectedGroup = adminGroups.find((g: any) => g.id === selectedGroupId);
+
+  const generatePDF = () => {
+    if (!billing || !billing.members) return;
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Header
+    doc.setFontSize(20);
+    doc.text('Billing Statement', pageWidth / 2, 20, { align: 'center' });
+    
+    doc.setFontSize(12);
+    doc.text(`${selectedGroup?.name || 'Flying Club'} - ${months[month]} ${year}`, pageWidth / 2, 30, { align: 'center' });
+    
+    // Summary
+    doc.setFontSize(11);
+    doc.text(`Total Members: ${billing.totalMembers}`, 20, 45);
+    doc.text(`Total Flights: ${billing.totalFlights}`, 20, 52);
+    doc.text(`Total Hobbs Hours: ${Number(billing.totalHobbs).toFixed(1)}`, 20, 59);
+    doc.setFontSize(14);
+    doc.text(`Total Owed: $${Number(billing.totalCost).toFixed(2)}`, 20, 70);
+
+    // Members table
+    const tableData = billing.members.map((member: any) => [
+      member.name || 'Unknown',
+      member.email || '',
+      member.flights.toString(),
+      Number(member.totalHobbs).toFixed(1),
+      Number(member.totalTach).toFixed(1),
+      `$${Number(member.totalCost).toFixed(2)}`
+    ]);
+
+    autoTable(doc, {
+      startY: 80,
+      head: [['Member', 'Email', 'Flights', 'Hobbs', 'Tach', 'Cost']],
+      body: tableData,
+      foot: [['', '', billing.totalFlights.toString(), Number(billing.totalHobbs).toFixed(1), '', `$${Number(billing.totalCost).toFixed(2)}`]],
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [41, 128, 185] },
+    });
+
+    // Footer
+    const pageHeight = doc.internal.pageSize.getHeight();
+    doc.setFontSize(8);
+    doc.text(`Generated on ${new Date().toLocaleDateString()}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+
+    doc.save(`billing-${months[month].toLowerCase()}-${year}.pdf`);
+  };
 
   // Auto-select first group if only one
   useEffect(() => {
@@ -1297,8 +1395,6 @@ function BillingView({ groups }: { groups: Group[] }) {
       </div>
     );
   }
-
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   if (loading) return <div className="text-center py-12">Loading...</div>;
   
@@ -1337,13 +1433,10 @@ function BillingView({ groups }: { groups: Group[] }) {
           </select>
           {billing?.members?.length > 0 && (
             <button
-              onClick={() => {
-                // Generate printable view
-                window.print();
-              }}
+              onClick={generatePDF}
               className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm"
             >
-              🖨️ Print
+              📄 PDF
             </button>
           )}
         </div>
@@ -1407,10 +1500,10 @@ function BillingView({ groups }: { groups: Group[] }) {
                       <td className="text-right p-4 font-bold text-green-400">${Number(member.totalCost).toFixed(2)}</td>
                       <td className="text-center p-4">
                         <button
-                          onClick={() => setShowDetail(showDetail === member.email ? null : member.email)}
+                          onClick={() => setSelectedMemberDetails(member)}
                           className="text-sky-400 hover:text-sky-300 text-sm"
                         >
-                          {showDetail === member.email ? '▲ Hide' : '▼ View'}
+                          View
                         </button>
                       </td>
                     </tr>
@@ -1468,6 +1561,73 @@ function BillingView({ groups }: { groups: Group[] }) {
               </tfoot>
             </table>
           </div>
+
+          {/* Member Details Modal */}
+          {selectedMemberDetails && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-xl font-semibold">{selectedMemberDetails.name}</h3>
+                    <p className="text-slate-400">{selectedMemberDetails.email}</p>
+                    <p className="text-sky-400 mt-2">
+                      {months[month]} {year} Billing Statement
+                    </p>
+                  </div>
+                  <button onClick={() => setSelectedMemberDetails(null)} className="text-slate-400 hover:text-white text-2xl">&times;</button>
+                </div>
+                
+                <div className="grid grid-cols-4 gap-4 mb-4 bg-slate-700 p-4 rounded-lg">
+                  <div>
+                    <div className="text-slate-400 text-sm">Flights</div>
+                    <div className="text-xl font-bold">{selectedMemberDetails.flights}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400 text-sm">Hobbs</div>
+                    <div className="text-xl font-bold">{Number(selectedMemberDetails.totalHobbs).toFixed(1)}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400 text-sm">Tach</div>
+                    <div className="text-xl font-bold">{Number(selectedMemberDetails.totalTach).toFixed(1)}</div>
+                  </div>
+                  <div>
+                    <div className="text-slate-400 text-sm">Total Cost</div>
+                    <div className="text-xl font-bold text-green-400">${Number(selectedMemberDetails.totalCost).toFixed(2)}</div>
+                  </div>
+                </div>
+
+                <div className="flex-1 overflow-y-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-700 sticky top-0">
+                      <tr>
+                        <th className="text-left p-3">Date</th>
+                        <th className="text-left p-3">Aircraft</th>
+                        <th className="text-right p-3">Hobbs</th>
+                        <th className="text-right p-3">Tach</th>
+                        <th className="text-right p-3">Cost</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {selectedMemberDetails.details?.map((detail: any, di: number) => (
+                        <tr key={di} className="border-b border-slate-700">
+                          <td className="p-3">{new Date(detail.date).toLocaleDateString()}</td>
+                          <td className="p-3">{detail.aircraft}</td>
+                          <td className="text-right p-3">{Number(detail.hobbs).toFixed(1)}</td>
+                          <td className="text-right p-3">{Number(detail.tach).toFixed(1)}</td>
+                          <td className="text-right p-3 text-green-400">${Number(detail.cost).toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-slate-700 flex justify-between items-center">
+                  <button onClick={() => setSelectedMemberDetails(null)} className="px-4 py-2 bg-slate-700 rounded-lg">Close</button>
+                  <button onClick={generatePDF} className="px-4 py-2 bg-sky-500 rounded-lg">📄 Download PDF</button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
@@ -2145,14 +2305,17 @@ function PartnershipMarketplace() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
       });
+      const data = await res.json();
       if (res.ok) {
-        const saved = await res.json();
-        setMyProfile(saved);
+        setMyProfile(data);
         setShowEditForm(false);
         loadProfiles();
+      } else {
+        alert('Error: ' + (data.error || data.details || 'Failed to save'));
       }
     } catch (e) {
       console.error('Error saving profile:', e);
+      alert('Error saving profile: ' + e);
     }
   };
 

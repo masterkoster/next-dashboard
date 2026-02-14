@@ -29,6 +29,9 @@ export async function GET(request: Request, { params }: RouteParams) {
 
     const invites = await prisma.invite.findMany({
       where: { groupId },
+      include: {
+        group: { select: { id: true, name: true } }
+      },
       orderBy: { createdAt: 'desc' },
     });
 

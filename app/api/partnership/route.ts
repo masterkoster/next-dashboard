@@ -146,6 +146,10 @@ export async function POST(request: Request) {
     return NextResponse.json(profile);
   } catch (error) {
     console.error('Error saving partnership profile:', error);
-    return NextResponse.json({ error: 'Failed to save profile', details: String(error) }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to save profile', 
+      details: String(error),
+      hint: 'Make sure to run prisma db push to update the database schema'
+    }, { status: 500 });
   }
 }

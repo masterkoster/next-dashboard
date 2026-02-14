@@ -174,6 +174,7 @@ model Invite {
   expiresAt DateTime @db.DateTime2
   createdBy String
   createdAt DateTime @default(now()) @db.DateTime2
+  acceptedAt DateTime? @db.DateTime2
 
   group FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
