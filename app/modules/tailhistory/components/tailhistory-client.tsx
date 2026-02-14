@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { checkTailHistory, TailHistoryActionResult } from "../actions";
 import { SearchBar } from "./search-bar";
 import { Timeline3D, TailHistoryRecord } from "./timeline-3d";
-import { AircraftModel } from "@/components/three/aircraft-model";
+import { AircraftModel } from "../../../components/three/aircraft-model";
 
 type PerformanceData = {
   designation: string;
