@@ -17,7 +17,24 @@ model User {
   createdAt        DateTime @default(now()) @db.DateTime2
   updatedAt        DateTime @updatedAt @db.DateTime2
 
+  // User's aircraft
+  aircraft         UserAircraft[]
+
   @@map("User")
+}
+
+model UserAircraft {
+  id          String   @id @default(uuid())
+  userId      String
+  nNumber     String   @db.NVarChar(10)
+  nickname    String?  @db.NVarChar(100)
+  notes       String?  @db.NVarChar(Max)
+  createdAt   DateTime @default(now()) @db.DateTime2
+  updatedAt   DateTime @updatedAt @db.DateTime2
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("UserAircraft")
 }
 
 model AircraftMaster {

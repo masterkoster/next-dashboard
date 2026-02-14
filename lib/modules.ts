@@ -7,27 +7,21 @@ export type ModuleDefinition = {
 
 export const moduleCatalog: ModuleDefinition[] = [
   {
-    id: "overview",
-    label: "Overview",
-    href: "/modules/overview",
-    description: "High-level summary of your workspace.",
+    id: "plane-carfax",
+    label: "Plane Carfax",
+    href: "/modules/plane-carfax",
+    description: "FAA registration history & ownership details",
   },
   {
-    id: "analytics",
-    label: "Analytics",
-    href: "/modules/analytics",
-    description: "Engagement and traffic trends.",
+    id: "plane-search",
+    label: "Plane Search",
+    href: "/modules/plane-search",
+    description: "Search & filter aircraft by model",
   },
   {
-    id: "billing",
-    label: "Billing",
-    href: "/modules/billing",
-    description: "Invoices, payment methods, and credits.",
-  },
-  {
-    id: "settings",
-    label: "Settings",
-    href: "/modules/settings",
-    description: "Account, notifications, and team controls.",
+    id: "tailhistory",
+    label: "TailHistory",
+    href: "/modules/tailhistory",
+    description: "3D timeline of aircraft history",
   },
 ];

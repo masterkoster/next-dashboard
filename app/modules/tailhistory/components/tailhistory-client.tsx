@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useState, useTransition, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { checkTailHistory, TailHistoryActionResult } from "../actions";
 import { SearchBar } from "./search-bar";
 import { Timeline3D, TailHistoryRecord } from "./timeline-3d";
@@ -32,12 +33,22 @@ type ExtendedRecord = TailHistoryRecord & {
 };
 
 export default function TailHistoryClient() {
+  const searchParams = useSearchParams();
+  const initialNNumber = searchParams?.get("n");
+  
   const [isPending, startTransition] = useTransition();
   const [record, setRecord] = useState<ExtendedRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | undefined>(undefined);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showPerformance, setShowPerformance] = useState(false);
+
+  // Auto-search if initialNNumber is provided
+  useEffect(() => {
+    if (initialNNumber) {
+      handleSubmit(initialNNumber);
+    }
+  }, [initialNNumber]);
 
   const handleSubmit = useCallback((value: string) => {
     startTransition(async () => {
