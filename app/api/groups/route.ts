@@ -69,11 +69,18 @@ export async function GET() {
     const memberships = await prisma.groupMember.findMany({
       where: { userId: user.id },
       include: {
-        group: true,
+        group: {
+          include: {
+            aircraft: true,
+          },
+        },
       },
     });
 
-    const groups = memberships.map((m) => m.group);
+    const groups = memberships.map((m) => ({
+      ...m.group,
+      role: m.role,
+    }));
     return NextResponse.json(groups);
   } catch (error) {
     console.error('Error fetching groups:', error);

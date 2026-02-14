@@ -10,6 +10,8 @@ interface Group {
   description: string | null;
   dryRate: number | null;
   wetRate: number | null;
+  aircraft?: Aircraft[];
+  role?: string;
 }
 
 interface Aircraft {
@@ -683,6 +685,7 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState('');
   const [formData, setFormData] = useState({ aircraftId: '', description: '', notes: '' });
 
   useEffect(() => {
@@ -696,6 +699,13 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
       .finally(() => setLoading(false));
   }, []);
 
+  // Get user's groups with their aircraft
+  const userGroups = groups?.filter((g: any) => g.role === 'ADMIN' || g.role === 'MEMBER') || [];
+  
+  // Get aircraft for the selected group
+  const selectedGroup = userGroups.find((g: any) => g.id === selectedGroupId);
+  const groupAircraft = selectedGroup?.aircraft || [];
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     await fetch('/api/maintenance', {
@@ -705,6 +715,7 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
     });
     setShowAddForm(false);
     setFormData({ aircraftId: '', description: '', notes: '' });
+    setSelectedGroupId('');
     // Reload
     const res = await fetch('/api/maintenance');
     if (res.ok) {
@@ -712,20 +723,12 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
     }
   };
 
-  const needed = maintenance.filter((m: any) => m.status === 'NEEDED' || m.status === 'IN_PROGRESS');
-  const done = maintenance.filter((m: any) => m.status === 'DONE');
-
-  // Get aircraft for the form - defensive checks
-  const allAircraft: { id: string; name: string }[] = [];
-  if (Array.isArray(groups)) {
-    groups.forEach((g: any) => {
-      if (g?.aircraft && Array.isArray(g.aircraft)) {
-        g.aircraft.forEach((a: any) => {
-          allAircraft.push({ id: a.id, name: a.nNumber || a.customName || 'Unknown' });
-        });
-      }
-    });
-  }
+  // Filter maintenance to show only user's groups
+  const userGroupIds = userGroups.map((g: any) => g.id);
+  const filteredMaintenance = maintenance.filter((m: any) => m.groupId && userGroupIds.includes(m.groupId));
+  
+  const needed = filteredMaintenance.filter((m: any) => m.status === 'NEEDED' || m.status === 'IN_PROGRESS');
+  const done = filteredMaintenance.filter((m: any) => m.status === 'DONE');
 
   if (loading) return <div className="text-center py-12">Loading...</div>;
 
@@ -735,9 +738,11 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Maintenance</h2>
-        <button onClick={() => setShowAddForm(true)} className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium">
-          + Report Issue
-        </button>
+        {userGroups.length > 0 && (
+          <button onClick={() => setShowAddForm(true)} className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium">
+            + Report Issue
+          </button>
+        )}
       </div>
 
       {showAddForm && (
@@ -745,16 +750,32 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
           <h3 className="text-lg font-semibold mb-4">Report Maintenance Issue</h3>
           <div className="space-y-4">
             <select
-              value={formData.aircraftId}
-              onChange={(e) => setFormData({ ...formData, aircraftId: e.target.value })}
+              value={selectedGroupId}
+              onChange={(e) => {
+                setSelectedGroupId(e.target.value);
+                setFormData({ ...formData, aircraftId: '' });
+              }}
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
               required
             >
-              <option value="">Select Aircraft</option>
-              {allAircraft.map(a => (
-                <option key={a.id} value={a.id}>{a.name}</option>
+              <option value="">Select Group</option>
+              {userGroups.map((g: any) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
               ))}
             </select>
+            {selectedGroupId && (
+              <select
+                value={formData.aircraftId}
+                onChange={(e) => setFormData({ ...formData, aircraftId: e.target.value })}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                required
+              >
+                <option value="">Select Aircraft</option>
+                {groupAircraft.map((a: any) => (
+                  <option key={a.id} value={a.id}>{a.nNumber || a.customName || a.nickname || 'Unknown'}</option>
+                ))}
+              </select>
+            )}
             <input
               type="text"
               placeholder="Description (e.g., Flat tire, Oil leak)"
