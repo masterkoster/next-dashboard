@@ -28,10 +28,3 @@ export default function TailHistoryPage() {
     </div>
   );
 }
-        >
-          <TailHistoryClient />
-        </Suspense>
-      </div>
-    </div>
-  );
-}
