@@ -42,6 +42,22 @@ interface Booking {
   groupName: string;
 }
 
+interface MaintenanceBlock {
+  id: string;
+  aircraftId: string;
+  aircraft: {
+    id: string;
+    nNumber: string | null;
+    customName: string | null;
+    nickname: string | null;
+  };
+  description: string;
+  status: string;
+  isGrounded: boolean;
+  reportedDate: string;
+  groupName?: string;
+}
+
 interface Member {
   userId: string;
   role: string;
@@ -59,8 +75,9 @@ export default function FlyingClubPage() {
   const router = useRouter();
   const [groups, setGroups] = useState<Group[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [maintenanceBlocks, setMaintenanceBlocks] = useState<MaintenanceBlock[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'aircraft' | 'flights' | 'maintenance' | 'billing' | 'members' | 'status'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'aircraft' | 'flights' | 'maintenance' | 'billing' | 'members' | 'status' | 'partners'>('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [hoveredBooking, setHoveredBooking] = useState<Booking | null>(null);
@@ -69,16 +86,34 @@ export default function FlyingClubPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [groupsRes, bookingsRes] = await Promise.all([
+      const [groupsRes, bookingsRes, maintenanceRes] = await Promise.all([
         fetch('/api/groups'),
-        fetch('/api/groups/all-bookings')
+        fetch('/api/groups/all-bookings'),
+        fetch('/api/maintenance')
       ]);
       
       const groupsData = groupsRes.ok ? await groupsRes.json() : [];
       const bookingsData = bookingsRes.ok ? await bookingsRes.json() : [];
+      const maintenanceData = maintenanceRes.ok ? await maintenanceRes.json() : [];
       
       setGroups(groupsData);
       setBookings(bookingsData);
+      
+      // Filter to only show grounded maintenance as blocks
+      const groundedMaintenance = (maintenanceData || []).filter((m: any) => 
+        m.isGrounded && (m.status === 'NEEDED' || m.status === 'IN_PROGRESS')
+      );
+      
+      // Add groupName to each maintenance block
+      const maintenanceWithGroup = groundedMaintenance.map((m: any) => {
+        const group = groupsData.find((g: any) => g.aircraft?.some((a: any) => a.id === m.aircraftId));
+        return {
+          ...m,
+          groupName: group?.name || 'Unknown Group'
+        };
+      });
+      
+      setMaintenanceBlocks(maintenanceWithGroup);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -125,6 +160,18 @@ export default function FlyingClubPage() {
     });
   };
 
+  const getMaintenanceForDay = (day: number) => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    
+    return maintenanceBlocks.filter(m => {
+      if (selectedGroup !== 'all' && m.groupName !== selectedGroup) return false;
+      const reportedDate = new Date(m.reportedDate).toISOString().split('T')[0];
+      return reportedDate === dateStr;
+    });
+  };
+
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
@@ -163,7 +210,7 @@ export default function FlyingClubPage() {
       <div className="max-w-7xl mx-auto">
         {/* Tab Navigation */}
         <div className="flex gap-2 mb-6 border-b border-slate-700 overflow-x-auto">
-          {(['dashboard', 'bookings', 'aircraft', 'flights', 'status', 'maintenance', 'billing', 'members'] as const).map((tab) => (
+          {(['dashboard', 'bookings', 'aircraft', 'flights', 'status', 'maintenance', 'billing', 'members', 'partners'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -181,6 +228,7 @@ export default function FlyingClubPage() {
               {tab === 'maintenance' && '🔧 '}
               {tab === 'billing' && '💰 '}
               {tab === 'members' && '👥 '}
+              {tab === 'partners' && '🤝 '}
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
@@ -260,6 +308,17 @@ export default function FlyingClubPage() {
                   <>
                     <div className="text-sm font-medium mb-1">{day}</div>
                     <div className="space-y-1">
+                      {/* Maintenance Blocks - Red Overlay */}
+                      {getMaintenanceForDay(day).map(maint => (
+                        <div
+                          key={maint.id}
+                          className="text-xs bg-red-500/30 text-red-300 px-2 py-1 rounded truncate border border-red-500/50"
+                          title={`MAINTENANCE: ${maint.description}`}
+                        >
+                          🔧 {maint.aircraft?.nNumber || 'Aircraft'} - Grounded
+                        </div>
+                      ))}
+                      {/* Bookings */}
                       {getBookingsForDay(day).map(booking => (
                         <div
                           key={booking.id}
@@ -360,6 +419,10 @@ export default function FlyingClubPage() {
 
         {activeTab === 'members' && (
           <MembersList groups={groups} />
+        )}
+
+        {activeTab === 'partners' && (
+          <PartnershipMarketplace />
         )}
       </div>
     </div>
@@ -794,8 +857,8 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
   const [fixingMaintenance, setFixingMaintenance] = useState<any>(null);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [selectedAircraftId, setSelectedAircraftId] = useState('');
-  const [formData, setFormData] = useState({ aircraftId: '', description: '', notes: '' });
-  const [fixData, setFixData] = useState({ notes: '', cost: '' });
+  const [formData, setFormData] = useState({ aircraftId: '', description: '', notes: '', isGrounded: false });
+  const [fixData, setFixData] = useState({ notes: '', cost: '', isGrounded: false });
 
   // Common pilot-fixable issues
   const pilotFixableIssues = [
@@ -822,13 +885,14 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
         status: 'DONE',
         cost: fixData.cost || null,
         notes: fixData.notes,
+        isGrounded: fixData.isGrounded,
       }),
     });
     
     if (res.ok) {
       setShowFixForm(false);
       setFixingMaintenance(null);
-      setFixData({ notes: '', cost: '' });
+      setFixData({ notes: '', cost: '', isGrounded: false });
       // Reload maintenance
       const reloadRes = await fetch('/api/maintenance');
       if (reloadRes.ok) {
@@ -874,7 +938,7 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
     });
     if (res.ok) {
       setShowAddForm(false);
-      setFormData({ aircraftId: '', description: '', notes: '' });
+      setFormData({ aircraftId: '', description: '', notes: '', isGrounded: false });
       setSelectedGroupId('');
       const reloadRes = await fetch('/api/maintenance');
       if (reloadRes.ok) {
@@ -1021,6 +1085,18 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 h-20"
             />
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="addIsGrounded"
+                checked={formData.isGrounded}
+                onChange={(e) => setFormData({ ...formData, isGrounded: e.target.checked })}
+                className="w-4 h-4 rounded"
+              />
+              <label htmlFor="addIsGrounded" className="text-sm text-slate-300">
+                Ground this aircraft (block bookings)
+              </label>
+            </div>
           </div>
           <div className="flex gap-3 mt-4">
             <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 bg-slate-700 rounded-lg">Cancel</button>
@@ -1063,6 +1139,18 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
                   className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
                   placeholder="0.00"
                 />
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="isGrounded"
+                  checked={fixData.isGrounded}
+                  onChange={(e) => setFixData({ ...fixData, isGrounded: e.target.checked })}
+                  className="w-4 h-4 rounded"
+                />
+                <label htmlFor="isGrounded" className="text-sm text-slate-300">
+                  Keep aircraft Grounded until explicitly cleared
+                </label>
               </div>
             </div>
             <div className="flex gap-3 mt-6">
@@ -1171,6 +1259,8 @@ function BillingView({ groups }: { groups: Group[] }) {
   const [year, setYear] = useState(new Date().getFullYear());
   const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [finalizing, setFinalizing] = useState(false);
+  const [showDetail, setShowDetail] = useState<string | null>(null);
 
   // Get groups where user is admin
   const adminGroups = groups?.filter((g: any) => g.role === 'ADMIN') || [];
@@ -1218,7 +1308,7 @@ function BillingView({ groups }: { groups: Group[] }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">💰 Billing Statement</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           {/* Group selector - only show if user is admin of multiple groups */}
           {adminGroups.length > 1 && (
             <select
@@ -1245,6 +1335,17 @@ function BillingView({ groups }: { groups: Group[] }) {
           >
             {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
           </select>
+          {billing?.members?.length > 0 && (
+            <button
+              onClick={() => {
+                // Generate printable view
+                window.print();
+              }}
+              className="bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded-lg text-sm"
+            >
+              🖨️ Print
+            </button>
+          )}
         </div>
       </div>
 
@@ -1287,22 +1388,84 @@ function BillingView({ groups }: { groups: Group[] }) {
                   <th className="text-left p-4">Member</th>
                   <th className="text-right p-4">Flights</th>
                   <th className="text-right p-4">Hobbs</th>
+                  <th className="text-right p-4">Tach</th>
                   <th className="text-right p-4">Cost</th>
+                  <th className="text-center p-4">Details</th>
                 </tr>
               </thead>
               <tbody>
                 {billing?.members?.map((member: any, i: number) => (
-                  <tr key={i} className="border-t border-slate-700">
-                    <td className="p-4">
-                      <div className="font-medium">{member.name}</div>
-                      <div className="text-sm text-slate-400">{member.email}</div>
-                    </td>
-                    <td className="text-right p-4">{member.flights}</td>
-                    <td className="text-right p-4">{Number(member.totalHobbs).toFixed(1)}</td>
-                    <td className="text-right p-4 font-bold text-green-400">${Number(member.totalCost).toFixed(2)}</td>
-                  </tr>
+                  <>
+                    <tr key={i} className="border-t border-slate-700">
+                      <td className="p-4">
+                        <div className="font-medium">{member.name}</div>
+                        <div className="text-sm text-slate-400">{member.email}</div>
+                      </td>
+                      <td className="text-right p-4">{member.flights}</td>
+                      <td className="text-right p-4">{Number(member.totalHobbs).toFixed(1)}</td>
+                      <td className="text-right p-4">{Number(member.totalTach).toFixed(1)}</td>
+                      <td className="text-right p-4 font-bold text-green-400">${Number(member.totalCost).toFixed(2)}</td>
+                      <td className="text-center p-4">
+                        <button
+                          onClick={() => setShowDetail(showDetail === member.email ? null : member.email)}
+                          className="text-sky-400 hover:text-sky-300 text-sm"
+                        >
+                          {showDetail === member.email ? '▲ Hide' : '▼ View'}
+                        </button>
+                      </td>
+                    </tr>
+                    {/* Expanded Details */}
+                    {showDetail === member.email && member.details && (
+                      <tr key={`${i}-detail`}>
+                        <td colSpan={6} className="p-0 bg-slate-800/50">
+                          <div className="p-4">
+                            <table className="w-full text-sm">
+                              <thead>
+                                <tr className="text-slate-400 border-b border-slate-600">
+                                  <th className="text-left py-2">Date</th>
+                                  <th className="text-left py-2">Aircraft</th>
+                                  <th className="text-right py-2">Hobbs</th>
+                                  <th className="text-right py-2">Tach</th>
+                                  <th className="text-right py-2">Cost</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {member.details.map((detail: any, di: number) => (
+                                  <tr key={di} className="border-b border-slate-700/50">
+                                    <td className="py-2">{new Date(detail.date).toLocaleDateString()}</td>
+                                    <td className="py-2">{detail.aircraft}</td>
+                                    <td className="text-right py-2">{Number(detail.hobbs).toFixed(1)}</td>
+                                    <td className="text-right py-2">{Number(detail.tach).toFixed(1)}</td>
+                                    <td className="text-right py-2 text-green-400">${Number(detail.cost).toFixed(2)}</td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                              <tfoot>
+                                <tr className="font-semibold">
+                                  <td colSpan={2} className="py-2 text-right">Totals:</td>
+                                  <td className="text-right py-2">{Number(member.totalHobbs).toFixed(1)}</td>
+                                  <td className="text-right py-2">{Number(member.totalTach).toFixed(1)}</td>
+                                  <td className="text-right py-2 text-green-400">${Number(member.totalCost).toFixed(2)}</td>
+                                </tr>
+                              </tfoot>
+                            </table>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
                 ))}
               </tbody>
+              <tfoot className="bg-slate-700 font-semibold">
+                <tr>
+                  <td className="p-4 text-right">TOTALS:</td>
+                  <td className="text-right p-4">{billing?.totalFlights || 0}</td>
+                  <td className="text-right p-4">{Number(billing?.totalHobbs || 0).toFixed(1)}</td>
+                  <td className="text-right p-4">-</td>
+                  <td className="text-right p-4 text-green-400">${Number(billing?.totalCost || 0).toFixed(2)}</td>
+                  <td></td>
+                </tr>
+              </tfoot>
             </table>
           </div>
         </>
@@ -1891,6 +2054,392 @@ function AircraftStatus({ groups }: { groups: Group[] }) {
           <button onClick={handleSave} disabled={saving} className="w-full bg-sky-500 hover:bg-sky-600 py-3 rounded-lg font-medium disabled:opacity-50">
             {saving ? 'Saving...' : 'Save Status'}
           </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PartnershipMarketplace() {
+  const [profiles, setProfiles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [myProfile, setMyProfile] = useState<any>(null);
+  const [filters, setFilters] = useState({ airport: '', state: '', experience: '' });
+  const [mapProfiles, setMapProfiles] = useState<any[]>([]);
+
+  const [formData, setFormData] = useState({
+    availability: '',
+    flightInterests: '',
+    homeAirport: '',
+    experienceLevel: '',
+    bio: '',
+    lookingFor: '',
+    city: '',
+    state: ''
+  });
+
+  useEffect(() => {
+    loadProfiles();
+  }, [filters]);
+
+  const loadProfiles = async () => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (filters.airport) params.set('airport', filters.airport);
+    if (filters.state) params.set('state', filters.state);
+    if (filters.experience) params.set('experience', filters.experience);
+
+    try {
+      const res = await fetch(`/api/partnership?${params}`);
+      if (res.ok) {
+        const data = await res.json();
+        setProfiles(data);
+        setMapProfiles(data.filter((p: any) => p.latitude && p.longitude));
+      }
+    } catch (e) {
+      console.error('Error loading profiles:', e);
+    }
+    setLoading(false);
+  };
+
+  const loadMyProfile = async () => {
+    try {
+      const res = await fetch('/api/users/me');
+      if (res.ok) {
+        const userData = await res.json();
+        // Check if user has a partnership profile
+        const profileRes = await fetch('/api/partnership');
+        if (profileRes.ok) {
+          const allProfiles = await profileRes.json();
+          const mine = allProfiles.find((p: any) => p.userId === userData.id);
+          if (mine) {
+            setMyProfile(mine);
+            setFormData({
+              availability: mine.availability || '',
+              flightInterests: mine.flightInterests || '',
+              homeAirport: mine.homeAirport || '',
+              experienceLevel: mine.experienceLevel || '',
+              bio: mine.bio || '',
+              lookingFor: mine.lookingFor || '',
+              city: mine.city || '',
+              state: mine.state || ''
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Error loading profile:', e);
+    }
+  };
+
+  useEffect(() => {
+    loadMyProfile();
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch('/api/partnership', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      if (res.ok) {
+        const saved = await res.json();
+        setMyProfile(saved);
+        setShowEditForm(false);
+        loadProfiles();
+      }
+    } catch (e) {
+      console.error('Error saving profile:', e);
+    }
+  };
+
+  const experienceLevels = ['Student Pilot', 'Private PPL', 'Commercial', 'ATP', 'CFI', 'CFII', 'MEI'];
+  const interestOptions = ['Cross Country', 'IFR', 'VFR', 'Sightseeing', 'Training', 'Night', 'Mountain', 'Coastal'];
+
+  // US State abbreviations
+  const states = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-semibold">🤝 Flying Partner Marketplace</h2>
+          <p className="text-slate-400 text-sm">Find other pilots in your area to fly with</p>
+        </div>
+        <button
+          onClick={() => { loadMyProfile(); setShowEditForm(true); }}
+          className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium"
+        >
+          {myProfile ? '✏️ Edit My Profile' : '➕ Create Profile'}
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Home Airport</label>
+            <input
+              type="text"
+              placeholder="e.g., KORD"
+              value={filters.airport}
+              onChange={(e) => setFilters({ ...filters, airport: e.target.value.toUpperCase() })}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm uppercase"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">State</label>
+            <select
+              value={filters.state}
+              onChange={(e) => setFilters({ ...filters, state: e.target.value })}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="">All States</option>
+              {states.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Experience</label>
+            <select
+              value={filters.experience}
+              onChange={(e) => setFilters({ ...filters, experience: e.target.value })}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="">All Levels</option>
+              {experienceLevels.map(l => <option key={l} value={l}>{l}</option>)}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Map View - OpenStreetMap */}
+      {mapProfiles.length > 0 && (
+        <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+          <div className="p-4 border-b border-slate-700">
+            <h3 className="font-medium">🗺️ Pilot Locations</h3>
+            <p className="text-xs text-slate-400">{mapProfiles.length} pilots on map</p>
+          </div>
+          <div className="h-[300px] bg-slate-900 relative">
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center p-4">
+                <div className="text-4xl mb-2">🗺️</div>
+                <p className="text-slate-400 text-sm">Interactive Map</p>
+                <p className="text-slate-500 text-xs">{mapProfiles.length} pilots near you</p>
+                <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                  {mapProfiles.slice(0, 6).map((p, i) => (
+                    <div key={i} className="bg-slate-800 px-3 py-1 rounded-full text-xs">
+                      {p.city}, {p.state} ✈️ {p.homeAirport}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Cards */}
+      {loading ? (
+        <div className="text-center py-12">Loading...</div>
+      ) : profiles.length === 0 ? (
+        <div className="text-center py-12 text-slate-400">
+          <div className="text-4xl mb-4">🤝</div>
+          <p>No pilots found matching your criteria</p>
+          <p className="text-sm mt-2">Be the first to create a profile!</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {profiles.map((profile) => (
+            <div key={profile.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <div className="font-semibold text-lg">{profile.user?.name || 'Anonymous Pilot'}</div>
+                  <div className="text-sky-400 text-sm">
+                    📍 {profile.city}, {profile.state}
+                  </div>
+                </div>
+                <span className="text-xs bg-sky-500/20 text-sky-400 px-2 py-1 rounded">
+                  {profile.experienceLevel}
+                </span>
+              </div>
+              
+              <div className="space-y-2 text-sm">
+                {profile.homeAirport && (
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <span>✈️</span> Home: <span className="font-mono">{profile.homeAirport}</span>
+                  </div>
+                )}
+                {profile.availability && (
+                  <div className="flex items-center gap-2 text-slate-300">
+                    <span>📅</span> {profile.availability}
+                  </div>
+                )}
+                {profile.flightInterests && (
+                  <div className="flex items-start gap-2 text-slate-300">
+                    <span>🎯</span> 
+                    <div className="flex flex-wrap gap-1 mt-0.5">
+                      {profile.flightInterests.split(',').map((interest: string, i: number) => (
+                        <span key={i} className="text-xs bg-slate-700 px-2 py-0.5 rounded">{interest.trim()}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {profile.bio && (
+                <div className="mt-3 text-sm text-slate-400 italic">
+                  "{profile.bio}"
+                </div>
+              )}
+              
+              {profile.lookingFor && (
+                <div className="mt-3 text-xs text-slate-500">
+                  Looking for: {profile.lookingFor}
+                </div>
+              )}
+              
+              <button className="mt-4 w-full bg-slate-700 hover:bg-slate-600 py-2 rounded-lg text-sm transition-colors">
+                📧 Contact
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold mb-4">
+              {myProfile ? 'Edit Your Profile' : 'Create Your Profile'}
+            </h3>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">City</label>
+                  <input
+                    type="text"
+                    value={formData.city}
+                    onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2"
+                    placeholder="Chicago"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">State</label>
+                  <select
+                    value={formData.state}
+                    onChange={(e) => setFormData({ ...formData, state: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2"
+                  >
+                    <option value="">Select</option>
+                    {states.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Home Airport (ICAO)</label>
+                <input
+                  type="text"
+                  value={formData.homeAirport}
+                  onChange={(e) => setFormData({ ...formData, homeAirport: e.target.value.toUpperCase() })}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 uppercase font-mono"
+                  placeholder="KORD"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Experience Level</label>
+                <select
+                  value={formData.experienceLevel}
+                  onChange={(e) => setFormData({ ...formData, experienceLevel: e.target.value })}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2"
+                >
+                  <option value="">Select</option>
+                  {experienceLevels.map(l => <option key={l} value={l}>{l}</option>)}
+                </select>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Availability</label>
+                <input
+                  type="text"
+                  value={formData.availability}
+                  onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2"
+                  placeholder="Weekends, Evenings"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Flight Interests</label>
+                <div className="flex flex-wrap gap-2">
+                  {interestOptions.map(interest => (
+                    <button
+                      key={interest}
+                      type="button"
+                      onClick={() => {
+                        const current = formData.flightInterests.split(',').map(s => s.trim()).filter(Boolean);
+                        if (current.includes(interest)) {
+                          setFormData({ ...formData, flightInterests: current.filter(i => i !== interest).join(', ') });
+                        } else {
+                          setFormData({ ...formData, flightInterests: [...current, interest].join(', ') });
+                        }
+                      }}
+                      className={`text-xs px-3 py-1 rounded-full ${
+                        formData.flightInterests.includes(interest)
+                          ? 'bg-sky-500 text-white'
+                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      }`}
+                    >
+                      {interest}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Bio</label>
+                <textarea
+                  value={formData.bio}
+                  onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 h-20"
+                  placeholder="Tell others about yourself..."
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Looking For</label>
+                <input
+                  type="text"
+                  value={formData.lookingFor}
+                  onChange={(e) => setFormData({ ...formData, lookingFor: e.target.value })}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2"
+                  placeholder="Weekend XC partner, IFR currency partner..."
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => setShowEditForm(false)}
+                  className="flex-1 px-4 py-2 bg-slate-700 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2 bg-sky-500 rounded-lg font-medium"
+                >
+                  Save Profile
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

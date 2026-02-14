@@ -43,15 +43,15 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { aircraftId, description, notes, groupId } = body;
+    const { aircraftId, description, notes, groupId, isGrounded } = body;
 
     if (!aircraftId || !description) {
       return NextResponse.json({ error: 'Aircraft and description required' }, { status: 400 });
     }
 
     await prisma.$executeRaw`
-      INSERT INTO Maintenance (id, aircraftId, userId, description, notes, status, reportedDate, createdAt, updatedAt)
-      VALUES (NEWID(), ${aircraftId}, ${user.id}, ${description}, ${notes || null}, 'NEEDED', GETDATE(), GETDATE(), GETDATE())
+      INSERT INTO Maintenance (id, aircraftId, userId, groupId, description, notes, status, isGrounded, reportedDate, createdAt, updatedAt)
+      VALUES (NEWID(), ${aircraftId}, ${user.id}, ${groupId || null}, ${description}, ${notes || null}, 'NEEDED', ${isGrounded ? 1 : 0}, GETDATE(), GETDATE(), GETDATE())
     `;
 
     return NextResponse.json({ success: true });

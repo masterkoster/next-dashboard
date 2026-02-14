@@ -78,6 +78,24 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Aircraft not found in group' }, { status: 404 });
     }
 
+    // Check if aircraft is grounded for maintenance
+    const groundedMaintenance = await prisma.maintenance.findFirst({
+      where: {
+        aircraftId,
+        isGrounded: true,
+        OR: [
+          { status: 'NEEDED' },
+          { status: 'IN_PROGRESS' },
+        ],
+      },
+    });
+
+    if (groundedMaintenance) {
+      return NextResponse.json({ 
+        error: 'This aircraft is currently Grounded for maintenance. Please contact your admin.' 
+      }, { status: 403 });
+    }
+
     // Check for conflicts
     const conflict = await prisma.booking.findFirst({
       where: {

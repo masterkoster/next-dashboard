@@ -22,6 +22,7 @@ model User {
   memberships      GroupMember[]
   Booking          Booking[]
   FlightLog        FlightLog[]
+  PartnershipProfile PartnershipProfile?
 
   @@map("User")
 }
@@ -180,18 +181,19 @@ model Invite {
 }
 
 model Maintenance {
-  id          String   @id @default(uuid())
-  aircraftId  String
-  userId      String
-  groupId     String?
-  description String   @db.NVarChar(500)
-  notes       String?  @db.NVarChar(Max)
-  status      String   @default("NEEDED") @db.NVarChar(20)
+  id           String   @id @default(uuid())
+  aircraftId   String
+  userId       String
+  groupId      String?
+  description  String   @db.NVarChar(500)
+  notes        String?  @db.NVarChar(Max)
+  status       String   @default("NEEDED") @db.NVarChar(20)
+  isGrounded   Boolean  @default(false)
   reportedDate DateTime @db.DateTime2
   resolvedDate DateTime? @db.DateTime2
   cost         Decimal? @db.Decimal(10, 2)
-  createdAt   DateTime @default(now()) @db.DateTime2
-  updatedAt   DateTime @updatedAt @db.DateTime2
+  createdAt    DateTime @default(now()) @db.DateTime2
+  updatedAt    DateTime @updatedAt @db.DateTime2
 
   @@map("Maintenance")
 }
@@ -253,4 +255,27 @@ model FlightLog {
   user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("FlightLog")
+}
+
+model PartnershipProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  availability    String?  @db.NVarChar(500)  // e.g., "Weekends", "Evenings"
+  flightInterests String?  @db.NVarChar(500)  // e.g., "XC, IFR, Sightseeing"
+  homeAirport     String?  @db.NVarChar(10)   // e.g., "KORD"
+  experienceLevel String?  @db.NVarChar(50)  // e.g., "Private PPL", "Commercial"
+  bio             String?  @db.NVarChar(1000)
+  lookingFor      String?  @db.NVarChar(500)  // What kind of partner seeking
+  isActive        Boolean  @default(true)
+  // Location for map display
+  city            String?  @db.NVarChar(100)
+  state           String?  @db.NVarChar(50)
+  latitude        Float?
+  longitude       Float?
+  createdAt       DateTime @default(now()) @db.DateTime2
+  updatedAt       DateTime @updatedAt @db.DateTime2
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("PartnershipProfile")
 }

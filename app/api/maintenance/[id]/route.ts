@@ -20,7 +20,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
 
     const { id } = await params;
     const body = await request.json();
-    const { status, cost, notes } = body;
+    const { status, cost, notes, isGrounded } = body;
 
     // Verify user has access to this maintenance (must be member of the aircraft's group)
     const maintenance = await prisma.$queryRawUnsafe(`
@@ -47,12 +47,13 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     const resolvedDate = status === 'DONE' ? new Date() : null;
+    const groundedStatus = isGrounded !== undefined ? isGrounded : (status === 'DONE' ? false : null);
 
     await prisma.$queryRawUnsafe(`
       UPDATE Maintenance 
-      SET status = ?, cost = ?, notes = ?, resolvedDate = ?, updatedAt = GETDATE()
+      SET status = ?, cost = ?, notes = ?, resolvedDate = ?, isGrounded = ?, updatedAt = GETDATE()
       WHERE id = ?
-    `, status, cost || null, notes || null, resolvedDate, id);
+    `, status, cost || null, notes || null, resolvedDate, groundedStatus, id);
 
     return NextResponse.json({ success: true });
   } catch (error) {
