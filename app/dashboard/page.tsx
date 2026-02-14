@@ -99,70 +99,96 @@ export default async function DashboardPage() {
             </p>
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {/* Flying Club */}
             <a
-              href="#"
+              href="/modules/flying-club"
               className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/30 transition hover:border-emerald-600/70 hover:shadow-emerald-500/20"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Option</p>
-                  <h3 className="mt-1 text-xl font-semibold text-slate-50">Hangar Finder</h3>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Module</p>
+                  <h3 className="mt-1 text-xl font-semibold text-slate-50">Flying Club</h3>
                   <p className="mt-2 text-sm text-slate-300">
-                    Locate available hangars nearby or along your route.
+                    Manage your flying group, book aircraft, track hours, and handle billing.
                   </p>
                 </div>
-                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">Explore</span>
+                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">Active</span>
               </div>
             </a>
 
-            <a
-              href="#"
-              className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/30 transition hover:border-emerald-600/70 hover:shadow-emerald-500/20"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Option</p>
-                  <h3 className="mt-1 text-xl font-semibold text-slate-50">Fuel Saver</h3>
-                  <p className="mt-2 text-sm text-slate-300">
-                    Optimize fuel stops and pricing across airports.
-                  </p>
-                </div>
-                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">Explore</span>
-              </div>
-            </a>
-
+            {/* Plane Carfax */}
             <a
               href="/modules/plane-carfax"
               className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/30 transition hover:border-emerald-600/70 hover:shadow-emerald-500/20"
             >
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Option</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Module</p>
                   <h3 className="mt-1 text-xl font-semibold text-slate-50">Plane Carfax</h3>
                   <p className="mt-2 text-sm text-slate-300">
                     Pull FAA history for a specific N-Number.
                   </p>
                 </div>
-                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">Explore</span>
+                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">Active</span>
               </div>
             </a>
 
-            <a
-              href="/modules/plane-search"
-              className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/30 transition hover:border-emerald-600/70 hover:shadow-emerald-500/20"
-            >
+            {/* Plane Search - Coming Soon */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 shadow-lg shadow-slate-950/30 opacity-60">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Option</p>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Module</p>
                   <h3 className="mt-1 text-xl font-semibold text-slate-50">Plane Search</h3>
-                  <p className="mt-2 text-sm text-slate-300">
+                  <p className="mt-2 text-sm text-slate-400">
                     Search and filter aircraft by model, year, and more.
                   </p>
                 </div>
-                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">Explore</span>
+                <span className="rounded-full bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-300">Coming Soon</span>
               </div>
-            </a>
+            </div>
+
+            {/* 3D Viewer - Coming Soon */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 shadow-lg shadow-slate-950/30 opacity-60">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Module</p>
+                  <h3 className="mt-1 text-xl font-semibold text-slate-50">3D Viewer</h3>
+                  <p className="mt-2 text-sm text-slate-400">
+                    Interactive 3D aircraft models with specifications.
+                  </p>
+                </div>
+                <span className="rounded-full bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-300">Coming Soon</span>
+              </div>
+            </div>
+
+            {/* TailHistory - Coming Soon */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 shadow-lg shadow-slate-950/30 opacity-60">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Module</p>
+                  <h3 className="mt-1 text-xl font-semibold text-slate-50">TailHistory</h3>
+                  <p className="mt-2 text-sm text-slate-400">
+                    View aircraft registration timeline and ownership history.
+                  </p>
+                </div>
+                <span className="rounded-full bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-300">Coming Soon</span>
+              </div>
+            </div>
+
+            {/* Hangar Finder - Coming Soon */}
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 shadow-lg shadow-slate-950/30 opacity-60">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Module</p>
+                  <h3 className="mt-1 text-xl font-semibold text-slate-50">Hangar Finder</h3>
+                  <p className="mt-2 text-sm text-slate-400">
+                    Locate available hangars nearby or along your route.
+                  </p>
+                </div>
+                <span className="rounded-full bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-300">Coming Soon</span>
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
