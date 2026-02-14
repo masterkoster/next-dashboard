@@ -845,6 +845,7 @@ function MembersTab({ groupId, members, isAdmin, currentUserId }: {
   const [inviteRole, setInviteRole] = useState('MEMBER');
   const [inviting, setInviting] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const router = useRouter();
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -861,6 +862,18 @@ function MembersTab({ groupId, members, isAdmin, currentUserId }: {
       }
     } finally {
       setInviting(false);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!confirm('Are you sure you want to leave this group?')) return;
+    
+    const res = await fetch(`/api/groups/${groupId}/members?userId=${currentUserId}`, {
+      method: 'DELETE',
+    });
+    
+    if (res.ok) {
+      router.push('/modules/flying-club');
     }
   };
 

@@ -862,28 +862,25 @@ function BillingView({ groups }: { groups: Group[] }) {
   const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(new Date().getMonth());
   const [year, setYear] = useState(new Date().getFullYear());
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Check if user is admin of any group
+  const isAdmin = groups?.some((g: any) => g.role === 'ADMIN') || false;
 
   useEffect(() => {
-    // Check if user is admin
-    fetch('/api/users/me')
-      .then(res => res.json())
-      .then(user => {
-        // Check if admin in any group
-        const adminCheck = groups.some((g: any) => 
-          g.members?.some((m: any) => m.userId === user.id && m.role === 'ADMIN')
-        );
-        setIsAdmin(adminCheck);
-      });
-  }, [groups]);
-
-  useEffect(() => {
+    if (!isAdmin) return;
+    
     setLoading(true);
+    setError(null);
     fetch(`/api/billing?month=${month}&year=${year}`)
-      .then(res => res.json())
+      .then(res => res.ok ? res.json() : Promise.reject(new Error('Failed to load billing')))
       .then(data => setBilling(data))
+      .catch(e => {
+        console.error('Billing load error:', e);
+        setError(e.message);
+      })
       .finally(() => setLoading(false));
-  }, [month, year]);
+  }, [month, year, isAdmin]);
 
   if (!isAdmin) {
     return (
@@ -895,6 +892,10 @@ function BillingView({ groups }: { groups: Group[] }) {
   }
 
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  if (loading) return <div className="text-center py-12">Loading...</div>;
+  
+  if (error) return <div className="text-center py-12 text-red-400">Error: {error}</div>;
 
   return (
     <div className="space-y-6">

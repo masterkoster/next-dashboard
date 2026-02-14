@@ -15,12 +15,17 @@ export async function GET(request: Request) {
     }
 
     // Check admin role in any group
-    const adminMembership = await prisma.groupMember.findFirst({
-      where: { userId: user.id, role: 'ADMIN' },
-    });
+    try {
+      const adminMembership = await prisma.groupMember.findFirst({
+        where: { userId: user.id, role: 'ADMIN' },
+      });
 
-    if (!adminMembership) {
-      return NextResponse.json({ error: 'Only admins can view billing' }, { status: 403 });
+      if (!adminMembership) {
+        return NextResponse.json({ error: 'Only admins can view billing' }, { status: 403 });
+      }
+    } catch (e) {
+      console.error('Admin check error:', e);
+      return NextResponse.json({ error: 'Failed to check admin status', details: String(e) }, { status: 500 });
     }
 
     const url = new URL(request.url);
