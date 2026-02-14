@@ -35,7 +35,7 @@ export async function GET() {
     return NextResponse.json(invites);
   } catch (error) {
     console.error('Error fetching invitations:', error);
-    return NextResponse.json({ error: 'Failed to fetch invitations' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch invitations: ' + String(error) }, { status: 500 });
   }
 }
 
