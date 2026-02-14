@@ -20,7 +20,7 @@ export default function Navigation() {
         {/* Logo / Home */}
         <div className="flex items-center gap-4">
           <Link 
-            href="/dashboard" 
+            href="/" 
             className="flex items-center gap-2 text-lg font-semibold text-slate-100 hover:text-emerald-400 transition-colors"
           >
             <span className="text-2xl">✈️</span>
