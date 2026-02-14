@@ -227,6 +227,11 @@ function AircraftTab({ groupId, aircraft, isAdmin }: { groupId: string; aircraft
   const [loading, setLoading] = useState(false);
   const [list, setList] = useState(aircraft);
 
+  // Sync local list when prop changes
+  useEffect(() => {
+    setList(aircraft);
+  }, [aircraft]);
+
   const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
