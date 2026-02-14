@@ -873,7 +873,7 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
               onChange={(e) => { setSelectedGroupId(e.target.value); setSelectedAircraftId(''); }}
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
             >
-              <option value="">All Groups</option>
+              {userGroups.length > 1 && <option value="">All Groups</option>}
               {userGroups.map((g: any) => (
                 <option key={g.id} value={g.id}>{g.name}</option>
               ))}
