@@ -1,10 +1,9 @@
 import Link from 'next/link';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
 async function getUserGroups() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.email) return [];
 
   const user = await prisma.user.findUnique({
@@ -65,7 +64,7 @@ export default async function FlyingClubPage() {
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="w-12 h-12 bg-sky-500/20 rounded-lg flex items-center justify-center text-2xl">
-                    🛩️
+                    🛩
                   </div>
                   <span className="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">
                     Active
