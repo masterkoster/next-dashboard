@@ -987,6 +987,7 @@ function NoGroupsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [groupData, setGroupData] = useState({
+    id: '',
     name: '',
     description: '',
     dryRate: '',
@@ -1030,6 +1031,7 @@ function NoGroupsPage() {
 
       if (!res.ok) throw new Error('Failed to create group');
       const group = await res.json();
+      setGroupData({ ...groupData, id: group.id });
       
       // Send invites
       for (const invite of invites) {
@@ -1054,36 +1056,60 @@ function NoGroupsPage() {
     if (!groupData.name) return;
     
     setLoading(true);
+    setError('');
     try {
-      const groupsRes = await fetch('/api/groups');
-      const groups = await groupsRes.json();
-      const group = groups.find((g: any) => g.name === groupData.name);
-      
-      if (group) {
-        await fetch(`/api/groups/${group.id}/aircraft`, {
+      // First create the group if not created
+      if (!groupData.id) {
+        const createRes = await fetch('/api/groups', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            nNumber: aircraftData.nNumber || null,
-            nickname: aircraftData.nickname || null,
-            customName: aircraftData.customName || null,
-            make: aircraftData.make || null,
-            model: aircraftData.model || null,
-            year: aircraftData.year ? parseInt(aircraftData.year) : null,
-            totalTachHours: aircraftData.totalTachHours ? parseFloat(aircraftData.totalTachHours) : null,
-            totalHobbsHours: aircraftData.totalHobbsHours ? parseFloat(aircraftData.totalHobbsHours) : null,
-            registrationType: aircraftData.registrationType || null,
-            hasInsurance: aircraftData.hasInsurance,
-            maxPassengers: aircraftData.maxPassengers ? parseInt(aircraftData.maxPassengers) : null,
-            hourlyRate: aircraftData.hourlyRate ? parseFloat(aircraftData.hourlyRate) : null,
-            notes: aircraftData.notes || null,
+            name: groupData.name,
+            description: groupData.description,
+            dryRate: groupData.dryRate ? parseFloat(groupData.dryRate) : null,
+            wetRate: groupData.wetRate ? parseFloat(groupData.wetRate) : null,
           }),
         });
+        
+        if (!createRes.ok) {
+          const err = await createRes.json();
+          throw new Error(err.error || 'Failed to create group');
+        }
+        
+        const newGroup = await createRes.json();
+        groupData.id = newGroup.id;
       }
+      
+      // Now add the aircraft
+      const aircraftRes = await fetch(`/api/groups/${groupData.id}/aircraft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nNumber: aircraftData.nNumber || null,
+          nickname: aircraftData.nickname || null,
+          customName: aircraftData.customName || null,
+          make: aircraftData.make || null,
+          model: aircraftData.model || null,
+          year: aircraftData.year ? parseInt(aircraftData.year) : null,
+          totalTachHours: aircraftData.totalTachHours ? parseFloat(aircraftData.totalTachHours) : null,
+          totalHobbsHours: aircraftData.totalHobbsHours ? parseFloat(aircraftData.totalHobbsHours) : null,
+          registrationType: aircraftData.registrationType || null,
+          hasInsurance: aircraftData.hasInsurance,
+          maxPassengers: aircraftData.maxPassengers ? parseInt(aircraftData.maxPassengers) : null,
+          hourlyRate: aircraftData.hourlyRate ? parseFloat(aircraftData.hourlyRate) : null,
+          notes: aircraftData.notes || null,
+        }),
+      });
+      
+      if (!aircraftRes.ok) {
+        const err = await aircraftRes.json();
+        throw new Error(err.error || 'Failed to add aircraft');
+      }
+      
       router.push('/modules/flying-club');
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-    } finally {
+      setError(err.message);
       setLoading(false);
     }
   };
@@ -1231,6 +1257,12 @@ function NoGroupsPage() {
           <>
             <h1 className="text-3xl font-bold text-sky-400 mb-2">Add Your First Aircraft</h1>
             <p className="text-slate-400 mb-8">Enter the aircraft details (you can add more later)</p>
+
+            {error && (
+              <div className="bg-red-500/20 border border-red-500 text-red-400 px-4 py-3 rounded-lg mb-6">
+                {error}
+              </div>
+            )}
 
             <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 space-y-4">
               <div className="grid grid-cols-2 gap-4">
