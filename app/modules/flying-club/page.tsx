@@ -31,6 +31,7 @@ interface Aircraft {
   maxPassengers: number | null;
   hourlyRate: number | null;
   aircraftNotes: string | null;
+  status: string | null;
 }
 
 interface Booking {
@@ -2085,6 +2086,7 @@ function AircraftStatus({ groups }: { groups: Group[] }) {
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [selectedAircraftId, setSelectedAircraftId] = useState('');
   const [statusData, setStatusData] = useState<any>({});
+  const [isEditing, setIsEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -2132,19 +2134,18 @@ function AircraftStatus({ groups }: { groups: Group[] }) {
     if (selectedAircraftId) {
       const aircraft = aircraftList.find((a: any) => a.id === selectedAircraftId);
       const parsed = aircraft?.aircraftNotes ? JSON.parse(aircraft.aircraftNotes) : {};
-      // Combine parsed notes with the status field from database
       setStatusData({
         ...parsed,
         aircraftStatus: aircraft?.status || parsed.aircraftStatus || 'Available'
       });
     }
     setLoading(false);
+    setIsEditing(false);
   }, [selectedAircraftId, aircraftList]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Extract status from statusData
       const aircraftStatus = statusData.aircraftStatus || 'Available';
       
       const res = await fetch(`/api/groups/${selectedGroupId}/aircraft/${selectedAircraftId}`, {
@@ -2155,9 +2156,24 @@ function AircraftStatus({ groups }: { groups: Group[] }) {
           status: aircraftStatus
         }),
       });
-      if (res.ok) { setMessage('Status saved!'); setTimeout(() => setMessage(''), 3000); }
+      if (res.ok) { 
+        setMessage('Status saved!'); 
+        setTimeout(() => setMessage(''), 3000);
+        setIsEditing(false);
+      }
     } catch { setMessage('Error saving'); }
     setSaving(false);
+  };
+
+  const handleCancel = () => {
+    // Reload original data
+    const aircraft = aircraftList.find((a: any) => a.id === selectedAircraftId);
+    const parsed = aircraft?.aircraftNotes ? JSON.parse(aircraft.aircraftNotes) : {};
+    setStatusData({
+      ...parsed,
+      aircraftStatus: aircraft?.status || parsed.aircraftStatus || 'Available'
+    });
+    setIsEditing(false);
   };
 
   if (userGroups.length === 0) return <div className="text-center py-12 text-slate-400">Only admins can manage aircraft status</div>;
@@ -2168,6 +2184,67 @@ function AircraftStatus({ groups }: { groups: Group[] }) {
     acc[cat] = inspectionItems.filter(item => item.category === cat);
     return acc;
   }, {} as Record<string, typeof inspectionItems>);
+
+  // Helper to render a field (read-only or editable)
+  const renderField = (item: any, value: any, onChange: (val: any) => void) => {
+    if (item.type === 'boolean') {
+      if (isEditing) {
+        return (
+          <div className="flex items-center gap-2">
+            <input type="checkbox" id={item.key} checked={!!value} onChange={(e) => onChange(e.target.checked)} className="w-5 h-5 rounded" />
+            <label htmlFor={item.key} className="text-slate-300">{item.label}</label>
+          </div>
+        );
+      }
+      return (
+        <div className="flex items-center gap-2">
+          <span className={`w-5 h-5 rounded flex items-center justify-center ${value ? 'bg-green-500' : 'bg-slate-600'}`}>
+            {value && '✓'}
+          </span>
+          <span className="text-slate-300">{item.label}</span>
+        </div>
+      );
+    }
+    if (item.type === 'select') {
+      if (isEditing) {
+        return (
+          <div>
+            <label className="block text-sm text-slate-400 mb-1">{item.label}</label>
+            <select value={value || ''} onChange={(e) => onChange(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2">
+              <option value="">Select...</option>
+              {item.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+            </select>
+          </div>
+        );
+      }
+      return (
+        <div>
+          <div className="text-sm text-slate-400">{item.label}</div>
+          <div className={`inline-block px-3 py-1 rounded text-sm font-medium ${
+            value === 'Available' ? 'bg-green-500/20 text-green-400' :
+            value === 'In Use' ? 'bg-blue-500/20 text-blue-400' :
+            value === 'Grounded' ? 'bg-red-500/20 text-red-400' :
+            'bg-yellow-500/20 text-yellow-400'
+          }`}>{value || 'Available'}</div>
+        </div>
+      );
+    }
+    // Date or number
+    if (isEditing) {
+      return (
+        <div>
+          <label className="block text-sm text-slate-400 mb-1">{item.label}</label>
+          <input type={item.type} value={value || ''} onChange={(e) => onChange(e.target.value)} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2" />
+        </div>
+      );
+    }
+    return (
+      <div>
+        <div className="text-sm text-slate-400">{item.label}</div>
+        <div className="text-slate-200">{value || '—'}</div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -2180,6 +2257,18 @@ function AircraftStatus({ groups }: { groups: Group[] }) {
           <select value={selectedAircraftId} onChange={(e) => setSelectedAircraftId(e.target.value)} className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2">
             {aircraftList.map((a: any) => <option key={a.id} value={a.id}>{a.nNumber || a.customName || a.nickname || 'Aircraft'}</option>)}
           </select>
+          {isEditing ? (
+            <div className="flex gap-2">
+              <button onClick={handleCancel} className="bg-slate-600 hover:bg-slate-500 px-4 py-2 rounded-lg">Cancel</button>
+              <button onClick={handleSave} disabled={saving} className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg disabled:opacity-50">
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setIsEditing(true)} className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg">
+              ✏️ Edit
+            </button>
+          )}
         </div>
       </div>
 
@@ -2196,34 +2285,13 @@ function AircraftStatus({ groups }: { groups: Group[] }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {items.map(item => (
                     <div key={item.key}>
-                      {item.type === 'boolean' ? (
-                        <div className="flex items-center gap-2">
-                          <input type="checkbox" id={item.key} checked={!!statusData?.[item.key]} onChange={(e) => setStatusData({ ...statusData, [item.key]: e.target.checked })} className="w-5 h-5 rounded" />
-                          <label htmlFor={item.key} className="text-slate-300">{item.label}</label>
-                        </div>
-                      ) : item.type === 'select' ? (
-                        <div>
-                          <label className="block text-sm text-slate-400 mb-1">{item.label}</label>
-                          <select value={statusData?.[item.key] || ''} onChange={(e) => setStatusData({ ...statusData, [item.key]: e.target.value })} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2">
-                            <option value="">Select...</option>
-                            {item.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
-                          </select>
-                        </div>
-                      ) : (
-                        <div>
-                          <label className="block text-sm text-slate-400 mb-1">{item.label}</label>
-                          <input type={item.type} value={statusData?.[item.key] || ''} onChange={(e) => setStatusData({ ...statusData, [item.key]: e.target.value })} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2" />
-                        </div>
-                      )}
+                      {renderField(item, statusData?.[item.key], (val) => setStatusData({ ...statusData, [item.key]: val }))}
                     </div>
                   ))}
                 </div>
               </div>
             );
           })}
-          <button onClick={handleSave} disabled={saving} className="w-full bg-sky-500 hover:bg-sky-600 py-3 rounded-lg font-medium disabled:opacity-50">
-            {saving ? 'Saving...' : 'Save Status'}
-          </button>
         </div>
       )}
     </div>
