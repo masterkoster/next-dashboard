@@ -35,7 +35,8 @@ export async function GET(request: Request, { params }: RouteParams) {
       orderBy: { date: 'desc' },
     });
 
-    return NextResponse.json(logs);
+    // Handle case where logs might not be an array
+    return NextResponse.json(Array.isArray(logs) ? logs : []);
   } catch (error) {
     console.error('Error fetching logs:', error);
     return NextResponse.json({ error: 'Failed to fetch flight logs' }, { status: 500 });
