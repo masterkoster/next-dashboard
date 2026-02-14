@@ -134,14 +134,30 @@ export default async function DashboardPage() {
 
             <a
               href="/modules/plane-carfax"
-              className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/30 transition hover:border-emerald-600/70 hover:shadow-emerald-500/20 md:col-span-2"
+              className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/30 transition hover:border-emerald-600/70 hover:shadow-emerald-500/20"
             >
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Option</p>
                   <h3 className="mt-1 text-xl font-semibold text-slate-50">Plane Carfax</h3>
                   <p className="mt-2 text-sm text-slate-300">
-                    Pull FAA history and timeline insights—your aircraft report in one view.
+                    Pull FAA history for a specific N-Number.
+                  </p>
+                </div>
+                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">Explore</span>
+              </div>
+            </a>
+
+            <a
+              href="/modules/plane-search"
+              className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/30 transition hover:border-emerald-600/70 hover:shadow-emerald-500/20"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Option</p>
+                  <h3 className="mt-1 text-xl font-semibold text-slate-50">Plane Search</h3>
+                  <p className="mt-2 text-sm text-slate-300">
+                    Search and filter aircraft by model, year, and more.
                   </p>
                 </div>
                 <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">Explore</span>
