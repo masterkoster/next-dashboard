@@ -10,13 +10,26 @@ export type TailHistoryActionResult = {
   needsCredits?: boolean;
 };
 
-// Get performance data from FAST AEROBASE
+// Get performance data from FAST AEROBASE OR RisingUp specs
 async function getPerformanceData(mfr: string | null, model: string | null) {
   if (!mfr || !model) return null
   
   const mfrUpper = mfr.toUpperCase()
   const modelUpper = model.toUpperCase()
   
+  // First try FAST AEROBASE (commercial jets)
+  let fastData = await getFastPerformanceData(mfrUpper, modelUpper)
+  if (fastData) return fastData
+  
+  // Then try RisingUp specs (GA aircraft)
+  let gaData = await getGAPerformanceData(mfrUpper, modelUpper)
+  if (gaData) return gaData
+  
+  return null
+}
+
+// Get performance from FAST AEROBASE (commercial jets)
+async function getFastPerformanceData(mfrUpper: string, modelUpper: string) {
   let searchPatterns: string[] = []
   
   if (mfrUpper.includes('BOEING')) {
@@ -67,11 +80,60 @@ async function getPerformanceData(mfr: string | null, model: string | null) {
       `, { pattern }) as any[]
       
       if (perf && perf.length > 0) {
-        return perf[0]
+        return { ...perf[0], source: 'fast' }
       }
     } catch (e) {
-      console.log('Performance query error:', e)
+      console.log('Fast performance query error:', e)
     }
+  }
+  
+  return null
+}
+
+// Get performance from RisingUp specs (GA aircraft)
+async function getGAPerformanceData(mfrUpper: string, modelUpper: string) {
+  // Try to match by manufacturer and model
+  try {
+    // Get all specs for this manufacturer
+    const specs = await prisma.$queryRawUnsafe(`
+      SELECT TOP 1 * FROM AircraftSpecs 
+      WHERE UPPER(manufacturer) LIKE '%' + @mfr + '%'
+        AND UPPER(model) LIKE '%' + @model + '%'
+    `, { mfr: mfrUpper, model: modelUpper.replace(/\d+/g, '').replace(/-/g, ' ').trim() }) as any[]
+    
+    if (specs && specs.length > 0) {
+      const s = specs[0]
+      return {
+        // Map GA specs to our format
+        designation: s.model,
+        mtow: s.gross_weight_lbs,
+        mlw: null,
+        mzfw: null,
+        oew: s.empty_weight_lbs,
+        fuel: s.fuel_capacity_gal,
+        range_nm: s.range_nm,
+        tofl: s.takeoff_ground_roll_ft,
+        num_engines: 1,
+        engine_designation: s.horsepower ? s.horsepower + ' HP' : null,
+        thrust_max: null,
+        span_ft: s.wingspan_ft,
+        length_ft: s.length_ft,
+        height_ft: s.height_ft,
+        wing_area: null,
+        vc_cruise: s.cruise_speed_kts,
+        vmo_mo: s.top_speed_kts,
+        cruise_alt: s.service_ceiling_ft,
+        maxpax: null,
+        // Additional GA fields
+        takeoffGroundRoll: s.takeoff_ground_roll_ft,
+        landingGroundRoll: s.landing_ground_roll_ft,
+        rateOfClimb: s.rate_of_climb_fpm,
+        stallSpeed: s.stall_speed_dirty_kts,
+        source: 'risingup'
+      }
+    }
+  } catch (e) {
+    console.log('GA performance query error:', e)
   }
   
   return null

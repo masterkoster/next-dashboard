@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { checkTailHistory, TailHistoryActionResult } from "../actions";
 import { SearchBar } from "./search-bar";
 import { Timeline3D, TailHistoryRecord } from "./timeline-3d";
+import { AircraftModel } from "@/components/three/aircraft-model";
 
 type PerformanceData = {
   designation: string;
@@ -26,6 +27,12 @@ type PerformanceData = {
   maxOperatingSpeed: string | null;
   cruiseAltitude: string | null;
   maxPax: number | null;
+  // GA fields
+  takeoffGroundRoll?: string | null;
+  landingGroundRoll?: string | null;
+  rateOfClimb?: string | null;
+  stallSpeed?: string | null;
+  source?: string;
 };
 
 type ExtendedRecord = TailHistoryRecord & {
@@ -202,7 +209,17 @@ export default function TailHistoryClient() {
             )}
           </div>
 
-          <Timeline3D record={record} />
+          {/* Right side: 3D Ghost Aircraft */}
+          <div className="h-80 rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden">
+            <AircraftModel
+              nNumber={record.nNumber}
+              manufacturer={record.manufacturer || 'Unknown'}
+              model={record.model || 'Unknown'}
+              length={record.performance?.lengthFt ? parseFloat(record.performance.lengthFt) : undefined}
+              wingspan={record.performance?.spanFt ? parseFloat(record.performance.spanFt) : undefined}
+              engineCount={record.performance?.numEngines || record.engineCount || 1}
+            />
+          </div>
         </div>
       )}
 
