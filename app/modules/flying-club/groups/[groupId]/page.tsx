@@ -664,8 +664,12 @@ function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Air
 
   useEffect(() => {
     fetch(`/api/groups/${groupId}/logs`)
-      .then(res => res.json())
-      .then(data => setLogs(data))
+      .then(res => res.ok ? res.json() : Promise.reject(new Error('Failed to load')))
+      .then(data => setLogs(Array.isArray(data) ? data : []))
+      .catch(e => {
+        console.error('Error loading logs:', e);
+        setLogs([]);
+      })
       .finally(() => setLoading(false));
   }, [groupId]);
 

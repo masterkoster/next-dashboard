@@ -17,9 +17,13 @@ export async function GET(request: Request, { params }: RouteParams) {
     const { groupId } = await params;
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    
     // Check membership (VIEWERS can also see logs)
     const membership = await prisma.groupMember.findFirst({
-      where: { groupId, userId: user?.id },
+      where: { groupId, userId: user.id },
     });
 
     if (!membership) {
@@ -39,7 +43,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     return NextResponse.json(Array.isArray(logs) ? logs : []);
   } catch (error) {
     console.error('Error fetching logs:', error);
-    return NextResponse.json({ error: 'Failed to fetch flight logs' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch flight logs', details: String(error) }, { status: 500 });
   }
 }
 

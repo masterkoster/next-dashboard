@@ -553,7 +553,9 @@ function FlightsList({ groups }: { groups: Group[] }) {
           console.error('Error loading logs:', e);
         }
       }
-      setAllLogs(data.sort((a, b) => new Date(b.log.date).getTime() - new Date(a.log.date).getTime()));
+      // Sort by date descending, filter out invalid dates
+      const validLogs = data.filter(item => item.log?.date);
+      setAllLogs(validLogs.sort((a, b) => new Date(b.log.date).getTime() - new Date(a.log.date).getTime()));
       setLoading(false);
     };
     loadLogs();
