@@ -13,6 +13,7 @@ interface Group {
   ownerId: string;
   members: Member[];
   aircraft: Aircraft[];
+  bookings?: any[];
 }
 
 interface Member {
@@ -721,6 +722,7 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
       setLogs([...logs, newLog]);
       setShowForm(false);
       setFormData({ 
+        bookingId: '',
         aircraftId: '', 
         date: '', 
         tachStart: '', 
@@ -911,12 +913,15 @@ function MembersTab({ groupId, members, isAdmin, currentUserId }: {
   const handleLeaveGroup = async () => {
     if (!confirm('Are you sure you want to leave this group?')) return;
     
-    const res = await fetch(`/api/groups/${groupId}/members?userId=${currentUserId}`, {
+    const res = await fetch(`/api/groups/${groupId}/members?memberId=${currentUserId}`, {
       method: 'DELETE',
     });
     
     if (res.ok) {
       router.push('/modules/flying-club');
+    } else {
+      const err = await res.json();
+      alert(err.error || 'Failed to leave group');
     }
   };
 
@@ -991,6 +996,14 @@ function MembersTab({ groupId, members, isAdmin, currentUserId }: {
               }`}>
                 {member.role}
               </span>
+              {member.userId === currentUserId && !isAdmin && (
+                <button
+                  onClick={handleLeaveGroup}
+                  className="text-red-400 hover:text-red-300 text-sm"
+                >
+                  Leave
+                </button>
+              )}
               {member.userId === currentUserId && (
                 <span className="text-xs text-slate-500">(You)</span>
               )}

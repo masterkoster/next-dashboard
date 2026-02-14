@@ -51,12 +51,17 @@ export async function POST(request: Request, { params }: RouteParams) {
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
 
     // Check admin role
-    const membership = await prisma.groupMember.findFirst({
-      where: { groupId, userId: user?.id, role: 'ADMIN' },
-    });
+    try {
+      const membership = await prisma.groupMember.findFirst({
+        where: { groupId, userId: user?.id, role: 'ADMIN' },
+      });
 
-    if (!membership) {
-      return NextResponse.json({ error: 'Only admins can create invites' }, { status: 403 });
+      if (!membership) {
+        return NextResponse.json({ error: 'Only admins can create invites' }, { status: 403 });
+      }
+    } catch (e) {
+      console.error('Admin check error:', e);
+      return NextResponse.json({ error: 'Failed to verify admin status' }, { status: 500 });
     }
 
     const body = await request.json();

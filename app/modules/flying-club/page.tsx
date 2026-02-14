@@ -60,7 +60,7 @@ export default function FlyingClubPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'aircraft' | 'flights' | 'maintenance' | 'billing' | 'members'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'aircraft' | 'flights' | 'maintenance' | 'billing' | 'members' | 'status'>('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [hoveredBooking, setHoveredBooking] = useState<Booking | null>(null);
@@ -163,7 +163,7 @@ export default function FlyingClubPage() {
       <div className="max-w-7xl mx-auto">
         {/* Tab Navigation */}
         <div className="flex gap-2 mb-6 border-b border-slate-700 overflow-x-auto">
-          {(['dashboard', 'bookings', 'aircraft', 'flights', 'maintenance', 'billing', 'members'] as const).map((tab) => (
+          {(['dashboard', 'bookings', 'aircraft', 'flights', 'status', 'maintenance', 'billing', 'members'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -177,6 +177,7 @@ export default function FlyingClubPage() {
               {tab === 'bookings' && '📅 '}
               {tab === 'aircraft' && '✈️ '}
               {tab === 'flights' && '🛫 '}
+              {tab === 'status' && '📋 '}
               {tab === 'maintenance' && '🔧 '}
               {tab === 'billing' && '💰 '}
               {tab === 'members' && '👥 '}
@@ -347,6 +348,10 @@ export default function FlyingClubPage() {
 
         {activeTab === 'maintenance' && (
           <MaintenanceList groups={groups} />
+        )}
+
+        {activeTab === 'status' && (
+          <AircraftStatus groups={groups} />
         )}
 
         {activeTab === 'billing' && (
@@ -533,6 +538,10 @@ function FlightsList({ groups }: { groups: Group[] }) {
   const router = useRouter();
   const [allLogs, setAllLogs] = useState<{ log: any; groupName: string }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterUser, setFilterUser] = useState('');
+  const [filterAircraft, setFilterAircraft] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
 
   useEffect(() => {
     const loadLogs = async () => {
@@ -555,13 +564,38 @@ function FlightsList({ groups }: { groups: Group[] }) {
           console.error('Error loading logs:', e);
         }
       }
-      // Sort by date descending, filter out invalid dates
       const validLogs = data.filter(item => item.log?.date);
       setAllLogs(validLogs.sort((a, b) => new Date(b.log.date).getTime() - new Date(a.log.date).getTime()));
       setLoading(false);
     };
     loadLogs();
   }, [groups]);
+
+  const filteredLogs = allLogs.filter(({ log, groupName }) => {
+    if (filterUser) {
+      const userName = log.user?.name || log.user?.email || '';
+      if (!userName.toLowerCase().includes(filterUser.toLowerCase())) return false;
+    }
+    if (filterAircraft) {
+      const aircraftId = log.aircraft?.id || '';
+      if (aircraftId !== filterAircraft) return false;
+    }
+    if (filterDateFrom) {
+      const logDate = new Date(log.date).toISOString().split('T')[0];
+      if (logDate < filterDateFrom) return false;
+    }
+    if (filterDateTo) {
+      const logDate = new Date(log.date).toISOString().split('T')[0];
+      if (logDate > filterDateTo) return false;
+    }
+    return true;
+  });
+
+  const uniqueUsers = Array.from(new Set(allLogs.map(l => l.log.user?.name || l.log.user?.email).filter(Boolean)));
+  const uniqueAircraft = allLogs
+    .filter(l => l.log.aircraft?.id)
+    .map(l => l.log.aircraft)
+    .filter((v, i, a) => a.findIndex(t => t?.id === v?.id) === i);
 
   if (loading) return <div className="text-center py-12">Loading...</div>;
 
@@ -571,14 +605,73 @@ function FlightsList({ groups }: { groups: Group[] }) {
         <h2 className="text-xl font-semibold">Flight Logs</h2>
       </div>
 
-      {allLogs.length === 0 ? (
+      <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Pilot</label>
+            <input
+              type="text"
+              placeholder="Search pilot..."
+              value={filterUser}
+              onChange={(e) => setFilterUser(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">Aircraft</label>
+            <select
+              value={filterAircraft}
+              onChange={(e) => setFilterAircraft(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
+            >
+              <option value="">All Aircraft</option>
+              {uniqueAircraft.map(ac => (
+                <option key={ac.id} value={ac.id}>{ac.nNumber || ac.customName || ac.nickname || 'Unknown'}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">From Date</label>
+            <input
+              type="date"
+              value={filterDateFrom}
+              onChange={(e) => setFilterDateFrom(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-400 mb-1">To Date</label>
+            <input
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+        {(filterUser || filterAircraft || filterDateFrom || filterDateTo) && (
+          <div className="mt-3 flex gap-2">
+            <span className="text-xs text-slate-400">
+              Showing {filteredLogs.length} of {allLogs.length} logs
+            </span>
+            <button
+              onClick={() => { setFilterUser(''); setFilterAircraft(''); setFilterDateFrom(''); setFilterDateTo(''); }}
+              className="text-xs text-sky-400 hover:text-sky-300"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
+      </div>
+
+      {filteredLogs.length === 0 ? (
         <div className="text-center py-12 text-slate-400">
           <div className="text-4xl mb-4">🛫</div>
-          <p>No flight logs yet</p>
+          <p>{allLogs.length === 0 ? 'No flight logs yet' : 'No logs match your filters'}</p>
         </div>
       ) : (
         <div className="space-y-3">
-          {allLogs.map(({ log, groupName }) => (
+          {filteredLogs.map(({ log, groupName }) => (
             <div key={log.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
@@ -1422,6 +1515,148 @@ function NoGroupsPage() {
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function AircraftStatus({ groups }: { groups: Group[] }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [selectedGroupId, setSelectedGroupId] = useState('');
+  const [selectedAircraftId, setSelectedAircraftId] = useState('');
+  const [statusData, setStatusData] = useState<any>({});
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+
+  const inspectionItems = [
+    { key: 'annualDate', label: 'Annual Inspection Due', type: 'date', category: 'Inspections' },
+    { key: 'altimeterDue', label: 'Altimeter/Transponder Due', type: 'date', category: 'Inspections' },
+    { key: 'eltBatteryDue', label: 'ELT Battery Due', type: 'date', category: 'Inspections' },
+    { key: 'pitotTubeInspected', label: 'Pitot Tube Inspected', type: 'boolean', category: 'Inspections' },
+    { key: 'staticSystemInspected', label: 'Static System Inspected', type: 'boolean', category: 'Inspections' },
+    { key: 'oilChangeDue', label: 'Oil Change Due (Hobbs Hours)', type: 'number', category: 'Maintenance' },
+    { key: 'oilFilterDue', label: 'Oil Filter Due (Hobbs Hours)', type: 'number', category: 'Maintenance' },
+    { key: 'fuelFilterDue', label: 'Fuel Filter Due (Hobbs Hours)', type: 'number', category: 'Maintenance' },
+    { key: 'brakeFluidDue', label: 'Brake Fluid Changed', type: 'date', category: 'Maintenance' },
+    { key: 'coolantDue', label: 'Coolant Service', type: 'date', category: 'Maintenance' },
+    { key: 'currentTach', label: 'Current Tach Time', type: 'number', category: 'Current Status' },
+    { key: 'currentHobbs', label: 'Current Hobbs Time', type: 'number', category: 'Current Status' },
+    { key: 'fuelOnBoard', label: 'Fuel On Board (Gal)', type: 'number', category: 'Current Status' },
+    { key: 'aircraftStatus', label: 'Aircraft Status', type: 'select', options: ['Available', 'In Use', 'Maintenance Required', 'Grounded'], category: 'Current Status' },
+    { key: 'engineMonitor', label: 'Engine Monitor Data Reviewed', type: 'boolean', category: 'Preflight' },
+    { key: 'logsReviewed', label: 'Logbooks Reviewed', type: 'boolean', category: 'Preflight' },
+    { key: 'adsbCompliant', label: 'ADS-B Compliant', type: 'boolean', category: 'Equipment' },
+    { key: 'gpsInstalled', label: 'GPS Installed', type: 'boolean', category: 'Equipment' },
+    { key: 'autopilotInstalled', label: 'Autopilot Installed', type: 'boolean', category: 'Equipment' },
+    { key: 'last100Hour', label: 'Last 100-Hour Inspection', type: 'date', category: 'Inspections' },
+    { key: 'propOverhaulDue', label: 'Prop Overhaul Due (Hours)', type: 'number', category: 'Maintenance' },
+    { key: 'engineOverhaulDue', label: 'Engine Overhaul Due (Hours)', type: 'number', category: 'Maintenance' },
+    { key: 'airworthinessCert', label: 'Airworthiness Certificate Expires', type: 'date', category: 'Registration' },
+    { key: 'registrationExp', label: 'Registration Expires', type: 'date', category: 'Registration' },
+    { key: 'insuranceExp', label: 'Insurance Expires', type: 'date', category: 'Registration' },
+  ];
+
+  const userGroups = groups?.filter((g: any) => g.role === 'ADMIN') || [];
+  const selectedGroup = userGroups.find((g: any) => g.id === selectedGroupId);
+  const aircraftList = selectedGroup?.aircraft || [];
+
+  useEffect(() => {
+    if (userGroups.length > 0 && !selectedGroupId) setSelectedGroupId(userGroups[0].id);
+  }, [userGroups]);
+
+  useEffect(() => {
+    if (selectedGroupId && aircraftList.length > 0 && !selectedAircraftId) setSelectedAircraftId(aircraftList[0].id);
+  }, [selectedGroupId, aircraftList]);
+
+  useEffect(() => {
+    if (selectedAircraftId) {
+      const aircraft = aircraftList.find((a: any) => a.id === selectedAircraftId);
+      if (aircraft?.aircraftNotes) {
+        try { setStatusData(JSON.parse(aircraft.aircraftNotes)); } catch { setStatusData({}); }
+      } else { setStatusData({}); }
+    }
+    setLoading(false);
+  }, [selectedAircraftId, aircraftList]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/groups/${selectedGroupId}/aircraft/${selectedAircraftId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: JSON.stringify(statusData) }),
+      });
+      if (res.ok) { setMessage('Status saved!'); setTimeout(() => setMessage(''), 3000); }
+    } catch { setMessage('Error saving'); }
+    setSaving(false);
+  };
+
+  if (userGroups.length === 0) return <div className="text-center py-12 text-slate-400">Only admins can manage aircraft status</div>;
+  if (loading) return <div className="text-center py-12">Loading...</div>;
+
+  const categories = ['Current Status', 'Inspections', 'Maintenance', 'Preflight', 'Equipment', 'Registration'];
+  const itemsByCategory = categories.reduce((acc, cat) => {
+    acc[cat] = inspectionItems.filter(item => item.category === cat);
+    return acc;
+  }, {} as Record<string, typeof inspectionItems>);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">📋 Aircraft Status</h2>
+        <div className="flex gap-2">
+          <select value={selectedGroupId} onChange={(e) => { setSelectedGroupId(e.target.value); setSelectedAircraftId(''); }} className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2">
+            {userGroups.map((g: any) => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+          <select value={selectedAircraftId} onChange={(e) => setSelectedAircraftId(e.target.value)} className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2">
+            {aircraftList.map((a: any) => <option key={a.id} value={a.id}>{a.nNumber || a.customName || a.nickname || 'Aircraft'}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {message && <div className="bg-green-500/20 text-green-400 px-4 py-2 rounded-lg">{message}</div>}
+
+      {selectedAircraftId && (
+        <div className="space-y-6">
+          {categories.map(category => {
+            const items = itemsByCategory[category];
+            if (!items.length) return null;
+            return (
+              <div key={category} className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+                <h3 className="text-lg font-semibold mb-4 text-sky-400">{category}</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {items.map(item => (
+                    <div key={item.key}>
+                      {item.type === 'boolean' ? (
+                        <div className="flex items-center gap-2">
+                          <input type="checkbox" id={item.key} checked={!!statusData?.[item.key]} onChange={(e) => setStatusData({ ...statusData, [item.key]: e.target.checked })} className="w-5 h-5 rounded" />
+                          <label htmlFor={item.key} className="text-slate-300">{item.label}</label>
+                        </div>
+                      ) : item.type === 'select' ? (
+                        <div>
+                          <label className="block text-sm text-slate-400 mb-1">{item.label}</label>
+                          <select value={statusData?.[item.key] || ''} onChange={(e) => setStatusData({ ...statusData, [item.key]: e.target.value })} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2">
+                            <option value="">Select...</option>
+                            {item.options?.map((opt: string) => <option key={opt} value={opt}>{opt}</option>)}
+                          </select>
+                        </div>
+                      ) : (
+                        <div>
+                          <label className="block text-sm text-slate-400 mb-1">{item.label}</label>
+                          <input type={item.type} value={statusData?.[item.key] || ''} onChange={(e) => setStatusData({ ...statusData, [item.key]: e.target.value })} className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+          <button onClick={handleSave} disabled={saving} className="w-full bg-sky-500 hover:bg-sky-600 py-3 rounded-lg font-medium disabled:opacity-50">
+            {saving ? 'Saving...' : 'Save Status'}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
