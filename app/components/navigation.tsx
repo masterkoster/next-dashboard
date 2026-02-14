@@ -35,7 +35,10 @@ export default function Navigation() {
         const res = await fetch('/api/invitations');
         if (res.ok) {
           const data = await res.json();
+          console.log('Invites fetched:', data);
           setPendingInvites(data);
+        } else {
+          console.error('Failed to fetch invites:', res.status);
         }
       } catch (e) {
         console.error('Error fetching invites:', e);
