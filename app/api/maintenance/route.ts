@@ -14,17 +14,13 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check if Maintenance table exists by trying a simple query
-    try {
-      const maintenance = await prisma.$queryRawUnsafe(`
-        SELECT TOP 10 * FROM Maintenance
-      `);
-      return NextResponse.json(maintenance || []);
-    } catch (tableError) {
-      // Table might not exist
-      console.error('Maintenance table error:', tableError);
-      return NextResponse.json([]);
-    }
+    // Get all maintenance
+    const maintenance = await prisma.maintenance.findMany({
+      orderBy: { reportedDate: 'desc' },
+      take: 50,
+    });
+
+    return NextResponse.json(maintenance || []);
   } catch (error) {
     console.error('Error fetching maintenance:', error);
     return NextResponse.json({ error: 'Failed to fetch maintenance', details: String(error) }, { status: 500 });
@@ -46,31 +42,24 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { aircraftId, description, notes } = body;
 
-    // Verify user has access to this aircraft
-    const memberships = await prisma.groupMember.findMany({
-      where: { userId: user.id },
-      include: {
-        group: {
-          include: {
-            aircraft: { where: { id: aircraftId } },
-          },
-        },
+    if (!aircraftId || !description) {
+      return NextResponse.json({ error: 'Aircraft and description required' }, { status: 400 });
+    }
+
+    const maintenance = await prisma.maintenance.create({
+      data: {
+        aircraftId,
+        userId: user.id,
+        description,
+        notes: notes || null,
+        status: 'NEEDED',
+        reportedDate: new Date(),
       },
     });
 
-    const hasAccess = memberships.some(m => m.group.aircraft.length > 0);
-    if (!hasAccess) {
-      return NextResponse.json({ error: 'No access to this aircraft' }, { status: 403 });
-    }
-
-    const maintenance = await prisma.$queryRawUnsafe(`
-      INSERT INTO Maintenance (id, aircraftId, userId, description, notes, status, reportedDate, createdAt, updatedAt)
-      VALUES (NEWID(), ?, ?, ?, ?, 'NEEDED', GETDATE(), GETDATE(), GETDATE())
-    `, aircraftId, user.id, description, notes || null);
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json(maintenance);
   } catch (error) {
     console.error('Error creating maintenance:', error);
-    return NextResponse.json({ error: 'Failed to create maintenance' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create maintenance', details: String(error) }, { status: 500 });
   }
 }

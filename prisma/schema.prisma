@@ -179,6 +179,22 @@ model Invite {
   @@map("Invite")
 }
 
+model Maintenance {
+  id          String   @id @default(uuid())
+  aircraftId  String
+  userId      String
+  description String   @db.NVarChar(500)
+  notes       String?  @db.NVarChar(Max)
+  status      String   @default("NEEDED") @db.NVarChar(20)
+  reportedDate DateTime @db.DateTime2
+  resolvedDate DateTime? @db.DateTime2
+  cost         Decimal? @db.Decimal(10, 2)
+  createdAt   DateTime @default(now()) @db.DateTime2
+  updatedAt   DateTime @updatedAt @db.DateTime2
+
+  @@map("Maintenance")
+}
+
 model ClubAircraft {
   id                String   @id @default(uuid())
   groupId           String
