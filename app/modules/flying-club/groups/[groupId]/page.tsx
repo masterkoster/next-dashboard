@@ -30,7 +30,16 @@ interface Aircraft {
   nNumber: string | null;
   nickname: string | null;
   customName: string | null;
+  make: string | null;
+  model: string | null;
+  year: number | null;
+  totalTachHours: number | null;
+  totalHobbsHours: number | null;
+  registrationType: string | null;
+  hasInsurance: boolean | null;
+  maxPassengers: number | null;
   hourlyRate: number | null;
+  aircraftNotes: string | null;
 }
 
 export default function GroupDetailPage() {
@@ -223,7 +232,21 @@ export default function GroupDetailPage() {
 
 function AircraftTab({ groupId, aircraft, isAdmin }: { groupId: string; aircraft: Aircraft[]; isAdmin: boolean }) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [formData, setFormData] = useState({ nNumber: '', nickname: '', customName: '', hourlyRate: '' });
+  const [formData, setFormData] = useState({
+    nNumber: '',
+    nickname: '',
+    customName: '',
+    make: '',
+    model: '',
+    year: '',
+    totalTachHours: '',
+    totalHobbsHours: '',
+    registrationType: 'Standard',
+    hasInsurance: false,
+    maxPassengers: '4',
+    hourlyRate: '',
+    aircraftNotes: ''
+  });
   const [loading, setLoading] = useState(false);
   const [list, setList] = useState(aircraft);
 
@@ -240,15 +263,40 @@ function AircraftTab({ groupId, aircraft, isAdmin }: { groupId: string; aircraft
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
+          nNumber: formData.nNumber || null,
+          nickname: formData.nickname || null,
+          customName: formData.customName || null,
+          make: formData.make || null,
+          model: formData.model || null,
+          year: formData.year ? parseInt(formData.year) : null,
+          totalTachHours: formData.totalTachHours ? parseFloat(formData.totalTachHours) : null,
+          totalHobbsHours: formData.totalHobbsHours ? parseFloat(formData.totalHobbsHours) : null,
+          registrationType: formData.registrationType || null,
+          hasInsurance: formData.hasInsurance,
+          maxPassengers: formData.maxPassengers ? parseInt(formData.maxPassengers) : null,
           hourlyRate: formData.hourlyRate ? parseFloat(formData.hourlyRate) : null,
+          notes: formData.aircraftNotes || null,
         }),
       });
       if (res.ok) {
         const newAircraft = await res.json();
         setList([...list, newAircraft]);
         setShowAddForm(false);
-        setFormData({ nNumber: '', nickname: '', customName: '', hourlyRate: '' });
+        setFormData({
+          nNumber: '',
+          nickname: '',
+          customName: '',
+          make: '',
+          model: '',
+          year: '',
+          totalTachHours: '',
+          totalHobbsHours: '',
+          registrationType: 'Standard',
+          hasInsurance: false,
+          maxPassengers: '4',
+          hourlyRate: '',
+          aircraftNotes: ''
+        });
       }
     } finally {
       setLoading(false);
@@ -307,6 +355,76 @@ function AircraftTab({ groupId, aircraft, isAdmin }: { groupId: string; aircraft
               onChange={(e) => setFormData({ ...formData, hourlyRate: e.target.value })}
               className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
             />
+            <input
+              type="text"
+              placeholder="Make (e.g., Cessna)"
+              value={formData.make}
+              onChange={(e) => setFormData({ ...formData, make: e.target.value })}
+              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+            />
+            <input
+              type="text"
+              placeholder="Model (e.g., 172S)"
+              value={formData.model}
+              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
+              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+            />
+            <input
+              type="number"
+              placeholder="Year"
+              value={formData.year}
+              onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+            />
+            <input
+              type="number"
+              step="0.1"
+              placeholder="Total Tach Hours"
+              value={formData.totalTachHours}
+              onChange={(e) => setFormData({ ...formData, totalTachHours: e.target.value })}
+              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+            />
+            <input
+              type="number"
+              step="0.1"
+              placeholder="Total Hobbs Hours"
+              value={formData.totalHobbsHours}
+              onChange={(e) => setFormData({ ...formData, totalHobbsHours: e.target.value })}
+              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+            />
+            <select
+              value={formData.registrationType}
+              onChange={(e) => setFormData({ ...formData, registrationType: e.target.value })}
+              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+            >
+              <option value="Standard">Standard</option>
+              <option value="Experimental">Experimental</option>
+              <option value="Light Sport">Light Sport</option>
+              <option value="Ultralight">Ultralight</option>
+            </select>
+            <input
+              type="number"
+              placeholder="Max Passengers"
+              value={formData.maxPassengers}
+              onChange={(e) => setFormData({ ...formData, maxPassengers: e.target.value })}
+              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+            />
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="hasInsurance"
+                checked={formData.hasInsurance}
+                onChange={(e) => setFormData({ ...formData, hasInsurance: e.target.checked })}
+                className="w-5 h-5 rounded"
+              />
+              <label htmlFor="hasInsurance" className="text-slate-300">Has Insurance</label>
+            </div>
+            <textarea
+              placeholder="Notes"
+              value={formData.aircraftNotes}
+              onChange={(e) => setFormData({ ...formData, aircraftNotes: e.target.value })}
+              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 col-span-2 h-20"
+            />
           </div>
           <div className="flex gap-3 mt-4">
             <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 bg-slate-700 rounded-lg">Cancel</button>
@@ -332,9 +450,12 @@ function AircraftTab({ groupId, aircraft, isAdmin }: { groupId: string; aircraft
                   <button onClick={() => handleDelete(ac.id)} className="text-red-400 hover:text-red-300">×</button>
                 )}
               </div>
-              {ac.hourlyRate && (
-                <div className="mt-2 text-sky-400">${Number(ac.hourlyRate).toFixed(0)}/hr</div>
-              )}
+              <div className="mt-2 text-sm text-slate-400 space-y-1">
+                {ac.make && <div>{ac.make} {ac.model} {ac.year}</div>}
+                {ac.totalTachHours !== null && <div>Tach: {ac.totalTachHours.toFixed(1)} hrs</div>}
+                {ac.totalHobbsHours !== null && <div>Hobbs: {ac.totalHobbsHours.toFixed(1)} hrs</div>}
+                {ac.hourlyRate && <div className="text-sky-400 font-medium">${Number(ac.hourlyRate).toFixed(0)}/hr</div>}
+              </div>
             </div>
           ))}
         </div>
@@ -348,6 +469,7 @@ function BookingsTab({ groupId, aircraft, canBook }: { groupId: string; aircraft
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ aircraftId: '', date: '', startTime: '', endTime: '', purpose: '' });
+  const today = new Date().toISOString().split('T')[0];
 
   useEffect(() => {
     fetch(`/api/groups/${groupId}/bookings`)
@@ -380,6 +502,19 @@ function BookingsTab({ groupId, aircraft, canBook }: { groupId: string; aircraft
     }
   };
 
+  const quickDates = [
+    { label: 'Today', date: today },
+    { label: 'Tomorrow', date: new Date(Date.now() + 86400000).toISOString().split('T')[0] },
+    { label: 'Next Week', date: new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0] },
+  ];
+
+  const timeSlots = [
+    { label: 'Morning (8AM)', start: '08:00', end: '12:00' },
+    { label: 'Afternoon (12PM)', start: '12:00', end: '17:00' },
+    { label: 'Evening (5PM)', start: '17:00', end: '20:00' },
+    { label: 'Full Day', start: '08:00', end: '18:00' },
+  ];
+
   if (loading) return <div className="text-center py-12">Loading bookings...</div>;
 
   return (
@@ -405,13 +540,58 @@ function BookingsTab({ groupId, aircraft, canBook }: { groupId: string; aircraft
                 <option key={ac.id} value={ac.id}>{ac.nNumber || ac.customName || ac.id}</option>
               ))}
             </select>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
-              required
-            />
+            
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={formData.date}
+                min={today}
+                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 flex-1"
+                required
+              />
+            </div>
+            
+            <div className="col-span-2">
+              <div className="text-sm text-slate-400 mb-2">Quick Select Date:</div>
+              <div className="flex gap-2 flex-wrap">
+                {quickDates.map((qd) => (
+                  <button
+                    key={qd.label}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, date: qd.date })}
+                    className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                      formData.date === qd.date 
+                        ? 'bg-sky-500 text-white' 
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {qd.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="col-span-2">
+              <div className="text-sm text-slate-400 mb-2">Quick Select Time:</div>
+              <div className="flex gap-2 flex-wrap">
+                {timeSlots.map((ts) => (
+                  <button
+                    key={ts.label}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, startTime: ts.start, endTime: ts.end })}
+                    className={`px-3 py-1 rounded-lg text-sm transition-colors ${
+                      formData.startTime === ts.start 
+                        ? 'bg-sky-500 text-white' 
+                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {ts.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <input
               type="time"
               placeholder="Start Time"
@@ -470,7 +650,17 @@ function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Air
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [formData, setFormData] = useState({ aircraftId: '', date: '', tachTime: '', hobbsTime: '', notes: '' });
+  const [formData, setFormData] = useState({ 
+    aircraftId: '', 
+    date: '', 
+    tachStart: '', 
+    tachEnd: '',
+    hobbsStart: '', 
+    hobbsEnd: '', 
+    notes: '',
+    maintenanceDescription: '',
+    maintenanceNotes: ''
+  });
 
   useEffect(() => {
     fetch(`/api/groups/${groupId}/logs`)
@@ -487,9 +677,15 @@ function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Air
       body: JSON.stringify({
         aircraftId: formData.aircraftId,
         date: formData.date,
-        tachTime: formData.tachTime ? parseFloat(formData.tachTime) : null,
-        hobbsTime: formData.hobbsTime ? parseFloat(formData.hobbsTime) : null,
+        tachStart: formData.tachStart ? parseFloat(formData.tachStart) : null,
+        tachEnd: formData.tachEnd ? parseFloat(formData.tachEnd) : null,
+        hobbsStart: formData.hobbsStart ? parseFloat(formData.hobbsStart) : null,
+        hobbsEnd: formData.hobbsEnd ? parseFloat(formData.hobbsEnd) : null,
         notes: formData.notes,
+        maintenance: formData.maintenanceDescription ? {
+          description: formData.maintenanceDescription,
+          notes: formData.maintenanceNotes
+        } : null,
       }),
     });
     
@@ -497,7 +693,17 @@ function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Air
       const newLog = await res.json();
       setLogs([...logs, newLog]);
       setShowForm(false);
-      setFormData({ aircraftId: '', date: '', tachTime: '', hobbsTime: '', notes: '' });
+      setFormData({ 
+        aircraftId: '', 
+        date: '', 
+        tachStart: '', 
+        tachEnd: '',
+        hobbsStart: '', 
+        hobbsEnd: '', 
+        notes: '',
+        maintenanceDescription: '',
+        maintenanceNotes: ''
+      });
     }
   };
 
@@ -533,20 +739,38 @@ function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Air
               className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
               required
             />
+            <div className="col-span-2 text-sm text-slate-400 font-medium">Tach Times</div>
             <input
               type="number"
               step="0.1"
-              placeholder="Tach Time"
-              value={formData.tachTime}
-              onChange={(e) => setFormData({ ...formData, tachTime: e.target.value })}
+              placeholder="Tach Start"
+              value={formData.tachStart}
+              onChange={(e) => setFormData({ ...formData, tachStart: e.target.value })}
               className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
             />
             <input
               type="number"
               step="0.1"
-              placeholder="Hobbs Time"
-              value={formData.hobbsTime}
-              onChange={(e) => setFormData({ ...formData, hobbsTime: e.target.value })}
+              placeholder="Tach End"
+              value={formData.tachEnd}
+              onChange={(e) => setFormData({ ...formData, tachEnd: e.target.value })}
+              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+            />
+            <div className="col-span-2 text-sm text-slate-400 font-medium">Hobbs Times</div>
+            <input
+              type="number"
+              step="0.1"
+              placeholder="Hobbs Start"
+              value={formData.hobbsStart}
+              onChange={(e) => setFormData({ ...formData, hobbsStart: e.target.value })}
+              className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+            />
+            <input
+              type="number"
+              step="0.1"
+              placeholder="Hobbs End"
+              value={formData.hobbsEnd}
+              onChange={(e) => setFormData({ ...formData, hobbsEnd: e.target.value })}
               className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
             />
             <input
@@ -556,6 +780,23 @@ function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Air
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 col-span-2"
             />
+            <div className="col-span-2 border-t border-slate-600 pt-4 mt-2">
+              <div className="text-sm text-orange-400 font-medium mb-2">🚨 Report Maintenance Issue</div>
+              <input
+                type="text"
+                placeholder="Description (e.g., Flat tire, Oil leak)"
+                value={formData.maintenanceDescription}
+                onChange={(e) => setFormData({ ...formData, maintenanceDescription: e.target.value })}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 mb-2"
+              />
+              <input
+                type="text"
+                placeholder="Additional notes"
+                value={formData.maintenanceNotes}
+                onChange={(e) => setFormData({ ...formData, maintenanceNotes: e.target.value })}
+                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+              />
+            </div>
           </div>
           <div className="flex gap-3 mt-4">
             <button type="button" onClick={() => setShowForm(false)} className="px-4 py-2 bg-slate-700 rounded-lg">Cancel</button>
@@ -576,7 +817,7 @@ function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Air
                     {new Date(log.date).toLocaleDateString()} • {log.aircraft?.nNumber || log.aircraft?.customName || 'Aircraft'}
                   </div>
                   <div className="text-slate-400 text-sm">
-                    Tach: {log.tachTime || '—'} • Hobbs: {log.hobbsTime || '—'}
+                    Tach: {log.tachTime ? log.tachTime.toFixed(1) : '—'} hrs • Hobbs: {log.hobbsTime ? log.hobbsTime.toFixed(1) : '—'} hrs
                     {log.calculatedCost && <span className="ml-2 text-sky-400">• ${Number(log.calculatedCost).toFixed(2)}</span>}
                   </div>
                   {log.notes && <div className="text-slate-500 text-sm mt-1">{log.notes}</div>}

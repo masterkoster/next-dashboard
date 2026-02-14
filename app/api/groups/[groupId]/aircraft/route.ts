@@ -59,7 +59,11 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { nNumber, nickname, customName, hourlyRate } = body;
+    const { 
+      nNumber, nickname, customName, make, model, year, 
+      totalTachHours, totalHobbsHours, registrationType, 
+      hasInsurance, maxPassengers, hourlyRate, notes 
+    } = body;
 
     const aircraft = await prisma.clubAircraft.create({
       data: {
@@ -67,7 +71,16 @@ export async function POST(request: Request, { params }: RouteParams) {
         nNumber: nNumber || null,
         nickname: nickname || null,
         customName: customName || null,
-        hourlyRate: hourlyRate || null,
+        make: make || null,
+        model: model || null,
+        year: year ? parseInt(year) : null,
+        totalTachHours: totalTachHours ? parseFloat(totalTachHours) : null,
+        totalHobbsHours: totalHobbsHours ? parseFloat(totalHobbsHours) : null,
+        registrationType: registrationType || null,
+        hasInsurance: hasInsurance || false,
+        maxPassengers: maxPassengers ? parseInt(maxPassengers) : null,
+        hourlyRate: hourlyRate ? parseFloat(hourlyRate) : null,
+        aircraftNotes: notes || null,
       },
     });
 

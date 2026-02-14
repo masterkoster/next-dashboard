@@ -180,14 +180,23 @@ model Invite {
 }
 
 model ClubAircraft {
-  id         String   @id @default(uuid())
-  groupId    String
-  nNumber    String?  @db.NVarChar(10)
-  nickname   String?  @db.NVarChar(100)
-  customName String?  @db.NVarChar(255)
-  hourlyRate Decimal? @db.Decimal(10, 2)
-  createdAt  DateTime @default(now()) @db.DateTime2
-  updatedAt  DateTime @updatedAt @db.DateTime2
+  id                String   @id @default(uuid())
+  groupId           String
+  nNumber           String?  @db.NVarChar(10)
+  nickname          String?  @db.NVarChar(100)
+  customName        String?  @db.NVarChar(255)
+  make              String?  @db.NVarChar(100)
+  model             String?  @db.NVarChar(100)
+  year              Int?
+  totalTachHours   Decimal? @db.Decimal(6, 2)
+  totalHobbsHours  Decimal? @db.Decimal(6, 2)
+  registrationType String?  @db.NVarChar(50)
+  hasInsurance     Boolean?
+  maxPassengers    Int?
+  hourlyRate       Decimal? @db.Decimal(10, 2)
+  aircraftNotes    String?  @db.NVarChar(Max)
+  createdAt        DateTime @default(now()) @db.DateTime2
+  updatedAt        DateTime @updatedAt @db.DateTime2
 
   group      FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   bookings   Booking[]
@@ -219,6 +228,10 @@ model FlightLog {
   date           DateTime @db.DateTime2
   tachTime       Decimal? @db.Decimal(6, 2)
   hobbsTime      Decimal? @db.Decimal(6, 2)
+  hobbsStart     Decimal? @db.Decimal(6, 2)
+  hobbsEnd       Decimal? @db.Decimal(6, 2)
+  tachStart      Decimal? @db.Decimal(6, 2)
+  tachEnd        Decimal? @db.Decimal(6, 2)
   calculatedCost Decimal? @db.Decimal(10, 2)
   notes          String?  @db.NVarChar(Max)
   createdAt      DateTime @default(now()) @db.DateTime2

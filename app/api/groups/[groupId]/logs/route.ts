@@ -67,7 +67,16 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { aircraftId, date, tachTime, hobbsTime, notes } = body;
+    const { 
+      aircraftId, 
+      date, 
+      tachStart, 
+      tachEnd,
+      hobbsStart, 
+      hobbsEnd, 
+      notes,
+      maintenance 
+    } = body;
 
     // Verify aircraft belongs to group
     const aircraft = await prisma.clubAircraft.findFirst({
@@ -79,11 +88,17 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Aircraft not found in group' }, { status: 404 });
     }
 
+    // Calculate hobbs hours used
+    const hobbsUsed = (hobbsEnd && hobbsStart) ? (parseFloat(hobbsEnd) - parseFloat(hobbsStart)) : 0;
+    const tachUsed = (tachEnd && tachStart) ? (parseFloat(tachEnd) - parseFloat(tachStart)) : 0;
+    
+    // Use the greater of hobbs or tach for billing
+    const billableHours = Math.max(hobbsUsed, tachUsed);
+    
     // Calculate cost based on hourly rate
     let calculatedCost = null;
-    if ((tachTime || hobbsTime) && aircraft.hourlyRate) {
-      const time = Math.max(tachTime || 0, hobbsTime || 0);
-      calculatedCost = time * Number(aircraft.hourlyRate);
+    if (billableHours > 0 && aircraft.hourlyRate) {
+      calculatedCost = billableHours * Number(aircraft.hourlyRate);
     }
 
     const flightLog = await prisma.flightLog.create({
@@ -91,8 +106,12 @@ export async function POST(request: Request, { params }: RouteParams) {
         aircraftId,
         userId: user!.id,
         date: new Date(date),
-        tachTime: tachTime || null,
-        hobbsTime: hobbsTime || null,
+        tachTime: tachUsed || null,
+        hobbsTime: hobbsUsed || null,
+        hobbsStart: hobbsStart ? parseFloat(hobbsStart) : null,
+        hobbsEnd: hobbsEnd ? parseFloat(hobbsEnd) : null,
+        tachStart: tachStart ? parseFloat(tachStart) : null,
+        tachEnd: tachEnd ? parseFloat(tachEnd) : null,
         calculatedCost,
         notes: notes || null,
       },
@@ -101,6 +120,14 @@ export async function POST(request: Request, { params }: RouteParams) {
         user: { select: { id: true, name: true, email: true } },
       },
     });
+
+    // Create maintenance item if provided
+    if (maintenance && maintenance.description) {
+      await prisma.$queryRawUnsafe(`
+        INSERT INTO Maintenance (id, aircraftId, userId, description, notes, status, reportedDate, createdAt, updatedAt)
+        VALUES (NEWID(), ?, ?, ?, ?, 'NEEDED', GETDATE(), GETDATE(), GETDATE())
+      `, aircraftId, user!.id, maintenance.description, maintenance.notes || null);
+    }
 
     return NextResponse.json(flightLog);
   } catch (error) {

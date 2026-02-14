@@ -58,7 +58,7 @@ export default function FlyingClubPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'aircraft' | 'members'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'aircraft' | 'flights' | 'maintenance' | 'billing' | 'members'>('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [hoveredBooking, setHoveredBooking] = useState<Booking | null>(null);
@@ -160,12 +160,12 @@ export default function FlyingClubPage() {
     <div className="min-h-screen bg-slate-900 text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Tab Navigation */}
-        <div className="flex gap-2 mb-6 border-b border-slate-700">
-          {(['dashboard', 'bookings', 'aircraft', 'members'] as const).map((tab) => (
+        <div className="flex gap-2 mb-6 border-b border-slate-700 overflow-x-auto">
+          {(['dashboard', 'bookings', 'aircraft', 'flights', 'maintenance', 'billing', 'members'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-3 font-medium transition-colors ${
+              className={`px-4 py-3 font-medium transition-colors whitespace-nowrap ${
                 activeTab === tab
                   ? 'text-sky-400 border-b-2 border-sky-400'
                   : 'text-slate-400 hover:text-white'
@@ -174,6 +174,9 @@ export default function FlyingClubPage() {
               {tab === 'dashboard' && '📊 '}
               {tab === 'bookings' && '📅 '}
               {tab === 'aircraft' && '✈️ '}
+              {tab === 'flights' && '🛫 '}
+              {tab === 'maintenance' && '🔧 '}
+              {tab === 'billing' && '💰 '}
               {tab === 'members' && '👥 '}
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
@@ -334,6 +337,18 @@ export default function FlyingClubPage() {
 
         {activeTab === 'aircraft' && (
           <AircraftList groups={groups} />
+        )}
+
+        {activeTab === 'flights' && (
+          <FlightsList groups={groups} />
+        )}
+
+        {activeTab === 'maintenance' && (
+          <MaintenanceList groups={groups} />
+        )}
+
+        {activeTab === 'billing' && (
+          <BillingView groups={groups} />
         )}
 
         {activeTab === 'members' && (
@@ -503,6 +518,71 @@ function AircraftList({ groups }: { groups: Group[] }) {
   );
 }
 
+function FlightsList({ groups }: { groups: Group[] }) {
+  const router = useRouter();
+  const [allLogs, setAllLogs] = useState<{ log: any; groupName: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadLogs = async () => {
+      const data: { log: any; groupName: string }[] = [];
+      for (const group of groups) {
+        try {
+          const res = await fetch(`/api/groups/${group.id}/logs`);
+          if (res.ok) {
+            const logs = await res.json();
+            logs.forEach((log: any) => data.push({ log, groupName: group.name }));
+          }
+        } catch (e) {}
+      }
+      setAllLogs(data.sort((a, b) => new Date(b.log.date).getTime() - new Date(a.log.date).getTime()));
+      setLoading(false);
+    };
+    loadLogs();
+  }, [groups]);
+
+  if (loading) return <div className="text-center py-12">Loading...</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Flight Logs</h2>
+      </div>
+
+      {allLogs.length === 0 ? (
+        <div className="text-center py-12 text-slate-400">
+          <div className="text-4xl mb-4">🛫</div>
+          <p>No flight logs yet</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {allLogs.map(({ log, groupName }) => (
+            <div key={log.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <div className="font-medium">
+                    {new Date(log.date).toLocaleDateString()} • {log.aircraft?.nNumber || log.aircraft?.customName || 'Aircraft'}
+                  </div>
+                  <div className="text-slate-400 text-sm">
+                    {groupName} • 
+                    Tach: {log.tachTime ? log.tachTime.toFixed(1) : '—'} hrs • 
+                    Hobbs: {log.hobbsTime ? log.hobbsTime.toFixed(1) : '—'} hrs
+                    {log.calculatedCost && <span className="ml-2 text-sky-400">• ${Number(log.calculatedCost).toFixed(2)}</span>}
+                  </div>
+                  {log.notes && <div className="text-slate-500 text-sm mt-1">{log.notes}</div>}
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-slate-500">{log.user?.name || log.user?.email}</div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MembersList({ groups }: { groups: Group[] }) {
   const router = useRouter();
   const [allMembers, setAllMembers] = useState<{ member: any; groupName: string }[]>([]);
@@ -564,6 +644,275 @@ function MembersList({ groups }: { groups: Group[] }) {
           <div className="text-4xl mb-4">👥</div>
           <p>No members yet</p>
         </div>
+      )}
+    </div>
+  );
+}
+
+function MaintenanceList({ groups }: { groups: Group[] }) {
+  const [maintenance, setMaintenance] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formData, setFormData] = useState({ aircraftId: '', description: '', notes: '' });
+
+  useEffect(() => {
+    fetch('/api/maintenance')
+      .then(res => res.json())
+      .then(data => setMaintenance(data))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await fetch('/api/maintenance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
+    setShowAddForm(false);
+    setFormData({ aircraftId: '', description: '', notes: '' });
+    // Reload
+    const res = await fetch('/api/maintenance');
+    setMaintenance(await res.json());
+  };
+
+  const needed = maintenance.filter((m: any) => m.status === 'NEEDED' || m.status === 'IN_PROGRESS');
+  const done = maintenance.filter((m: any) => m.status === 'DONE');
+
+  // Get aircraft for the form
+  const allAircraft: { id: string; name: string }[] = [];
+  groups.forEach((g: any) => {
+    if (g.aircraft) g.aircraft.forEach((a: any) => {
+      allAircraft.push({ id: a.id, name: a.nNumber || a.customName || 'Unknown' });
+    });
+  });
+
+  if (loading) return <div className="text-center py-12">Loading...</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Maintenance</h2>
+        <button onClick={() => setShowAddForm(true)} className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium">
+          + Report Issue
+        </button>
+      </div>
+
+      {showAddForm && (
+        <form onSubmit={handleAdd} className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <h3 className="text-lg font-semibold mb-4">Report Maintenance Issue</h3>
+          <div className="space-y-4">
+            <select
+              value={formData.aircraftId}
+              onChange={(e) => setFormData({ ...formData, aircraftId: e.target.value })}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+              required
+            >
+              <option value="">Select Aircraft</option>
+              {allAircraft.map(a => (
+                <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+            <input
+              type="text"
+              placeholder="Description (e.g., Flat tire, Oil leak)"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+              required
+            />
+            <textarea
+              placeholder="Additional notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 h-20"
+            />
+          </div>
+          <div className="flex gap-3 mt-4">
+            <button type="button" onClick={() => setShowAddForm(false)} className="px-4 py-2 bg-slate-700 rounded-lg">Cancel</button>
+            <button type="submit" className="px-4 py-2 bg-sky-500 rounded-lg">Submit</button>
+          </div>
+        </form>
+      )}
+
+      {needed.length > 0 && (
+        <div>
+          <h3 className="text-lg font-medium mb-4 text-orange-400">🔧 Needed</h3>
+          <div className="space-y-3">
+            {needed.map((m: any) => (
+              <div key={m.id} className="bg-slate-800 rounded-lg p-4 border border-orange-500/30">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-medium">{m.nNumber} - {m.customName || m.nickname}</div>
+                    <div className="text-slate-400 text-sm">{m.description}</div>
+                    <div className="text-slate-500 text-xs mt-1">
+                      Reported {new Date(m.reportedDate).toLocaleDateString()} • {m.groupName}
+                    </div>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    m.status === 'NEEDED' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'
+                  }`}>
+                    {m.status}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {done.length > 0 && (
+        <div>
+          <h3 className="text-lg font-medium mb-4 text-green-400">✅ Done</h3>
+          <div className="space-y-3">
+            {done.map((m: any) => (
+              <div key={m.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700 opacity-60">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-medium">{m.nNumber} - {m.customName || m.nickname}</div>
+                    <div className="text-slate-400 text-sm">{m.description}</div>
+                    <div className="text-slate-500 text-xs mt-1">
+                      {m.resolvedDate ? `Resolved ${new Date(m.resolvedDate).toLocaleDateString()}` : ''}
+                      {m.cost && ` • $${m.cost}`}
+                    </div>
+                  </div>
+                  <span className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400">DONE</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {maintenance.length === 0 && (
+        <div className="text-center py-12 text-slate-400">
+          <div className="text-4xl mb-4">🔧</div>
+          <p>No maintenance issues reported</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BillingView({ groups }: { groups: Group[] }) {
+  const [billing, setBilling] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [month, setMonth] = useState(new Date().getMonth());
+  const [year, setYear] = useState(new Date().getFullYear());
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    // Check if user is admin
+    fetch('/api/users/me')
+      .then(res => res.json())
+      .then(user => {
+        // Check if admin in any group
+        const adminCheck = groups.some((g: any) => 
+          g.members?.some((m: any) => m.userId === user.id && m.role === 'ADMIN')
+        );
+        setIsAdmin(adminCheck);
+      });
+  }, [groups]);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/billing?month=${month}&year=${year}`)
+      .then(res => res.json())
+      .then(data => setBilling(data))
+      .finally(() => setLoading(false));
+  }, [month, year]);
+
+  if (!isAdmin) {
+    return (
+      <div className="text-center py-12 text-slate-400">
+        <div className="text-4xl mb-4">🔒</div>
+        <p>Only admins can view billing</p>
+      </div>
+    );
+  }
+
+  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">💰 Billing Statement</h2>
+        <div className="flex gap-2">
+          <select
+            value={month}
+            onChange={(e) => setMonth(parseInt(e.target.value))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2"
+          >
+            {months.map((m, i) => <option key={i} value={i}>{m}</option>)}
+          </select>
+          <select
+            value={year}
+            onChange={(e) => setYear(parseInt(e.target.value))}
+            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2"
+          >
+            {[2024, 2025, 2026].map(y => <option key={y} value={y}>{y}</option>)}
+          </select>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="text-center py-12">Loading...</div>
+      ) : billing?.error ? (
+        <div className="text-center py-12 text-red-400">{billing.error}</div>
+      ) : billing?.members?.length === 0 ? (
+        <div className="text-center py-12 text-slate-400">
+          <div className="text-4xl mb-4">📄</div>
+          <p>No flights logged this month</p>
+        </div>
+      ) : (
+        <>
+          {/* Summary */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+              <div className="text-slate-400 text-sm">Total Members</div>
+              <div className="text-2xl font-bold">{billing?.totalMembers || 0}</div>
+            </div>
+            <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+              <div className="text-slate-400 text-sm">Total Flights</div>
+              <div className="text-2xl font-bold">{billing?.totalFlights || 0}</div>
+            </div>
+            <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+              <div className="text-slate-400 text-sm">Total Hobbs</div>
+              <div className="text-2xl font-bold">{(billing?.totalHobbs || 0).toFixed(1)}</div>
+            </div>
+            <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+              <div className="text-slate-400 text-sm">Total Owed</div>
+              <div className="text-2xl font-bold text-green-400">${(billing?.totalCost || 0).toFixed(2)}</div>
+            </div>
+          </div>
+
+          {/* Member Statements */}
+          <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-slate-700">
+                <tr>
+                  <th className="text-left p-4">Member</th>
+                  <th className="text-right p-4">Flights</th>
+                  <th className="text-right p-4">Hobbs</th>
+                  <th className="text-right p-4">Cost</th>
+                </tr>
+              </thead>
+              <tbody>
+                {billing?.members?.map((member: any, i: number) => (
+                  <tr key={i} className="border-t border-slate-700">
+                    <td className="p-4">
+                      <div className="font-medium">{member.name}</div>
+                      <div className="text-sm text-slate-400">{member.email}</div>
+                    </td>
+                    <td className="text-right p-4">{member.flights}</td>
+                    <td className="text-right p-4">{member.totalHobbs.toFixed(1)}</td>
+                    <td className="text-right p-4 font-bold text-green-400">${member.totalCost.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );
