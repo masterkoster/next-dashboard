@@ -7,6 +7,7 @@ const modules = [
   { id: 'plane-carfax', label: 'Plane Carfax', href: '/modules/plane-carfax' },
   { id: 'plane-search', label: 'Plane Search', href: '/modules/plane-search' },
   { id: 'tailhistory', label: 'TailHistory', href: '/modules/tailhistory' },
+  { id: 'model-viewer', label: '3D Viewer', href: '/model-viewer' },
 ];
 
 export default function Navigation() {
