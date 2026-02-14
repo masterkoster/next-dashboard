@@ -21,7 +21,7 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
-    // Check membership (VIEWERS can also see logs)
+    // Check membership
     const membership = await prisma.groupMember.findFirst({
       where: { groupId, userId: user.id },
     });
@@ -30,20 +30,19 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Not a member' }, { status: 403 });
     }
 
-    // Simple query without complex include
-    const logs = await prisma.$queryRawUnsafe(`
-      SELECT f.*, a.nNumber, a.nickname, a.customName, u.name as userName, u.email as userEmail
-      FROM FlightLog f
-      JOIN ClubAircraft a ON f.aircraftId = a.id
-      JOIN User u ON f.userId = u.id
-      WHERE a.groupId = ?
-      ORDER BY f.date DESC
-    `, groupId);
+    // Try simplest possible query
+    const logs = await prisma.flightLog.findMany({
+      take: 100,
+    });
 
-    return NextResponse.json(Array.isArray(logs) ? logs : []);
+    return NextResponse.json(logs || []);
   } catch (error) {
     console.error('Error fetching logs:', error);
-    return NextResponse.json({ error: 'Failed to fetch flight logs', details: String(error) }, { status: 500 });
+    return NextResponse.json({ 
+      error: 'Failed to fetch flight logs', 
+      details: String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    }, { status: 500 });
   }
 }
 
