@@ -31,6 +31,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const month = parseInt(url.searchParams.get('month') || new Date().getMonth().toString());
     const year = parseInt(url.searchParams.get('year') || new Date().getFullYear().toString());
+    const groupId = url.searchParams.get('groupId') || null;
 
     // Get start and end of month
     const startDate = new Date(year, month, 1);
@@ -55,15 +56,18 @@ export async function GET(request: Request) {
 
     const groupIds = adminGroups.map(m => m.group.id);
 
-    if (groupIds.length === 0) {
-      return NextResponse.json([]);
+    // Filter by specific group if provided, otherwise use all admin groups
+    const targetGroupIds = groupId && groupIds.includes(groupId) ? [groupId] : groupIds;
+
+    if (targetGroupIds.length === 0) {
+      return NextResponse.json({ error: 'No group selected' }, { status: 400 });
     }
 
     // Get flight logs for the month
     const flightLogs = await prisma.flightLog.findMany({
       where: {
         date: { gte: startDate, lte: endDate },
-        aircraft: { groupId: { in: groupIds } },
+        aircraft: { groupId: { in: targetGroupIds } },
       },
       include: {
         aircraft: true,

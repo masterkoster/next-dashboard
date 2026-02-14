@@ -1028,17 +1028,27 @@ function BillingView({ groups }: { groups: Group[] }) {
   const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(new Date().getMonth());
   const [year, setYear] = useState(new Date().getFullYear());
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
 
-  // Check if user is admin of any group
-  const isAdmin = groups?.some((g: any) => g.role === 'ADMIN') || false;
+  // Get groups where user is admin
+  const adminGroups = groups?.filter((g: any) => g.role === 'ADMIN') || [];
+  const isAdmin = adminGroups.length > 0;
+
+  // Auto-select first group if only one
+  useEffect(() => {
+    if (adminGroups.length === 1 && !selectedGroupId) {
+      setSelectedGroupId(adminGroups[0].id);
+    }
+  }, [adminGroups]);
 
   useEffect(() => {
     if (!isAdmin) return;
     
     setLoading(true);
     setError(null);
-    fetch(`/api/billing?month=${month}&year=${year}`)
+    const groupParam = selectedGroupId ? `&groupId=${selectedGroupId}` : '';
+    fetch(`/api/billing?month=${month}&year=${year}${groupParam}`)
       .then(res => res.ok ? res.json() : Promise.reject(new Error('Failed to load billing')))
       .then(data => setBilling(data))
       .catch(e => {
@@ -1046,7 +1056,7 @@ function BillingView({ groups }: { groups: Group[] }) {
         setError(e.message);
       })
       .finally(() => setLoading(false));
-  }, [month, year, isAdmin]);
+  }, [month, year, selectedGroupId, isAdmin]);
 
   if (!isAdmin) {
     return (
@@ -1068,6 +1078,18 @@ function BillingView({ groups }: { groups: Group[] }) {
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">💰 Billing Statement</h2>
         <div className="flex gap-2">
+          {/* Group selector - only show if user is admin of multiple groups */}
+          {adminGroups.length > 1 && (
+            <select
+              value={selectedGroupId}
+              onChange={(e) => setSelectedGroupId(e.target.value)}
+              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2"
+            >
+              {adminGroups.map((g: any) => (
+                <option key={g.id} value={g.id}>{g.name}</option>
+              ))}
+            </select>
+          )}
           <select
             value={month}
             onChange={(e) => setMonth(parseInt(e.target.value))}
