@@ -136,36 +136,29 @@ export function GhostAircraft({
         <meshStandardMaterial color="#00aaff" wireframe transparent opacity={0.5} />
       </mesh>
 
-      {/* Label */}
+      {/* Label - positioned above the aircraft, more subtle */}
       <Html
-        position={[0, scaledHeight * 0.8, 0]}
+        position={[0, scaledHeight * 1.5, 0]}
         center
-        distanceFactor={10}
+        transform
+        occlude
+        distanceFactor={1.5}
         style={{
           pointerEvents: 'none',
+          opacity: 0.7,
         }}
       >
         <div style={{
-          background: 'rgba(0, 20, 40, 0.85)',
-          border: '1px solid #00aaff',
-          borderRadius: '4px',
-          padding: '6px 12px',
+          background: 'rgba(0, 20, 40, 0.7)',
+          border: '1px solid rgba(0, 170, 255, 0.5)',
+          borderRadius: '3px',
+          padding: '4px 8px',
           color: '#00aaff',
-          fontSize: '11px',
+          fontSize: '8px',
           fontFamily: 'monospace',
           whiteSpace: 'nowrap',
-          textShadow: '0 0 10px #00aaff',
-          boxShadow: '0 0 20px rgba(0, 170, 255, 0.3)',
         }}>
-          <div style={{ fontWeight: 'bold', marginBottom: '2px' }}>
-            Generated from FAA Data Spec v2.1
-          </div>
-          <div style={{ opacity: 0.7, fontSize: '10px' }}>
-            {manufacturer} {model}
-          </div>
-          <div style={{ opacity: 0.5, fontSize: '9px', marginTop: '2px' }}>
-            L: {length}' | WS: {wingspan}' | {engineCount}x Engine
-          </div>
+          {manufacturer} {model}
         </div>
       </Html>
     </group>
