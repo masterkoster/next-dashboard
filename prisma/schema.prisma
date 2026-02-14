@@ -222,20 +222,15 @@ model Booking {
 }
 
 model FlightLog {
-  id             String   @id @default(uuid())
-  aircraftId     String
-  userId         String
-  date           DateTime @db.DateTime2
-  tachTime       Decimal? @db.Decimal(6, 2)
-  hobbsTime      Decimal? @db.Decimal(6, 2)
-  hobbsStart     Decimal? @db.Decimal(6, 2)
-  hobbsEnd       Decimal? @db.Decimal(6, 2)
-  tachStart      Decimal? @db.Decimal(6, 2)
-  tachEnd        Decimal? @db.Decimal(6, 2)
-  calculatedCost Decimal? @db.Decimal(10, 2)
-  notes          String?  @db.NVarChar(Max)
-  createdAt      DateTime @default(now()) @db.DateTime2
-  updatedAt      DateTime @updatedAt @db.DateTime2
+  id        String   @id @default(uuid())
+  aircraftId String
+  userId    String
+  date      DateTime @db.DateTime2
+  tachTime  Decimal? @db.Decimal(6, 2)
+  hobbsTime Decimal? @db.Decimal(6, 2)
+  notes     String?  @db.NVarChar(Max)
+  createdAt DateTime @default(now()) @db.DateTime2
+  updatedAt DateTime @updatedAt @db.DateTime2
 
   aircraft ClubAircraft @relation(fields: [aircraftId], references: [id], onDelete: Cascade)
   user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
