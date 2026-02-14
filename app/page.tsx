@@ -4,30 +4,6 @@ import Link from "next/link";
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800">
-      {/* Header */}
-      <header className="border-b border-slate-800/60">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-2 text-xl font-bold text-white">
-            <span className="text-2xl">✈️</span>
-            <span>Aviation</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/login"
-              className="rounded-lg px-4 py-2 text-sm font-medium text-slate-300 hover:text-white"
-            >
-              Login
-            </Link>
-            <Link
-              href="/signup"
-              className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-400"
-            >
-              Sign Up
-            </Link>
-          </div>
-        </div>
-      </header>
-
       {/* Hero */}
       <div className="mx-auto max-w-6xl px-6 py-16 text-center">
         <h1 className="text-4xl font-bold tracking-tight text-white md:text-6xl">

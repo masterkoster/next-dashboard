@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 
 type AircraftResult = {
@@ -28,15 +28,59 @@ export default function PlaneSearchClient() {
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
+  const [manufacturers, setManufacturers] = useState<string[]>([]);
+  const [models, setModels] = useState<string[]>([]);
+  const [optionsLoading, setOptionsLoading] = useState(true);
   
   // Filter states
   const [manufacturer, setManufacturer] = useState("");
   const [model, setModel] = useState("");
-  const [yearFrom, setYearFrom] = useState("");
-  const [yearTo, setYearTo] = useState("");
   const [status, setStatus] = useState("");
   const [typeRegistrant, setTypeRegistrant] = useState("");
   const [page, setPage] = useState(1);
+
+  // Load manufacturers on mount
+  useEffect(() => {
+    async function loadManufacturers() {
+      try {
+        const res = await fetch('/api/aircraft/search/options');
+        const data = await res.json();
+        setManufacturers(data.manufacturers || []);
+      } catch (error) {
+        console.error("Failed to load manufacturers:", error);
+      } finally {
+        setOptionsLoading(false);
+      }
+    }
+    loadManufacturers();
+  }, []);
+
+  // Load models when manufacturer changes
+  useEffect(() => {
+    async function loadModels() {
+      if (!manufacturer) {
+        setModels([]);
+        return;
+      }
+      
+      try {
+        const res = await fetch(`/api/aircraft/search?manufacturer=${encodeURIComponent(manufacturer)}&limit=1000`);
+        const data = await res.json();
+        
+        // Extract unique models
+        const modelSet = new Set<string>();
+        for (const aircraft of data.results || []) {
+          if (aircraft.model) {
+            modelSet.add(aircraft.model);
+          }
+        }
+        setModels(Array.from(modelSet).sort());
+      } catch (error) {
+        console.error("Failed to load models:", error);
+      }
+    }
+    loadModels();
+  }, [manufacturer]);
 
   const handleSearch = useCallback(async (pageNum: number = 1) => {
     setLoading(true);
@@ -46,8 +90,6 @@ export default function PlaneSearchClient() {
     const params = new URLSearchParams();
     if (manufacturer) params.set("manufacturer", manufacturer);
     if (model) params.set("model", model);
-    if (yearFrom) params.set("yearFrom", yearFrom);
-    if (yearTo) params.set("yearTo", yearTo);
     if (status) params.set("status", status);
     if (typeRegistrant) params.set("typeRegistrant", typeRegistrant);
     params.set("page", pageNum.toString());
@@ -65,7 +107,12 @@ export default function PlaneSearchClient() {
     } finally {
       setLoading(false);
     }
-  }, [manufacturer, model, yearFrom, yearTo, status, typeRegistrant]);
+  }, [manufacturer, model, status, typeRegistrant]);
+
+  const handleManufacturerChange = (value: string) => {
+    setManufacturer(value);
+    setModel(""); // Reset model when manufacturer changes
+  };
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && (!pagination || newPage <= pagination.totalPages)) {
@@ -78,31 +125,49 @@ export default function PlaneSearchClient() {
     <div className="space-y-6">
       {/* Filters */}
       <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4">
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
+          {/* Manufacturer Dropdown */}
           <div>
             <label className="block text-xs uppercase tracking-[0.2em] text-slate-400 mb-1">
               Manufacturer
             </label>
-            <input
-              type="text"
+            <select
               value={manufacturer}
-              onChange={(e) => setManufacturer(e.target.value)}
-              placeholder="e.g. CESSNA, PIPER, BEECH"
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500"
-            />
+              onChange={(e) => handleManufacturerChange(e.target.value)}
+              disabled={optionsLoading}
+              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white"
+            >
+              <option value="">
+                {optionsLoading ? "Loading..." : "Select Manufacturer"}
+              </option>
+              {manufacturers.map((mfr) => (
+                <option key={mfr} value={mfr}>
+                  {mfr}
+                </option>
+              ))}
+            </select>
           </div>
           
+          {/* Model Dropdown - only shows models for selected manufacturer */}
           <div>
             <label className="block text-xs uppercase tracking-[0.2em] text-slate-400 mb-1">
               Model
             </label>
-            <input
-              type="text"
+            <select
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              placeholder="e.g. 172S, PA-28-181"
-              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500"
-            />
+              disabled={!manufacturer || optionsLoading}
+              className="w-full rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50"
+            >
+              <option value="">
+                {!manufacturer ? "Select manufacturer first" : "All Models"}
+              </option>
+              {models.map((mod) => (
+                <option key={mod} value={mod}>
+                  {mod}
+                </option>
+              ))}
+            </select>
           </div>
           
           <div>
@@ -208,51 +273,9 @@ export default function PlaneSearchClient() {
                     ← Previous
                   </button>
                   
-                  {/* Page numbers */}
-                  <div className="flex gap-1">
-                    {pagination.page > 2 && (
-                      <button
-                        onClick={() => handlePageChange(1)}
-                        disabled={loading}
-                        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700"
-                      >
-                        1
-                      </button>
-                    )}
-                    {pagination.page > 3 && (
-                      <span className="px-2 py-2 text-slate-500">...</span>
-                    )}
-                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
-                      const pageNum = Math.max(1, Math.min(pagination.page - 2, pagination.totalPages - 4)) + i;
-                      if (pageNum > pagination.totalPages) return null;
-                      return (
-                        <button
-                          key={pageNum}
-                          onClick={() => handlePageChange(pageNum)}
-                          disabled={loading}
-                          className={`rounded-lg border bg-slate-800 px-3 py-2 text-sm ${
-                            pageNum === page
-                              ? 'border-emerald-500 text-emerald-400'
-                              : 'border-slate-700 text-slate-300 hover:bg-slate-700'
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      );
-                    })}
-                    {pagination.page < pagination.totalPages - 2 && (
-                      <span className="px-2 py-2 text-slate-500">...</span>
-                    )}
-                    {pagination.page < pagination.totalPages - 1 && (
-                      <button
-                        onClick={() => handlePageChange(pagination.totalPages)}
-                        disabled={loading}
-                        className="rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-300 hover:bg-slate-700"
-                      >
-                        {pagination.totalPages}
-                      </button>
-                    )}
-                  </div>
+                  <span className="px-4 text-sm text-slate-400">
+                    Page {pagination.page} of {pagination.totalPages}
+                  </span>
                   
                   <button
                     onClick={() => handlePageChange(page + 1)}
