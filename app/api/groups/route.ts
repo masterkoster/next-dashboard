@@ -29,8 +29,8 @@ export async function POST(request: Request) {
         name,
         description,
         ownerId: user.id,
-        dryRate,
-        wetRate,
+        dryRate: dryRate ? parseFloat(dryRate) : null,
+        wetRate: wetRate ? parseFloat(wetRate) : null,
         customRates: customRates ? JSON.stringify(customRates) : null,
       },
     });
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
     return NextResponse.json(group);
   } catch (error) {
     console.error('Error creating group:', error);
-    return NextResponse.json({ error: 'Failed to create group' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to create group', details: String(error) }, { status: 500 });
   }
 }
 
@@ -77,6 +77,6 @@ export async function GET() {
     return NextResponse.json(groups);
   } catch (error) {
     console.error('Error fetching groups:', error);
-    return NextResponse.json({ error: 'Failed to fetch groups' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch groups', details: String(error) }, { status: 500 });
   }
 }
