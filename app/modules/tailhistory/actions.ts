@@ -100,11 +100,15 @@ async function getGAPerformanceData(mfrUpper: string, modelUpper: string) {
     if (modelNumbers.length > 0) {
       // Search for any model containing any of the numbers
       for (const num of modelNumbers) {
+        // Fix: include wildcards in parameter values, not in query
+        const mfrPattern = `%${mfrUpper}%`
+        const modelPattern = `%${num}%`
+        
         const specs = await prisma.$queryRawUnsafe(`
           SELECT TOP 1 * FROM AircraftSpecs 
-          WHERE UPPER(manufacturer) LIKE '%' + @mfr + '%'
-            AND UPPER(model) LIKE '%' + @num + '%'
-        `, { mfr: mfrUpper, num: num }) as any[]
+          WHERE UPPER(manufacturer) LIKE @mfrPattern
+            AND UPPER(model) LIKE @modelPattern
+        `, { mfrPattern, modelPattern }) as any[]
         
         if (specs && specs.length > 0) {
           const s = specs[0]
@@ -129,7 +133,7 @@ async function getGAPerformanceData(mfrUpper: string, modelUpper: string) {
             cruise_alt: s.service_ceiling_ft,
             maxpax: null,
             takeoffGroundRoll: s.takeoff_ground_roll_ft,
-            landingGroundRoll: s.lading_ground_roll_ft,
+            landingGroundRoll: s.landing_ground_roll_ft,
             rateOfClimb: s.rate_of_climb_fpm,
             stallSpeed: s.stall_speed_dirty_kts,
             source: 'risingup'

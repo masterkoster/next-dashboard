@@ -111,3 +111,47 @@ model AircraftPerformance {
 
   @@map("AircraftPerformance")
 }
+
+model AircraftSpecs {
+  id                      Int     @id @default(autoincrement())
+  manufacturer            String  @db.NVarChar(100)
+  model                   String  @db.NVarChar(255)
+  
+  // Dimensions
+  length_ft               String? @db.NVarChar(50)
+  wingspan_ft             String? @db.NVarChar(50)
+  height_ft               String? @db.NVarChar(50)
+  
+  // Takeoff/Landing
+  takeoff_ground_roll_ft  String? @db.NVarChar(50)
+  takeoff_over_50ft_ft    String? @db.NVarChar(50)
+  landing_ground_roll_ft  String? @db.NVarChar(50)
+  landing_over_50ft_ft    String? @db.NVarChar(50)
+  
+  // Speeds
+  top_speed_kts           String? @db.NVarChar(50)
+  cruise_speed_kts        String? @db.NVarChar(50)
+  stall_speed_dirty_kts   String? @db.NVarChar(50)
+  stall_speed_clean_kts   String? @db.NVarChar(50)
+  
+  // Weights
+  empty_weight_lbs        String? @db.NVarChar(50)
+  gross_weight_lbs        String? @db.NVarChar(50)
+  
+  // Range & Fuel
+  range_nm                String? @db.NVarChar(50)
+  fuel_capacity_gal       String? @db.NVarChar(50)
+  
+  // Engine
+  horsepower              String? @db.NVarChar(50)
+  
+  // Performance
+  rate_of_climb_fpm       String? @db.NVarChar(50)
+  service_ceiling_ft     String? @db.NVarChar(50)
+  
+  // Metadata
+  source_url              String? @db.NVarChar(500)
+  scraped_at              DateTime? @db.DateTime2
+
+  @@map("AircraftSpecs")
+}
