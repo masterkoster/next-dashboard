@@ -102,8 +102,19 @@ export async function POST(request: Request, { params }: RouteParams) {
       },
     });
 
-    // Create maintenance if provided - skip for now to avoid errors
-    // if (maintenance && maintenance.description) { ... }
+    // Create maintenance if provided
+    if (maintenance && maintenance.description) {
+      await prisma.maintenance.create({
+        data: {
+          aircraftId,
+          userId: user!.id,
+          description: maintenance.description,
+          notes: maintenance.notes || null,
+          status: 'NEEDED',
+          reportedDate: new Date(),
+        },
+      });
+    }
 
     return NextResponse.json(flightLog);
   } catch (error) {

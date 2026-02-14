@@ -660,6 +660,7 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
     hobbsStart: '', 
     hobbsEnd: '', 
     notes: '',
+    hasMaintenance: false,
     maintenanceDescription: '',
     maintenanceNotes: ''
   });
@@ -710,7 +711,7 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
         hobbsStart: formData.hobbsStart ? parseFloat(formData.hobbsStart) : null,
         hobbsEnd: formData.hobbsEnd ? parseFloat(formData.hobbsEnd) : null,
         notes: formData.notes,
-        maintenance: formData.maintenanceDescription ? {
+        maintenance: formData.hasMaintenance && formData.maintenanceDescription ? {
           description: formData.maintenanceDescription,
           notes: formData.maintenanceNotes
         } : null,
@@ -730,6 +731,7 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
         hobbsStart: '', 
         hobbsEnd: '', 
         notes: '',
+        hasMaintenance: false,
         maintenanceDescription: '',
         maintenanceNotes: ''
       });
@@ -830,21 +832,34 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
               className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 col-span-2"
             />
             <div className="col-span-2 border-t border-slate-600 pt-4 mt-2">
-              <div className="text-sm text-orange-400 font-medium mb-2">🚨 Report Maintenance Issue</div>
-              <input
-                type="text"
-                placeholder="Description (e.g., Flat tire, Oil leak)"
-                value={formData.maintenanceDescription}
-                onChange={(e) => setFormData({ ...formData, maintenanceDescription: e.target.value })}
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 mb-2"
-              />
-              <input
-                type="text"
-                placeholder="Additional notes"
-                value={formData.maintenanceNotes}
-                onChange={(e) => setFormData({ ...formData, maintenanceNotes: e.target.value })}
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
-              />
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.hasMaintenance}
+                  onChange={(e) => setFormData({ ...formData, hasMaintenance: e.target.checked, maintenanceDescription: e.target.checked ? formData.maintenanceDescription : '', maintenanceNotes: e.target.checked ? formData.maintenanceNotes : '' })}
+                  className="w-4 h-4 rounded"
+                />
+                <span className="text-sm text-orange-400 font-medium">🚨 Report Maintenance Issue</span>
+              </label>
+              {formData.hasMaintenance && (
+                <>
+                  <input
+                    type="text"
+                    placeholder="Description (e.g., Flat tire, Oil leak)"
+                    value={formData.maintenanceDescription}
+                    onChange={(e) => setFormData({ ...formData, maintenanceDescription: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 mt-2"
+                    required
+                  />
+                  <input
+                    type="text"
+                    placeholder="Additional notes"
+                    value={formData.maintenanceNotes}
+                    onChange={(e) => setFormData({ ...formData, maintenanceNotes: e.target.value })}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 mt-2"
+                  />
+                </>
+              )}
             </div>
           </div>
           <div className="flex gap-3 mt-4">
