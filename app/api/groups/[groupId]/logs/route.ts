@@ -43,7 +43,6 @@ export async function GET(request: Request, { params }: RouteParams) {
       where: { groupId },
       orderBy: { reportedDate: 'desc' },
       take: 20,
-      include: { aircraft: true },
     });
 
     return NextResponse.json({ logs: logs || [], maintenance });

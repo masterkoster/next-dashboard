@@ -14,15 +14,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get all maintenance with aircraft and group info
+    // Get all maintenance 
     const maintenance = await prisma.maintenance.findMany({
       orderBy: { reportedDate: 'desc' },
       take: 50,
-      include: {
-        aircraft: {
-          include: { group: true }
-        }
-      },
     });
 
     return NextResponse.json(maintenance || []);

@@ -824,15 +824,11 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
 
   const userGroupIds = userGroups.map((g: any) => g.id);
   let filteredMaintenance = maintenance.filter((m: any) => {
-    const groupId = m.groupId || m.aircraft?.groupId;
-    return groupId && userGroupIds.includes(groupId);
+    return m.groupId && userGroupIds.includes(m.groupId);
   });
   
   if (selectedGroupId) {
-    filteredMaintenance = filteredMaintenance.filter((m: any) => {
-      const groupId = m.groupId || m.aircraft?.groupId;
-      return groupId === selectedGroupId;
-    });
+    filteredMaintenance = filteredMaintenance.filter((m: any) => m.groupId === selectedGroupId);
   }
   if (selectedAircraftId) {
     filteredMaintenance = filteredMaintenance.filter((m: any) => m.aircraftId === selectedAircraftId);
@@ -957,10 +953,11 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
               <div key={m.id} className="bg-slate-800 rounded-lg p-4 border border-orange-500/30">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium">{m.aircraft?.nNumber || m.aircraft?.customName || m.aircraft?.nickname || 'Unknown'} - {m.aircraft?.customName || m.aircraft?.nickname || ''}</div>
+                    <div className="font-medium">Aircraft ID: {m.aircraftId}</div>
                     <div className="text-slate-400 text-sm">{m.description}</div>
+                    {m.notes && <div className="text-slate-500 text-sm mt-1">{m.notes}</div>}
                     <div className="text-slate-500 text-xs mt-1">
-                      Reported {new Date(m.reportedDate).toLocaleDateString()} • {m.aircraft?.group?.name || 'Unknown Group'}
+                      Reported {new Date(m.reportedDate).toLocaleDateString()}
                     </div>
                   </div>
                   <span className={`text-xs px-2 py-1 rounded ${
@@ -983,8 +980,9 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
               <div key={m.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700 opacity-60">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium">{m.aircraft?.nNumber || 'Unknown'} - {m.aircraft?.customName || m.aircraft?.nickname || ''}</div>
+                    <div className="font-medium">Aircraft ID: {m.aircraftId}</div>
                     <div className="text-slate-400 text-sm">{m.description}</div>
+                    {m.notes && <div className="text-slate-500 text-sm mt-1">{m.notes}</div>}
                     <div className="text-slate-500 text-xs mt-1">
                       {m.resolvedDate ? `Resolved ${new Date(m.resolvedDate).toLocaleDateString()}` : ''}
                       {m.cost && ` • $${m.cost}`}
