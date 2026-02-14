@@ -14,30 +14,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get user's groups
-    const userGroups = await prisma.groupMember.findMany({
-      where: { userId: user.id },
-      select: { groupId: true }
-    });
-    
-    const groupIds = userGroups.map(g => g.groupId);
-    
-    // Get maintenance only for user's groups
-    let maintenance;
-    if (groupIds.length > 0) {
-      // Build the IN clause manually
-      const inClause = groupIds.map((id, i) => `'${id}'`).join(', ');
-      maintenance = await prisma.$queryRawUnsafe(`
-        SELECT m.*, a.nNumber, a.customName, a.nickname, a.make, a.model, a.groupId as aircraftGroupId
-        FROM Maintenance m
-        LEFT JOIN ClubAircraft a ON m.aircraftId = a.id
-        WHERE m.groupId IN (${inClause}) OR m.groupId IS NULL
-        ORDER BY m.reportedDate DESC
-      `);
-    } else {
-      // No groups - return empty
-      maintenance = [];
-    }
+    // Get all maintenance - frontend will filter by user's groups
+    const maintenance = await prisma.$queryRaw`SELECT * FROM Maintenance ORDER BY reportedDate DESC`;
 
     console.log('Maintenance fetched:', maintenance);
     return NextResponse.json(maintenance);
