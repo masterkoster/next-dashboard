@@ -14,32 +14,40 @@ export async function GET(request: Request) {
   const yearTo = searchParams.get("yearTo") || "";
   const status = searchParams.get("status") || "";
   const typeRegistrant = searchParams.get("typeRegistrant") || "";
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "50");
+  
+  const skip = (page - 1) * limit;
 
   try {
-    // Build where clause
+    // Build where clause - use contains for partial matching
     const where: any = {};
     
     if (manufacturer) {
-      where.MFR = { contains: manufacturer.toUpperCase() };
+      // Use contains for partial match (case insensitive in SQL Server)
+      where.mfr = { contains: manufacturer, mode: 'insensitive' };
     }
     
     if (model) {
-      where.MODEL = { contains: model.toUpperCase() };
+      where.model = { contains: model, mode: 'insensitive' };
     }
     
     if (status) {
-      where.STATUS_CODE = status;
+      where.statusCode = status;
     }
     
     if (typeRegistrant) {
-      where.TYPE_REGISTRANT = typeRegistrant;
+      where.typeRegistrant = typeRegistrant;
     }
+
+    // Get total count
+    const total = await prisma.aircraftMaster.count({ where });
     
-    // Note: YEAR MFR field would need to be added to database for year filtering
-    
+    // Get paginated results
     const results = await prisma.aircraftMaster.findMany({
       where,
-      take: 100,
+      skip,
+      take: limit,
       orderBy: { nNumber: 'asc' }
     });
 
@@ -54,7 +62,14 @@ export async function GET(request: Request) {
         lastActionDate: r.lastActionDate,
         airWorthDate: r.airWorthDate,
         name: r.name,
-      }))
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        hasMore: skip + results.length < total
+      }
     });
   } catch (error) {
     console.error("Search error:", error);
