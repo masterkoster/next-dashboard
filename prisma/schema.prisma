@@ -193,8 +193,6 @@ model Maintenance {
   createdAt   DateTime @default(now()) @db.DateTime2
   updatedAt   DateTime @updatedAt @db.DateTime2
 
-  aircraft    ClubAircraft @relation(fields: [aircraftId], references: [id])
-
   @@map("Maintenance")
 }
 
@@ -220,7 +218,6 @@ model ClubAircraft {
   group      FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   bookings   Booking[]
   flightLogs FlightLog[]
-  maintenance Maintenance[]
 
   @@map("ClubAircraft")
 }
