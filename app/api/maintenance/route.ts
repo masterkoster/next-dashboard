@@ -26,7 +26,15 @@ export async function GET(request: Request) {
       },
     });
 
+    if (memberships.length === 0) {
+      return NextResponse.json([]);
+    }
+
     const aircraftIds = memberships.flatMap(m => m.group.aircraft.map(a => a.id));
+
+    if (aircraftIds.length === 0) {
+      return NextResponse.json([]);
+    }
 
     const maintenance = await prisma.$queryRawUnsafe(`
       SELECT m.*, a.nNumber, a.nickname, a.customName, a.make, a.model, g.name as groupName
@@ -37,10 +45,10 @@ export async function GET(request: Request) {
       ORDER BY m.reportedDate DESC
     `, ...aircraftIds);
 
-    return NextResponse.json(maintenance);
+    return NextResponse.json(maintenance || []);
   } catch (error) {
     console.error('Error fetching maintenance:', error);
-    return NextResponse.json({ error: 'Failed to fetch maintenance' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch maintenance', details: String(error) }, { status: 500 });
   }
 }
 

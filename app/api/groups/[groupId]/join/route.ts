@@ -39,7 +39,17 @@ export async function POST(request: Request, { params }: RouteParams) {
     });
 
     if (!invite) {
-      return NextResponse.json({ error: 'Invalid or expired invite' }, { status: 404 });
+      // Check if invite exists but expired or wrong group
+      const anyInvite = await prisma.invite.findFirst({
+        where: { token },
+      });
+      if (anyInvite) {
+        if (anyInvite.expiresAt <= new Date()) {
+          return NextResponse.json({ error: 'Invite has expired. Please ask for a new one.' }, { status: 404 });
+        }
+        return NextResponse.json({ error: 'Invalid invite link for this group' }, { status: 404 });
+      }
+      return NextResponse.json({ error: 'Invalid invite link' }, { status: 404 });
     }
 
     // Check if already a member

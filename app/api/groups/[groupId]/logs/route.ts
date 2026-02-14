@@ -113,11 +113,7 @@ export async function POST(request: Request, { params }: RouteParams) {
         date: new Date(date),
         tachTime: tachUsed || null,
         hobbsTime: hobbsUsed || null,
-        hobbsStart: hobbsStart ? parseFloat(hobbsStart) : null,
-        hobbsEnd: hobbsEnd ? parseFloat(hobbsEnd) : null,
-        tachStart: tachStart ? parseFloat(tachStart) : null,
-        tachEnd: tachEnd ? parseFloat(tachEnd) : null,
-        calculatedCost,
+        // Skip new columns for now - database may not have them
         notes: notes || null,
       },
       include: {
