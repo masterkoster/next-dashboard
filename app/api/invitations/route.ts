@@ -97,10 +97,9 @@ export async function POST(request: Request) {
       },
     });
 
-    // Mark invite as accepted (or delete)
-    await prisma.invite.update({
+    // Mark invite as accepted - delete it since it's used
+    await prisma.invite.delete({
       where: { id: inviteId },
-      data: { acceptedAt: new Date() },
     });
 
     return NextResponse.json({ success: true, group: invite.group });
