@@ -58,6 +58,7 @@ export default function FlyingClubPage() {
   const [groups, setGroups] = useState<Group[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'aircraft' | 'members'>('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [hoveredBooking, setHoveredBooking] = useState<Booking | null>(null);
@@ -158,6 +159,27 @@ export default function FlyingClubPage() {
   return (
     <div className="min-h-screen bg-slate-900 text-white p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
+        {/* Tab Navigation */}
+        <div className="flex gap-2 mb-6 border-b border-slate-700">
+          {(['dashboard', 'bookings', 'aircraft', 'members'] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-3 font-medium transition-colors ${
+                activeTab === tab
+                  ? 'text-sky-400 border-b-2 border-sky-400'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {tab === 'dashboard' && '📊 '}
+              {tab === 'bookings' && '📅 '}
+              {tab === 'aircraft' && '✈️ '}
+              {tab === 'members' && '👥 '}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+
         {/* Header */}
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
           <div>
@@ -186,6 +208,9 @@ export default function FlyingClubPage() {
           </div>
         </div>
 
+        {/* Tab Content */}
+        {activeTab === 'dashboard' && (
+          <>
         {/* Calendar */}
         <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
           {/* Calendar Header */}
@@ -300,7 +325,246 @@ export default function FlyingClubPage() {
             )}
           </div>
         </div>
+        </>
+        )}
+
+        {activeTab === 'bookings' && (
+          <BookingsList bookings={filteredBookings} groups={groups} />
+        )}
+
+        {activeTab === 'aircraft' && (
+          <AircraftList groups={groups} />
+        )}
+
+        {activeTab === 'members' && (
+          <MembersList groups={groups} />
+        )}
       </div>
+    </div>
+  );
+}
+
+function BookingsList({ bookings, groups }: { bookings: Booking[]; groups: Group[] }) {
+  const router = useRouter();
+  
+  const getGroupId = (groupName: string) => {
+    const group = groups.find(g => g.name === groupName);
+    return group?.id;
+  };
+
+  const pastBookings = bookings.filter(b => new Date(b.endTime) < new Date()).sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+  const upcomingBookings = bookings.filter(b => new Date(b.endTime) >= new Date()).sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Bookings</h2>
+        <Link href="/modules/flying-club/groups/new" className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium">
+          + New Booking
+        </Link>
+      </div>
+
+      {upcomingBookings.length > 0 && (
+        <div>
+          <h3 className="text-lg font-medium mb-4 text-sky-400">Upcoming</h3>
+          <div className="space-y-3">
+            {upcomingBookings.map(booking => (
+              <div 
+                key={booking.id} 
+                className="bg-slate-800 rounded-lg p-4 border border-slate-700 hover:border-sky-500 transition-colors"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="font-medium text-lg">{booking.groupName}</div>
+                    <div className="text-sky-400">{booking.aircraft.nNumber} - {booking.aircraft.customName || booking.aircraft.nickname}</div>
+                    <div className="text-slate-400 text-sm mt-1">
+                      {new Date(booking.startTime).toLocaleDateString()} • {' '}
+                      {new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {' '}
+                      {new Date(booking.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    {booking.purpose && <div className="text-slate-500 text-sm mt-1">{booking.purpose}</div>}
+                  </div>
+                  <button
+                    onClick={() => router.push(`/modules/flying-club/groups/${getGroupId(booking.groupName)}`)}
+                    className="text-sky-400 hover:text-sky-300 text-sm"
+                  >
+                    View →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {pastBookings.length > 0 && (
+        <div>
+          <h3 className="text-lg font-medium mb-4 text-slate-400">Past</h3>
+          <div className="space-y-3">
+            {pastBookings.map(booking => (
+              <div key={booking.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700 opacity-60">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <div className="font-medium">{booking.groupName}</div>
+                    <div className="text-slate-400">{booking.aircraft.nNumber} - {booking.aircraft.customName || booking.aircraft.nickname}</div>
+                    <div className="text-slate-500 text-sm">
+                      {new Date(booking.startTime).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => router.push(`/modules/flying-club/groups/${getGroupId(booking.groupName)}`)}
+                    className="text-slate-400 hover:text-slate-300 text-sm"
+                  >
+                    View →
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {bookings.length === 0 && (
+        <div className="text-center py-12 text-slate-400">
+          <div className="text-4xl mb-4">📅</div>
+          <p>No bookings yet</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AircraftList({ groups }: { groups: Group[] }) {
+  const router = useRouter();
+  const [allAircraft, setAllAircraft] = useState<{ aircraft: any; groupName: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadAircraft = async () => {
+      const data: { aircraft: any; groupName: string }[] = [];
+      for (const group of groups) {
+        try {
+          const res = await fetch(`/api/groups/${group.id}/aircraft`);
+          if (res.ok) {
+            const aircraft = await res.json();
+            aircraft.forEach((ac: any) => data.push({ aircraft: ac, groupName: group.name }));
+          }
+        } catch (e) {}
+      }
+      setAllAircraft(data);
+      setLoading(false);
+    };
+    loadAircraft();
+  }, [groups]);
+
+  if (loading) return <div className="text-center py-12">Loading...</div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Aircraft</h2>
+        <Link href="/modules/flying-club/groups/new" className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium">
+          + Add Aircraft
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {allAircraft.map(({ aircraft, groupName }) => (
+          <div key={aircraft.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700 hover:border-sky-500 transition-colors">
+            <div className="flex justify-between items-start mb-2">
+              <div>
+                <div className="font-bold text-lg">{aircraft.nNumber || 'Custom'}</div>
+                <div className="text-slate-400">{aircraft.customName || aircraft.nickname || 'Unnamed'}</div>
+              </div>
+              <button
+                onClick={() => router.push(`/modules/flying-club/groups/${groups.find(g => g.name === groupName)?.id}`)}
+                className="text-sky-400 hover:text-sky-300 text-sm"
+              >
+                →
+              </button>
+            </div>
+            <div className="text-sm text-slate-400 space-y-1">
+              {aircraft.make && <div>{aircraft.make} {aircraft.model} {aircraft.year}</div>}
+              {aircraft.totalTachHours && <div>Tach: {aircraft.totalTachHours.toFixed(1)} hrs</div>}
+              {aircraft.totalHobbsHours && <div>Hobbs: {aircraft.totalHobbsHours.toFixed(1)} hrs</div>}
+              {aircraft.hourlyRate && <div className="text-sky-400">${aircraft.hourlyRate}/hr</div>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {allAircraft.length === 0 && (
+        <div className="text-center py-12 text-slate-400">
+          <div className="text-4xl mb-4">✈️</div>
+          <p>No aircraft yet</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MembersList({ groups }: { groups: Group[] }) {
+  const router = useRouter();
+  const [allMembers, setAllMembers] = useState<{ member: any; groupName: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadMembers = async () => {
+      const data: { member: any; groupName: string }[] = [];
+      for (const group of groups) {
+        try {
+          const res = await fetch(`/api/groups/${group.id}/members`);
+          if (res.ok) {
+            const members = await res.json();
+            members.forEach((m: any) => data.push({ member: m, groupName: group.name }));
+          }
+        } catch (e) {}
+      }
+      setAllMembers(data);
+      setLoading(false);
+    };
+    loadMembers();
+  }, [groups]);
+
+  if (loading) return <div className="text-center py-12">Loading...</div>;
+
+  // Group members by email
+  const membersByEmail: Record<string, { member: any; groups: string[] }> = {};
+  allMembers.forEach(({ member, groupName }) => {
+    const email = member.user.email;
+    if (!membersByEmail[email]) {
+      membersByEmail[email] = { member, groups: [] };
+    }
+    membersByEmail[email].groups.push(groupName);
+  });
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">Members</h2>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Object.entries(membersByEmail).map(([email, { member, groups }]) => (
+          <div key={email} className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+            <div className="font-medium">{member.user.name || email}</div>
+            <div className="text-slate-400 text-sm">{email}</div>
+            <div className="flex flex-wrap gap-2 mt-2">
+              {groups.map(g => (
+                <span key={g} className="text-xs bg-sky-500/20 text-sky-400 px-2 py-1 rounded">{g}</span>
+              ))}
+            </div>
+            <div className="text-xs text-slate-500 mt-2">{member.role}</div>
+          </div>
+        ))}
+      </div>
+
+      {allMembers.length === 0 && (
+        <div className="text-center py-12 text-slate-400">
+          <div className="text-4xl mb-4">👥</div>
+          <p>No members yet</p>
+        </div>
+      )}
     </div>
   );
 }
