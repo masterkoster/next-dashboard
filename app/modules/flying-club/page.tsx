@@ -966,7 +966,9 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
               <div key={m.id} className="bg-slate-800 rounded-lg p-4 border border-orange-500/30">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium">Aircraft ID: {m.aircraftId}</div>
+                    <div className="font-medium">
+                      {m.nNumber || 'N/A'} - {m.customName || m.nickname || m.make + ' ' + m.model || 'Unknown Aircraft'}
+                    </div>
                     <div className="text-slate-400 text-sm">{m.description}</div>
                     {m.notes && <div className="text-slate-500 text-sm mt-1">{m.notes}</div>}
                     <div className="text-slate-500 text-xs mt-1">
@@ -993,7 +995,9 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
               <div key={m.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700 opacity-60">
                 <div className="flex justify-between items-start">
                   <div>
-                    <div className="font-medium">Aircraft ID: {m.aircraftId}</div>
+                    <div className="font-medium">
+                      {m.nNumber || 'N/A'} - {m.customName || m.nickname || m.make + ' ' + m.model || 'Unknown Aircraft'}
+                    </div>
                     <div className="text-slate-400 text-sm">{m.description}</div>
                     {m.notes && <div className="text-slate-500 text-sm mt-1">{m.notes}</div>}
                     <div className="text-slate-500 text-xs mt-1">

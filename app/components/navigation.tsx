@@ -22,10 +22,15 @@ export default function Navigation() {
         <div className="flex items-center gap-4">
           <Link 
             href="/" 
-            className="flex items-center gap-2 text-lg font-semibold text-slate-100 hover:text-emerald-400 transition-colors"
+            className="text-2xl text-slate-100 hover:text-emerald-400 transition-colors"
           >
-            <span className="text-2xl">✈️</span>
-            <span>Aviation</span>
+            ✈️
+          </Link>
+          <Link 
+            href="/dashboard" 
+            className="text-lg font-semibold text-slate-100 hover:text-emerald-400 transition-colors"
+          >
+            Aviation
           </Link>
         </div>
 
