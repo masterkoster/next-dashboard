@@ -143,13 +143,6 @@ async function getGAPerformanceData(mfrUpper: string, modelUpper: string) {
   
   return null
 }
-    }
-  } catch (e) {
-    console.log('GA performance query error:', e)
-  }
-  
-  return null
-}
 
 export async function checkTailHistory(nNumberRaw: string): Promise<TailHistoryActionResult> {
   const nNumber = (nNumberRaw || "").trim().toUpperCase().replace(/^N/, '');
