@@ -64,17 +64,9 @@ export default function PlaneSearchClient() {
       }
       
       try {
-        const res = await fetch(`/api/aircraft/search?manufacturer=${encodeURIComponent(manufacturer)}&limit=1000`);
+        const res = await fetch(`/api/aircraft/search/models?manufacturer=${encodeURIComponent(manufacturer)}`);
         const data = await res.json();
-        
-        // Extract unique models
-        const modelSet = new Set<string>();
-        for (const aircraft of data.results || []) {
-          if (aircraft.model) {
-            modelSet.add(aircraft.model);
-          }
-        }
-        setModels(Array.from(modelSet).sort());
+        setModels(data.models || []);
       } catch (error) {
         console.error("Failed to load models:", error);
       }
