@@ -456,15 +456,24 @@ function AircraftList({ groups }: { groups: Group[] }) {
 
   useEffect(() => {
     const loadAircraft = async () => {
+      if (!groups || groups.length === 0) {
+        setLoading(false);
+        return;
+      }
       const data: { aircraft: any; groupName: string }[] = [];
       for (const group of groups) {
+        if (!group?.id) continue;
         try {
           const res = await fetch(`/api/groups/${group.id}/aircraft`);
           if (res.ok) {
             const aircraft = await res.json();
-            aircraft.forEach((ac: any) => data.push({ aircraft: ac, groupName: group.name }));
+            if (Array.isArray(aircraft)) {
+              aircraft.forEach((ac: any) => data.push({ aircraft: ac, groupName: group.name }));
+            }
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error('Error loading aircraft:', e);
+        }
       }
       setAllAircraft(data);
       setLoading(false);
@@ -525,15 +534,24 @@ function FlightsList({ groups }: { groups: Group[] }) {
 
   useEffect(() => {
     const loadLogs = async () => {
+      if (!groups || groups.length === 0) {
+        setLoading(false);
+        return;
+      }
       const data: { log: any; groupName: string }[] = [];
       for (const group of groups) {
+        if (!group?.id) continue;
         try {
           const res = await fetch(`/api/groups/${group.id}/logs`);
           if (res.ok) {
             const logs = await res.json();
-            logs.forEach((log: any) => data.push({ log, groupName: group.name }));
+            if (Array.isArray(logs)) {
+              logs.forEach((log: any) => data.push({ log, groupName: group.name }));
+            }
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error('Error loading logs:', e);
+        }
       }
       setAllLogs(data.sort((a, b) => new Date(b.log.date).getTime() - new Date(a.log.date).getTime()));
       setLoading(false);
@@ -590,15 +608,24 @@ function MembersList({ groups }: { groups: Group[] }) {
 
   useEffect(() => {
     const loadMembers = async () => {
+      if (!groups || groups.length === 0) {
+        setLoading(false);
+        return;
+      }
       const data: { member: any; groupName: string }[] = [];
       for (const group of groups) {
+        if (!group?.id) continue;
         try {
           const res = await fetch(`/api/groups/${group.id}/members`);
           if (res.ok) {
             const members = await res.json();
-            members.forEach((m: any) => data.push({ member: m, groupName: group.name }));
+            if (Array.isArray(members)) {
+              members.forEach((m: any) => data.push({ member: m, groupName: group.name }));
+            }
           }
-        } catch (e) {}
+        } catch (e) {
+          console.error('Error loading members:', e);
+        }
       }
       setAllMembers(data);
       setLoading(false);
@@ -652,13 +679,18 @@ function MembersList({ groups }: { groups: Group[] }) {
 function MaintenanceList({ groups }: { groups: Group[] }) {
   const [maintenance, setMaintenance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [formData, setFormData] = useState({ aircraftId: '', description: '', notes: '' });
 
   useEffect(() => {
     fetch('/api/maintenance')
-      .then(res => res.json())
-      .then(data => setMaintenance(data))
+      .then(res => res.ok ? res.json() : Promise.reject(new Error('Failed to load')))
+      .then(data => setMaintenance(Array.isArray(data) ? data : []))
+      .catch(e => {
+        console.error('Maintenance load error:', e);
+        setError(e.message);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -673,21 +705,29 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
     setFormData({ aircraftId: '', description: '', notes: '' });
     // Reload
     const res = await fetch('/api/maintenance');
-    setMaintenance(await res.json());
+    if (res.ok) {
+      setMaintenance(await res.json());
+    }
   };
 
   const needed = maintenance.filter((m: any) => m.status === 'NEEDED' || m.status === 'IN_PROGRESS');
   const done = maintenance.filter((m: any) => m.status === 'DONE');
 
-  // Get aircraft for the form
+  // Get aircraft for the form - defensive checks
   const allAircraft: { id: string; name: string }[] = [];
-  groups.forEach((g: any) => {
-    if (g.aircraft) g.aircraft.forEach((a: any) => {
-      allAircraft.push({ id: a.id, name: a.nNumber || a.customName || 'Unknown' });
+  if (Array.isArray(groups)) {
+    groups.forEach((g: any) => {
+      if (g?.aircraft && Array.isArray(g.aircraft)) {
+        g.aircraft.forEach((a: any) => {
+          allAircraft.push({ id: a.id, name: a.nNumber || a.customName || 'Unknown' });
+        });
+      }
     });
-  });
+  }
 
   if (loading) return <div className="text-center py-12">Loading...</div>;
+
+  if (error) return <div className="text-center py-12 text-red-400">Error: {error}</div>;
 
   return (
     <div className="space-y-6">
