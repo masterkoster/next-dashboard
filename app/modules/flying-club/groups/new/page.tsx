@@ -36,7 +36,7 @@ export default function NewGroupPage() {
       }
 
       const group = await response.json();
-      router.push(`/modules/flying-club/groups/${group.id}`);
+      router.push('/modules/flying-club');
     } catch (err: any) {
       setError(err.message);
       setLoading(false);
