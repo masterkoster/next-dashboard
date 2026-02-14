@@ -500,28 +500,40 @@ function AircraftList({ groups }: { groups: Group[] }) {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {allAircraft.map(({ aircraft, groupName }) => (
-          <div key={aircraft.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700 hover:border-sky-500 transition-colors">
-            <div className="flex justify-between items-start mb-2">
-              <div>
-                <div className="font-bold text-lg">{aircraft.nNumber || 'Custom'}</div>
-                <div className="text-slate-400">{aircraft.customName || aircraft.nickname || 'Unnamed'}</div>
+        {allAircraft.map(({ aircraft, groupName }) => {
+          let statusData: any = {};
+          try { statusData = aircraft.aircraftNotes ? JSON.parse(aircraft.aircraftNotes) : {}; } catch {}
+          const aircraftStatus = statusData?.aircraftStatus || 'Available';
+          const statusColor = aircraftStatus === 'Available' ? 'bg-green-500/20 text-green-400' : 
+                            aircraftStatus === 'In Use' ? 'bg-blue-500/20 text-blue-400' :
+                            aircraftStatus === 'Grounded' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400';
+          
+          return (
+            <div key={aircraft.id} className="bg-slate-800 rounded-lg p-4 border border-slate-700 hover:border-sky-500 transition-colors">
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <div className="font-bold text-lg">{aircraft.nNumber || 'Custom'}</div>
+                  <div className="text-slate-400">{aircraft.customName || aircraft.nickname || 'Unnamed'}</div>
+                </div>
+                <span className={`text-xs px-2 py-1 rounded ${statusColor}`}>
+                  {aircraftStatus}
+                </span>
+              </div>
+              <div className="text-sm text-slate-400 space-y-1">
+                {aircraft.make && <div>{aircraft.make} {aircraft.model} {aircraft.year}</div>}
+                {aircraft.totalTachHours && <div>Tach: {Number(aircraft.totalTachHours).toFixed(1)} hrs</div>}
+                {aircraft.totalHobbsHours && <div>Hobbs: {Number(aircraft.totalHobbsHours).toFixed(1)} hrs</div>}
+                {aircraft.hourlyRate && <div className="text-sky-400">${Number(aircraft.hourlyRate)}/hr</div>}
               </div>
               <button
                 onClick={() => router.push(`/modules/flying-club/groups/${groups.find(g => g.name === groupName)?.id}`)}
-                className="text-sky-400 hover:text-sky-300 text-sm"
+                className="text-sky-400 hover:text-sky-300 text-sm mt-2 block"
               >
-                →
+                View details →
               </button>
             </div>
-            <div className="text-sm text-slate-400 space-y-1">
-              {aircraft.make && <div>{aircraft.make} {aircraft.model} {aircraft.year}</div>}
-              {aircraft.totalTachHours && <div>Tach: {Number(aircraft.totalTachHours).toFixed(1)} hrs</div>}
-              {aircraft.totalHobbsHours && <div>Hobbs: {Number(aircraft.totalHobbsHours).toFixed(1)} hrs</div>}
-              {aircraft.hourlyRate && <div className="text-sky-400">${Number(aircraft.hourlyRate)}/hr</div>}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {allAircraft.length === 0 && (
@@ -778,9 +790,52 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [showFixForm, setShowFixForm] = useState(false);
+  const [fixingMaintenance, setFixingMaintenance] = useState<any>(null);
   const [selectedGroupId, setSelectedGroupId] = useState('');
   const [selectedAircraftId, setSelectedAircraftId] = useState('');
   const [formData, setFormData] = useState({ aircraftId: '', description: '', notes: '' });
+  const [fixData, setFixData] = useState({ notes: '', cost: '' });
+
+  // Common pilot-fixable issues
+  const pilotFixableIssues = [
+    'Oil top-up needed',
+    'Coolant top-up needed',
+    'Tire inflation low',
+    'Fuel contamination check',
+    'Windshield cleaning',
+    'Seat adjustment',
+    'Brake pad check',
+    'Battery check',
+    'Oil filter check',
+    'Fuel drain',
+  ];
+
+  const handleFixSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fixingMaintenance) return;
+    
+    const res = await fetch(`/api/maintenance/${fixingMaintenance.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'DONE',
+        cost: fixData.cost || null,
+        notes: fixData.notes,
+      }),
+    });
+    
+    if (res.ok) {
+      setShowFixForm(false);
+      setFixingMaintenance(null);
+      setFixData({ notes: '', cost: '' });
+      // Reload maintenance
+      const reloadRes = await fetch('/api/maintenance');
+      if (reloadRes.ok) {
+        setMaintenance(await reloadRes.json());
+      }
+    }
+  };
 
   useEffect(() => {
     fetch('/api/maintenance')
@@ -944,6 +999,22 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
               required
             />
+            {/* Quick select common issues */}
+            <div>
+              <label className="block text-xs text-slate-400 mb-1">Quick select:</label>
+              <div className="flex flex-wrap gap-1">
+                {pilotFixableIssues.slice(0, 5).map((issue: string) => (
+                  <button
+                    key={issue}
+                    type="button"
+                    onClick={() => setFormData({ ...formData, description: issue })}
+                    className="text-xs px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-slate-300"
+                  >
+                    {issue}
+                  </button>
+                ))}
+              </div>
+            </div>
             <textarea
               placeholder="Additional notes"
               value={formData.notes}
@@ -956,6 +1027,68 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
             <button type="submit" className="px-4 py-2 bg-sky-500 rounded-lg">Submit</button>
           </div>
         </form>
+      )}
+
+      {/* Fix Form Modal */}
+      {showFixForm && fixingMaintenance && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <form onSubmit={handleFixSubmit} className="bg-slate-800 rounded-xl p-6 border border-slate-700 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Mark as Fixed</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Aircraft</label>
+                <div className="text-white">{fixingMaintenance.nNumber} - {fixingMaintenance.customName || fixingMaintenance.nickname || 'Unknown'}</div>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Issue</label>
+                <div className="text-white">{fixingMaintenance.description}</div>
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">What was fixed?</label>
+                <textarea
+                  value={fixData.notes}
+                  onChange={(e) => setFixData({ ...fixData, notes: e.target.value })}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 h-24"
+                  placeholder="Describe what was done to fix the issue..."
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Cost (optional)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={fixData.cost}
+                  onChange={(e) => setFixData({ ...fixData, cost: e.target.value })}
+                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button type="button" onClick={() => { setShowFixForm(false); setFixingMaintenance(null); }} className="flex-1 px-4 py-2 bg-slate-700 rounded-lg">Cancel</button>
+              <button type="submit" className="flex-1 px-4 py-2 bg-green-500 rounded-lg">Mark Fixed</button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Pilot Fixable Issues Summary */}
+      {needed.length > 0 && (
+        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+          <h3 className="text-lg font-medium mb-3 text-sky-400">📋 Quick Checklist - Pilot Fixable</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            {needed.filter((m: any) => pilotFixableIssues.some(issue => m.description?.toLowerCase().includes(issue.toLowerCase()))).map((m: any) => (
+              <div key={m.id} className="flex items-center gap-2 text-sm">
+                <input type="checkbox" checked={false} onChange={() => { setFixingMaintenance(m); setShowFixForm(true); }} className="w-4 h-4 rounded" />
+                <span className="text-slate-300">{m.description?.substring(0, 30)}...</span>
+              </div>
+            ))}
+            {needed.filter((m: any) => pilotFixableIssues.some(issue => m.description?.toLowerCase().includes(issue.toLowerCase()))).length === 0 && (
+              <p className="text-slate-500 text-sm col-span-full">No pilot-fixable issues reported</p>
+            )}
+          </div>
+        </div>
       )}
 
       {needed.length > 0 && (
@@ -975,11 +1108,19 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
                       Reported {new Date(m.reportedDate).toLocaleDateString()}
                     </div>
                   </div>
-                  <span className={`text-xs px-2 py-1 rounded ${
-                    m.status === 'NEEDED' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'
-                  }`}>
-                    {m.status}
-                  </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <span className={`text-xs px-2 py-1 rounded ${
+                      m.status === 'NEEDED' ? 'bg-red-500/20 text-red-400' : 'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {m.status}
+                    </span>
+                    <button
+                      onClick={() => { setFixingMaintenance(m); setShowFixForm(true); }}
+                      className="text-xs px-2 py-1 rounded bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                    >
+                      ✓ Fixed
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
