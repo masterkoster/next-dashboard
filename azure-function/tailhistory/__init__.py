@@ -113,6 +113,11 @@ def _query_aircraft(n_number: str) -> dict | None:
             "status": row[11],
         }
         
+        # Get performance data
+        perf = _get_performance_data(row[5], row[6])
+        if perf:
+            result["performance"] = perf
+        
         conn.close()
         return result
         
@@ -121,6 +126,83 @@ def _query_aircraft(n_number: str) -> dict | None:
         if conn:
             conn.close()
         return None
+
+
+def _get_performance_data(mfr: str, model: str) -> dict | None:
+    """Query the AircraftPerformance table for performance specs."""
+    if not PYMSSQL_AVAILABLE or not DATABASE_URL:
+        return None
+    
+    if not mfr or not model:
+        return None
+    
+    mfr_upper = mfr.upper()
+    model_upper = model.upper()
+    
+    patterns = []
+    
+    if 'BOEING' in mfr_upper:
+        import re
+        match = re.search(r'(\d{3})', model_upper)
+        if match:
+            patterns.append(f"B{match.group(1)}%")
+            patterns.append(f"B73{match.group(1)[-1]}%")
+    
+    if 'AIRBUS' in mfr_upper:
+        import re
+        match = re.search(r'A(\d{3})', model_upper)
+        if match:
+            patterns.append(f"A{match.group(1)}%")
+    
+    if 'EMBRAER' in mfr_upper:
+        if 'ERJ' in model_upper or 'EMB-145' in model_upper:
+            patterns.append('ERJ_145%')
+        if 'ERJ190' in model_upper:
+            patterns.append('ERJ_190%')
+        if 'ERJ170' in model_upper:
+            patterns.append('ERJ_170%')
+    
+    for pattern in patterns:
+        try:
+            conn = _get_connection()
+            if not conn:
+                continue
+            
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT TOP 1 designation, mtow, mlw, mzfw, oew, fuel, range_nm, tofl, num_engines, engine_designation, thrust_max, span_ft, length_ft, height_ft, wing_area, vc_cruise, vmo_mo, cruise_alt, maxpax FROM AircraftPerformance WHERE designation LIKE %s",
+                (pattern,)
+            )
+            row = cursor.fetchone()
+            conn.close()
+            
+            if row:
+                return {
+                    "designation": row[0],
+                    "mtow": row[1],
+                    "mlw": row[2],
+                    "mzfw": row[3],
+                    "oew": row[4],
+                    "fuelCapacity": row[5],
+                    "rangeNm": row[6],
+                    "takeoffFieldLength": row[7],
+                    "numEngines": row[8],
+                    "engineModel": row[9],
+                    "thrustMax": row[10],
+                    "spanFt": row[11],
+                    "lengthFt": row[12],
+                    "heightFt": row[13],
+                    "wingArea": row[14],
+                    "cruiseSpeed": row[15],
+                    "maxOperatingSpeed": row[16],
+                    "cruiseAltitude": row[17],
+                    "maxPax": row[18],
+                }
+        except Exception as e:
+            logging.error(f"Performance query error: {e}")
+            continue
+    
+    return None
 
 
 def _list_aircraft(limit: int = 20) -> dict:
