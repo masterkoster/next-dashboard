@@ -509,9 +509,9 @@ function AircraftList({ groups }: { groups: Group[] }) {
             </div>
             <div className="text-sm text-slate-400 space-y-1">
               {aircraft.make && <div>{aircraft.make} {aircraft.model} {aircraft.year}</div>}
-              {aircraft.totalTachHours && <div>Tach: {aircraft.totalTachHours.toFixed(1)} hrs</div>}
-              {aircraft.totalHobbsHours && <div>Hobbs: {aircraft.totalHobbsHours.toFixed(1)} hrs</div>}
-              {aircraft.hourlyRate && <div className="text-sky-400">${aircraft.hourlyRate}/hr</div>}
+              {aircraft.totalTachHours && <div>Tach: {Number(aircraft.totalTachHours).toFixed(1)} hrs</div>}
+              {aircraft.totalHobbsHours && <div>Hobbs: {Number(aircraft.totalHobbsHours).toFixed(1)} hrs</div>}
+              {aircraft.hourlyRate && <div className="text-sky-400">${Number(aircraft.hourlyRate)}/hr</div>}
             </div>
           </div>
         ))}
@@ -583,8 +583,8 @@ function FlightsList({ groups }: { groups: Group[] }) {
                   </div>
                   <div className="text-slate-400 text-sm">
                     {groupName} • 
-                    Tach: {log.tachTime ? log.tachTime.toFixed(1) : '—'} hrs • 
-                    Hobbs: {log.hobbsTime ? log.hobbsTime.toFixed(1) : '—'} hrs
+                    Tach: {log.tachTime ? Number(log.tachTime).toFixed(1) : '—'} hrs • 
+                    Hobbs: {log.hobbsTime ? Number(log.hobbsTime).toFixed(1) : '—'} hrs
                     {log.calculatedCost && <span className="ml-2 text-sky-400">• ${Number(log.calculatedCost).toFixed(2)}</span>}
                   </div>
                   {log.notes && <div className="text-slate-500 text-sm mt-1">{log.notes}</div>}
@@ -918,11 +918,11 @@ function BillingView({ groups }: { groups: Group[] }) {
             </div>
             <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
               <div className="text-slate-400 text-sm">Total Hobbs</div>
-              <div className="text-2xl font-bold">{(billing?.totalHobbs || 0).toFixed(1)}</div>
+              <div className="text-2xl font-bold">{Number(billing?.totalHobbs || 0).toFixed(1)}</div>
             </div>
             <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
               <div className="text-slate-400 text-sm">Total Owed</div>
-              <div className="text-2xl font-bold text-green-400">${(billing?.totalCost || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold text-green-400">${Number(billing?.totalCost || 0).toFixed(2)}</div>
             </div>
           </div>
 
@@ -945,8 +945,8 @@ function BillingView({ groups }: { groups: Group[] }) {
                       <div className="text-sm text-slate-400">{member.email}</div>
                     </td>
                     <td className="text-right p-4">{member.flights}</td>
-                    <td className="text-right p-4">{member.totalHobbs.toFixed(1)}</td>
-                    <td className="text-right p-4 font-bold text-green-400">${member.totalCost.toFixed(2)}</td>
+                    <td className="text-right p-4">{Number(member.totalHobbs).toFixed(1)}</td>
+                    <td className="text-right p-4 font-bold text-green-400">${Number(member.totalCost).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>

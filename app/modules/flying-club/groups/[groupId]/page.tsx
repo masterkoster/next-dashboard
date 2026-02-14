@@ -452,8 +452,8 @@ function AircraftTab({ groupId, aircraft, isAdmin }: { groupId: string; aircraft
               </div>
               <div className="mt-2 text-sm text-slate-400 space-y-1">
                 {ac.make && <div>{ac.make} {ac.model} {ac.year}</div>}
-                {ac.totalTachHours !== null && <div>Tach: {ac.totalTachHours.toFixed(1)} hrs</div>}
-                {ac.totalHobbsHours !== null && <div>Hobbs: {ac.totalHobbsHours.toFixed(1)} hrs</div>}
+                {ac.totalTachHours !== null && <div>Tach: {Number(ac.totalTachHours).toFixed(1)} hrs</div>}
+                {ac.totalHobbsHours !== null && <div>Hobbs: {Number(ac.totalHobbsHours).toFixed(1)} hrs</div>}
                 {ac.hourlyRate && <div className="text-sky-400 font-medium">${Number(ac.hourlyRate).toFixed(0)}/hr</div>}
               </div>
             </div>
@@ -817,7 +817,7 @@ function LogsTab({ groupId, aircraft, canLog }: { groupId: string; aircraft: Air
                     {new Date(log.date).toLocaleDateString()} • {log.aircraft?.nNumber || log.aircraft?.customName || 'Aircraft'}
                   </div>
                   <div className="text-slate-400 text-sm">
-                    Tach: {log.tachTime ? log.tachTime.toFixed(1) : '—'} hrs • Hobbs: {log.hobbsTime ? log.hobbsTime.toFixed(1) : '—'} hrs
+                    Tach: {log.tachTime ? Number(log.tachTime).toFixed(1) : '—'} hrs • Hobbs: {log.hobbsTime ? Number(log.hobbsTime).toFixed(1) : '—'} hrs
                     {log.calculatedCost && <span className="ml-2 text-sky-400">• ${Number(log.calculatedCost).toFixed(2)}</span>}
                   </div>
                   {log.notes && <div className="text-slate-500 text-sm mt-1">{log.notes}</div>}
