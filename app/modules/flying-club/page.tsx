@@ -834,11 +834,13 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
   // Show all maintenance if user has no groups or groups not loaded, otherwise filter by group
   let filteredMaintenance = maintenance;
   const userGroupIds = userGroups?.map((g: any) => g.id) || [];
+  
+  // Show all if no groups, or filter by user's groups (including records with no groupId)
   if (userGroupIds.length > 0) {
-    filteredMaintenance = maintenance.filter((m: any) => m.groupId && userGroupIds.includes(m.groupId));
+    filteredMaintenance = maintenance.filter((m: any) => !m.groupId || userGroupIds.includes(m.groupId));
     
     if (selectedGroupId) {
-      filteredMaintenance = filteredMaintenance.filter((m: any) => m.groupId === selectedGroupId);
+      filteredMaintenance = filteredMaintenance.filter((m: any) => !m.groupId || m.groupId === selectedGroupId);
     }
     if (selectedAircraftId) {
       filteredMaintenance = filteredMaintenance.filter((m: any) => m.aircraftId === selectedAircraftId);
