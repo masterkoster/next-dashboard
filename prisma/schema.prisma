@@ -14,7 +14,7 @@ model User {
   password         String?        @db.NVarChar(255)
   purchasedModules String         @default("[]") @db.NVarChar(Max)
   credits          Int            @default(0)
-  performanceMode  String         @default("auto") @db.NVarChar(20)  // auto, modern, legacy
+  performanceMode  String?        @db.NVarChar(20)  // auto, modern, legacy
   createdAt        DateTime       @default(now()) @db.DateTime2
   updatedAt        DateTime       @updatedAt @db.DateTime2
   resetToken       String?        @db.NVarChar(255)
