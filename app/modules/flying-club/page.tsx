@@ -1813,9 +1813,9 @@ function BillingView({ groups, isDemoMode, demoBookings }: { groups: Group[]; is
                         <div className="text-sm text-slate-400">{member.email}</div>
                       </td>
                       <td className="text-right p-4">{member.flights}</td>
-                      <td className="text-right p-4">{Number(member.totalHobbs).toFixed(1)}</td>
-                      <td className="text-right p-4">{Number(member.totalTach).toFixed(1)}</td>
-                      <td className="text-right p-4 font-bold text-green-400">${Number(member.totalCost).toFixed(2)}</td>
+                      <td className="text-right p-4">{member.totalHobbs != null ? Number(member.totalHobbs).toFixed(1) : 'NA'}</td>
+                      <td className="text-right p-4">{member.totalTach != null ? Number(member.totalTach).toFixed(1) : 'NA'}</td>
+                      <td className="text-right p-4 font-bold text-green-400">{member.totalCost != null ? '$' + Number(member.totalCost).toFixed(2) : 'NA'}</td>
                       <td className="text-center p-4">
                         <button
                           onClick={() => setSelectedMemberDetails(member)}
@@ -1930,9 +1930,9 @@ function BillingView({ groups, isDemoMode, demoBookings }: { groups: Group[]; is
                         <tr key={di} className="border-b border-slate-700">
                           <td className="p-3">{new Date(detail.date).toLocaleDateString()}</td>
                           <td className="p-3">{detail.aircraft}</td>
-                          <td className="text-right p-3">{Number(detail.hobbs).toFixed(1)}</td>
-                          <td className="text-right p-3">{Number(detail.tach).toFixed(1)}</td>
-                          <td className="text-right p-3 text-green-400">${Number(detail.cost).toFixed(2)}</td>
+                          <td className="text-right p-3">{detail.hobbs != null ? Number(detail.hobbs).toFixed(1) : 'NA'}</td>
+                          <td className="text-right p-3">{detail.tach != null ? Number(detail.tach).toFixed(1) : 'NA'}</td>
+                          <td className="text-right p-3 text-green-400">{detail.cost != null ? '$' + Number(detail.cost).toFixed(2) : 'NA'}</td>
                         </tr>
                       ))}
                     </tbody>
