@@ -480,17 +480,17 @@ export default function FuelSaverPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-4">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-slate-900 text-white">
+      <div className="max-w-[1920px] mx-auto">
         {/* Header */}
-        <div className="mb-6">
+        <div className="p-4 pb-2">
           <h1 className="text-3xl font-bold">Flight Planner & Fuel Saver</h1>
           <p className="text-slate-400">Plan your route, find fuel stops, and save your flight plan</p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="flex flex-col lg:flex-row gap-4 p-4 pt-0">
           {/* Left Panel - Flight Plan Form */}
-          <div className="space-y-4">
+          <div className="w-full lg:w-80 flex-shrink-0 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 100px)' }}>
             {/* Flight Plan Details */}
             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
               <h2 className="text-lg font-semibold mb-3">Flight Plan Details</h2>
@@ -726,10 +726,10 @@ export default function FuelSaverPage() {
           </div>
           
           {/* Right Panel - Map */}
-          <div className="lg:col-span-2">
-            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+          <div className="flex-1 min-h-[500px] lg:min-h-0">
+            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 h-full flex flex-col">
               {/* Map Controls */}
-              <div className="flex flex-wrap gap-3 mb-3">
+              <div className="flex flex-wrap gap-3 mb-3 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -746,7 +746,7 @@ export default function FuelSaverPage() {
               </div>
               
               {/* Map */}
-              <div className="h-[600px] rounded-lg overflow-hidden bg-slate-900">
+              <div className="flex-1 rounded-lg overflow-hidden bg-slate-900 min-h-[400px]">
                 {!mapLoaded ? (
                   <div className="h-full flex items-center justify-center">
                     <button

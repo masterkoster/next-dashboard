@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Popup, Polyline, CircleMarker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -25,6 +25,19 @@ interface Waypoint {
 interface FuelPrice {
   icao: string;
   price100ll: number | null;
+}
+
+interface AirportDetails {
+  icao: string;
+  name: string;
+  type?: string;
+  elevation_ft?: number;
+  city?: string;
+  state?: string;
+  runways?: { length_ft: number; surface: string; he_ident: string }[];
+  frequencies?: { frequency_mhz: number; description: string; type: string }[];
+  fuel?: { price100ll: number; source: string };
+  landingFee?: { amount: number };
 }
 
 interface LeafletMapProps {
@@ -62,12 +75,98 @@ function getMarkerColor(type?: string) {
   }
 }
 
+function AirportPopup({ airport, onAddToRoute }: { airport: Airport; onAddToRoute: () => void }) {
+  const [details, setDetails] = useState<AirportDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchDetails() {
+      try {
+        const res = await fetch(`/api/airports/${airport.icao}`);
+        if (res.ok) {
+          const data = await res.json();
+          setDetails(data);
+        }
+      } catch (e) {
+        console.error('Error fetching airport details:', e);
+      }
+      setLoading(false);
+    }
+    fetchDetails();
+  }, [airport.icao]);
+
+  return (
+    <div className="min-w-[200px] text-slate-900">
+      <strong className="text-lg">{airport.icao}</strong>
+      {airport.iata && <span className="ml-2 text-slate-500">({airport.iata})</span>}
+      <div className="font-medium">{airport.name}</div>
+      <div className="text-sm text-slate-600">{airport.city}</div>
+      
+      {details && (
+        <>
+          {details.elevation_ft && (
+            <div className="text-sm mt-2">
+              <span className="font-medium">Elevation:</span> {details.elevation_ft} ft
+            </div>
+          )}
+          
+          {details.runways && details.runways.length > 0 && (
+            <div className="text-sm mt-1">
+              <span className="font-medium">Runways:</span>{' '}
+              {details.runways.slice(0, 2).map((r, i) => (
+                <span key={i} className="mr-2">
+                  {r.he_ident} ({r.length_ft?.toLocaleString()}ft {r.surface})
+                </span>
+              ))}
+            </div>
+          )}
+          
+          {details.frequencies && details.frequencies.length > 0 && (
+            <div className="text-sm mt-2">
+              <span className="font-medium">Freqs:</span>
+              <div className="max-h-20 overflow-y-auto mt-1">
+                {details.frequencies.slice(0, 5).map((f, i) => (
+                  <div key={i} className="text-xs">
+                    {f.frequency_mhz.toFixed(3)} {f.type} - {f.description}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {details.fuel && (
+            <div className="mt-2 text-emerald-600 font-medium">
+              100LL: ${details.fuel.price100ll.toFixed(2)}/gal
+              <span className="text-xs text-slate-400 ml-1">({details.fuel.source})</span>
+            </div>
+          )}
+          
+          {details.landingFee && (
+            <div className="text-sm text-amber-600">
+              Landing: ${details.landingFee.amount.toFixed(2)}
+            </div>
+          )}
+        </>
+      )}
+      
+      {loading && <div className="text-sm text-slate-400 mt-2">Loading details...</div>}
+      
+      <button
+        onClick={onAddToRoute}
+        className="mt-3 w-full bg-sky-500 hover:bg-sky-600 text-white px-3 py-2 rounded text-sm font-medium"
+      >
+        Add to Route
+      </button>
+    </div>
+  );
+}
+
 export default function LeafletMap({ airports, waypoints, fuelPrices, onBoundsChange, onAirportClick, mapCenter, mapZoom }: LeafletMapProps) {
   return (
     <MapContainer
       center={mapCenter}
       zoom={mapZoom}
-      style={{ height: '100%', width: '100%' }}
+      style={{ height: '100%', width: '100%', zIndex: 0 }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -76,7 +175,7 @@ export default function LeafletMap({ airports, waypoints, fuelPrices, onBoundsCh
       
       <MapEventHandler onBoundsChange={onBoundsChange} />
       
-      {/* Airport markers */}
+      {/* Airport markers - only show larger airports when zoomed out */}
       {airports.map(airport => (
         <CircleMarker
           key={airport.icao}
@@ -93,20 +192,7 @@ export default function LeafletMap({ airports, waypoints, fuelPrices, onBoundsCh
           }}
         >
           <Popup>
-            <div className="text-slate-900">
-              <strong>{airport.icao}</strong>
-              <br />
-              {airport.name}
-              <br />
-              <span className="text-sm">{airport.city}</span>
-              <br />
-              <button
-                onClick={() => onAirportClick(airport)}
-                className="mt-2 bg-sky-500 text-white px-2 py-1 rounded text-sm"
-              >
-                Add to Route
-              </button>
-            </div>
+            <AirportPopup airport={airport} onAddToRoute={() => onAirportClick(airport)} />
           </Popup>
         </CircleMarker>
       ))}
