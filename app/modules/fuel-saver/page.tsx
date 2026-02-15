@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import useSWR from 'swr';
 
 // Types
 interface Airport {
@@ -20,6 +21,7 @@ interface FuelPrice {
   priceJetA: number | null;
   priceMogas: number | null;
   lastUpdated: string;
+  source?: string;
 }
 
 interface AircraftProfile {
@@ -35,6 +37,12 @@ interface RoutePoint {
   fuelAvailable: number;
   distanceFromPrevious: number;
 }
+
+// Fetcher
+const fetcher = (url: string) => fetch(url).then(res => res.json());
+
+// Default fallback prices
+const DEFAULT_FUEL_PRICE = 6.50;
 
 // Demo fuel prices
 const DEMO_FUEL_PRICES: FuelPrice[] = [
@@ -101,8 +109,44 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-function getFuelPrice(icao: string): FuelPrice | undefined {
-  return DEMO_FUEL_PRICES.find(f => f.icao === icao);
+// Cache for fuel prices
+const fuelPriceCache: Record<string, FuelPrice> = {};
+
+async function getFuelPriceFromAPI(icao: string): Promise<FuelPrice | undefined> {
+  // Check cache first
+  if (fuelPriceCache[icao]) {
+    return fuelPriceCache[icao];
+  }
+  
+  // Check demo prices as fallback
+  const demoPrice = DEMO_FUEL_PRICES.find(f => f.icao === icao);
+  if (demoPrice) {
+    return demoPrice;
+  }
+  
+  // Try to fetch from API
+  try {
+    const res = await fetch(`/api/fuel?icao=${icao}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data.price100ll) {
+        const fuelPrice: FuelPrice = {
+          icao: data.icao,
+          price100ll: data.price100ll,
+          priceJetA: data.priceJetA,
+          priceMogas: null,
+          lastUpdated: data.lastUpdated || '',
+          source: data.source
+        };
+        fuelPriceCache[icao] = fuelPrice;
+        return fuelPrice;
+      }
+    }
+  } catch (e) {
+    console.error('Error fetching fuel price:', e);
+  }
+  
+  return undefined;
 }
 
 function calculateFuelNeeded(distanceNM: number, burnRateGPH: number, cruiseSpeedKTS: number, reservesPercent: number = 0.25): number {
@@ -133,6 +177,7 @@ export default function FuelSaverPage() {
   const [totalFuelNeeded, setTotalFuelNeeded] = useState<number>(0);
   const [fuelStops, setFuelStops] = useState<RoutePoint[]>([]);
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
+  const [fuelPrices, setFuelPrices] = useState<Record<string, FuelPrice>>({});
 
   const searchAirports = (query: string): Airport[] => {
     if (!query || query.length < 2) return [];
@@ -148,8 +193,25 @@ export default function FuelSaverPage() {
   // Memoized search results
   const fromResultsMemo = useMemo(() => searchFrom.length >= 2 ? searchAirports(searchFrom) : [], [searchFrom]);
   const toResultsMemo = useMemo(() => searchTo.length >= 2 ? searchAirports(searchTo) : [], [searchTo]);
+  
+  // Fetch fuel prices for airports in route
+  useEffect(() => {
+    if (fuelStops.length > 0) {
+      const fetchPrices = async () => {
+        const prices: Record<string, FuelPrice> = {};
+        for (const stop of fuelStops) {
+          const price = await getFuelPriceFromAPI(stop.airport.icao);
+          if (price) {
+            prices[stop.airport.icao] = price;
+          }
+        }
+        setFuelPrices(prev => ({ ...prev, ...prices }));
+      };
+      fetchPrices();
+    }
+  }, [fuelStops]);
 
-  const calculateRoute = () => {
+  const calculateRoute = async () => {
     if (!departure || !destination) return;
 
     const distance = calculateDistance(
@@ -232,9 +294,22 @@ export default function FuelSaverPage() {
     setFuelStops(stops.slice(1, -1));
     setRoute(stops);
     
-    const avgPrice = DEMO_FUEL_PRICES.length > 0 
-      ? DEMO_FUEL_PRICES.reduce((sum, f) => sum + (f.price100ll || 0), 0) / DEMO_FUEL_PRICES.length
-      : 5.50;
+    // Calculate estimated cost - try to get real prices
+    const prices: Record<string, FuelPrice> = {};
+    let totalPrice = 0;
+    let priceCount = 0;
+    
+    for (const stop of stops) {
+      const price = await getFuelPriceFromAPI(stop.airport.icao);
+      if (price?.price100ll) {
+        prices[stop.airport.icao] = price;
+        totalPrice += price.price100ll;
+        priceCount++;
+      }
+    }
+    
+    setFuelPrices(prev => ({ ...prev, ...prices }));
+    const avgPrice = priceCount > 0 ? totalPrice / priceCount : DEFAULT_FUEL_PRICE;
     setEstimatedCost(fuelNeeded * avgPrice);
   };
 
@@ -435,7 +510,7 @@ export default function FuelSaverPage() {
                       const x = scaleX(stop.airport.longitude);
                       const y = scaleY(stop.airport.latitude);
                       const color = i === 0 ? '#22c55e' : i === route.length - 1 ? '#ef4444' : '#f59e0b';
-                      const fuelPrice = getFuelPrice(stop.airport.icao);
+                      const fuelPrice = fuelPrices[stop.airport.icao];
                       
                       return (
                         <g key={stop.airport.icao + i}>
@@ -489,7 +564,7 @@ export default function FuelSaverPage() {
                     <h3 className="font-medium mb-3">⛽ Recommended Fuel Stops</h3>
                     <div className="space-y-2">
                       {fuelStops.map((stop, i) => {
-                        const fuelPrice = getFuelPrice(stop.airport.icao);
+                        const fuelPrice = fuelPrices[stop.airport.icao];
                         return (
                           <div key={i} className="flex justify-between items-center bg-slate-700 rounded-lg p-3">
                             <div>

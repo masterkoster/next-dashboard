@@ -17,10 +17,12 @@ from typing import Optional
 # Selenium imports
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from webdriver_manager.chrome import ChromeDriverManager
 
 # BeautifulSoup for parsing
 from bs4 import BeautifulSoup
@@ -106,11 +108,15 @@ def create_driver():
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-blink-features=AutomationControlled")
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     options.add_experimental_option("excludeSwitches", ["enable-automation"])
     options.add_experimental_option('useAutomationExtension', False)
     
-    driver = webdriver.Chrome(options=options)
-    driver.set_page_load_timeout(15)
+    # Use webdriver-manager to get the correct ChromeDriver
+    service = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=service, options=options)
+    driver.set_page_load_timeout(20)
+    driver.implicitly_wait(5)
     return driver
 
 
@@ -128,7 +134,7 @@ def scrape_airnav(icao: str) -> dict:
     
     try:
         driver = create_driver()
-        wait = WebDriverWait(driver, 10)
+        wait = WebDriverWait(driver, 15)
         
         driver.get(url)
         
@@ -150,7 +156,9 @@ def scrape_airnav(icao: str) -> dict:
         result["success"] = True
         
     except Exception as e:
-        print(f"   WARNING AirNav error for {icao}: {str(e)[:50]}")
+        print(f"   WARNING AirNav error for {icao}: {str(e)[:100]}")
+        import traceback
+        traceback.print_exc()
     finally:
         try:
             driver.quit()
@@ -165,35 +173,41 @@ def scrape_airnav_fuel_prices(soup: BeautifulSoup) -> dict:
     result = {"avgas_price": None, "jet_a_price": None}
     
     try:
-        # Look for fuel price patterns in the page
-        # AirNav typically shows prices like "$5.89" near fuel labels
         page_text = soup.get_text()
-        
-        # Try to find 100LL price
         import re
-        ll_patterns = [
-            r'100LL[:\s]*\$?(\d+\.?\d*)',
-            r'100 LL[:\s]*\$?(\d+\.?\d*)',
-            r'Avgas[:\s]*\$?(\d+\.?\d*)',
-            r'AVGAS[:\s]*\$?(\d+\.?\d*)'
-        ]
         
-        for pattern in ll_patterns:
-            match = re.search(pattern, page_text, re.IGNORECASE)
-            if match:
-                result["avgas_price"] = float(match.group(1))
-                break
+        # Pattern: "100LL Jet AFS $X.XX $X.XX" - two prices, first is 100LL, second is Jet A
+        # Try to match both prices in one line
+        match = re.search(r'100LL\s+Jet\s+AFS.*?\$(\d+\.?\d*).*?\$(\d+\.?\d*)', page_text, re.IGNORECASE)
+        if match:
+            result["avgas_price"] = float(match.group(1))
+            result["jet_a_price"] = float(match.group(2))
+        else:
+            # Fallback: try separate patterns - look for all $ amounts
+            prices = re.findall(r'\$(\d+\.?\d*)', page_text)
+            if prices:
+                if len(prices) >= 1:
+                    try:
+                        result["avgas_price"] = float(prices[0])
+                    except:
+                        pass
+                if len(prices) >= 2:
+                    try:
+                        result["jet_a_price"] = float(prices[1])
+                    except:
+                        pass
         
-        # Try to find Jet A price
+        # Try to find Jet A price - pattern like "Jet A ... $X.XX"
         jet_patterns = [
-            r'Jet\s*A[:\s]*\$?(\d+\.?\d*)',
-            r'JET\s*A[:\s]*\$?(\d+\.?\d*)'
+            r'Jet\s*A.*?\$(\d+\.?\d*)',
+            r'Jet\s*A\s*AFS.*?\$(\d+\.?\d*)',
         ]
         
         for pattern in jet_patterns:
             match = re.search(pattern, page_text, re.IGNORECASE)
             if match:
                 result["jet_a_price"] = float(match.group(1))
+                print(f"   DEBUG Found Jet A price: ${result['jet_a_price']}")
                 break
                 
     except Exception as e:
