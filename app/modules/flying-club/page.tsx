@@ -13,6 +13,7 @@ interface Group {
   description: string | null;
   dryRate: number | null;
   wetRate: number | null;
+  hourlyRate?: number | null;
   aircraft?: Aircraft[];
   role?: string;
   // Visibility settings
@@ -510,7 +511,7 @@ export default function FlyingClubPage() {
         )}
 
         {activeTab === 'aircraft' && (
-          <AircraftList groups={groups} />
+          <AircraftList groups={groups} demoParam={demoParam} />
         )}
 
         {activeTab === 'flights' && (
@@ -635,7 +636,7 @@ function BookingsList({ bookings, groups }: { bookings: Booking[]; groups: Group
   );
 }
 
-function AircraftList({ groups }: { groups: Group[] }) {
+function AircraftList({ groups, demoParam }: { groups: Group[]; demoParam?: string }) {
   const router = useRouter();
   const [allAircraft, setAllAircraft] = useState<{ aircraft: any; groupName: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1092,6 +1093,40 @@ function MaintenanceList({ groups, isDemoMode, demoMaintenance }: { groups: Grou
     'Oil filter check',
     'Fuel drain',
   ];
+
+  const handleFixSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fixingMaintenance) return;
+    
+    // In demo mode, just close the form
+    if (isDemoMode) {
+      setShowFixForm(false);
+      setFixingMaintenance(null);
+      return;
+    }
+    
+    const res = await fetch(`/api/maintenance/${fixingMaintenance.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'DONE',
+        cost: fixData.cost || null,
+        notes: fixData.notes,
+        isGrounded: fixData.isGrounded,
+      }),
+    });
+    
+    if (res.ok) {
+      setShowFixForm(false);
+      setFixingMaintenance(null);
+      setFixData({ notes: '', cost: '', isGrounded: false });
+      // Reload maintenance
+      const reloadRes = await fetch('/api/maintenance');
+      if (reloadRes.ok) {
+        setMaintenance(await reloadRes.json());
+      }
+    }
+  };
 
   useEffect(() => {
     // Use demo data if available
