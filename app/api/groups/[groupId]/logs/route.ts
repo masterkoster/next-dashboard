@@ -34,13 +34,12 @@ export async function GET(request: Request, { params }: RouteParams) {
     let logs: any[] = [];
     try {
       const logResult = await prisma.$queryRawUnsafe(`
-        SELECT 
+        SELECT TOP 100
           fl.id, fl.aircraftId, fl.userId, fl.date, fl.tachTime, fl.hobbsTime, fl.notes, fl.createdAt, fl.updatedAt
         FROM FlightLog fl
         JOIN ClubAircraft a ON fl.aircraftId = a.id
         WHERE a.groupId = '${groupId}'
         ORDER BY fl.date DESC
-        OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
       `);
       logs = logResult as any[];
     } catch (e) {
@@ -57,7 +56,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     
     if (aircraftIds.length > 0) {
       const aircraftList = await prisma.$queryRawUnsafe(`
-        SELECT id, nNumber, customName, nickname, make, model, groupId as aircraftGroupId
+        SELECT id, nNumber, customName, nickname, make, model, groupId
         FROM ClubAircraft 
         WHERE id IN (${aircraftIds.map((id: string) => "'" + id + "'").join(',')})
       `) as any[];
@@ -89,12 +88,11 @@ export async function GET(request: Request, { params }: RouteParams) {
     let maintenance: any[] = [];
     try {
       const maintResult = await prisma.$queryRawUnsafe(`
-        SELECT m.*, a.nNumber, a.customName, a.nickname
+        SELECT TOP 20 m.*, a.nNumber, a.customName, a.nickname
         FROM Maintenance m
         JOIN ClubAircraft a ON m.aircraftId = a.id
         WHERE a.groupId = '${groupId}'
         ORDER BY m.reportedDate DESC
-        OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
       `);
       maintenance = maintResult as any[];
     } catch (e) {
