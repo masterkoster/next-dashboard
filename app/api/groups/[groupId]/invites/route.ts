@@ -18,27 +18,42 @@ export async function GET(request: Request, { params }: RouteParams) {
     const { groupId } = await params;
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     
-    // Check admin role
-    const membership = await prisma.groupMember.findFirst({
-      where: { groupId, userId: user?.id, role: 'ADMIN' },
-    });
+    // Check admin role using raw SQL
+    const memberships = await prisma.$queryRawUnsafe(`
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user?.id}' AND role = 'ADMIN'
+    `) as any[];
 
-    if (!membership) {
+    if (!memberships || memberships.length === 0) {
       return NextResponse.json({ error: 'Only admins can view invites' }, { status: 403 });
     }
 
-    const invites = await prisma.invite.findMany({
-      where: { groupId },
-      include: {
-        group: { select: { id: true, name: true } }
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    // Get invites using raw SQL
+    const invites = await prisma.$queryRawUnsafe(`
+      SELECT i.*, fg.name as groupName
+      FROM Invite i
+      JOIN FlyingGroup fg ON i.groupId = fg.id
+      WHERE i.groupId = '${groupId}'
+      ORDER BY i.createdAt DESC
+    `) as any[];
 
-    return NextResponse.json(invites);
+    const formattedInvites = (invites || []).map((i: any) => ({
+      id: i.id,
+      groupId: i.groupId,
+      token: i.token,
+      email: i.email,
+      role: i.role,
+      expiresAt: i.expiresAt,
+      createdAt: i.createdAt,
+      group: {
+        id: i.groupId,
+        name: i.groupName
+      }
+    }));
+
+    return NextResponse.json(formattedInvites);
   } catch (error) {
     console.error('Error fetching invites:', error);
-    return NextResponse.json({ error: 'Failed to fetch invites' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch invites', details: String(error) }, { status: 500 });
   }
 }
 
@@ -57,12 +72,12 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Check admin role
-    const membership = await prisma.groupMember.findFirst({
-      where: { groupId, userId: user.id, role: 'ADMIN' },
-    });
+    // Check admin role using raw SQL
+    const memberships = await prisma.$queryRawUnsafe(`
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user.id}' AND role = 'ADMIN'
+    `) as any[];
 
-    if (!membership) {
+    if (!memberships || memberships.length === 0) {
       return NextResponse.json({ error: 'Only admins can create invites' }, { status: 403 });
     }
 
@@ -71,62 +86,55 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     // Check if invite already exists for this email+group (and not expired)
     if (email) {
-      const existingInvite = await prisma.invite.findFirst({
-        where: { 
-          groupId,
-          email: email.toLowerCase(),
-          expiresAt: { gt: new Date() },
-        },
-      });
+      const existingInvites = await prisma.$queryRawUnsafe(`
+        SELECT * FROM Invite 
+        WHERE groupId = '${groupId}' 
+        AND LOWER(email) = LOWER('${email.replace(/'/g, "''")}')
+        AND expiresAt > GETDATE()
+      `) as any[];
 
-      if (existingInvite) {
+      if (existingInvites && existingInvites.length > 0) {
         return NextResponse.json({ error: 'An invitation has already been sent to this email' }, { status: 400 });
       }
 
       // Also check if user is already a member
-      const existingMember = await prisma.groupMember.findFirst({
-        where: { 
-          groupId,
-          user: { email: email.toLowerCase() },
-        },
-      });
+      const existingMembers = await prisma.$queryRawUnsafe(`
+        SELECT gm.* FROM GroupMember gm
+        JOIN User u ON gm.userId = u.id
+        WHERE gm.groupId = '${groupId}' AND LOWER(u.email) = LOWER('${email.replace(/'/g, "''")}')
+      `) as any[];
 
-      if (existingMember) {
+      if (existingMembers && existingMembers.length > 0) {
         return NextResponse.json({ error: 'This user is already a member of the group' }, { status: 400 });
       }
     }
 
-    // Get group's default expiry setting
-    const group = await prisma.flyingGroup.findUnique({
-      where: { id: groupId },
-      select: { defaultInviteExpiry: true }
-    });
+    // Get group's default expiry setting using raw SQL
+    const groups = await prisma.$queryRawUnsafe(`
+      SELECT defaultInviteExpiry FROM FlyingGroup WHERE id = '${groupId}'
+    `) as any[];
     
     // Determine expiry: use provided value, or group's default, or 7 days
-    let expiresAt: Date | null = null;
+    let expiresAtStr = 'NULL';
     if (expiresInDays !== -1) { // -1 means never
-      const days = expiresInDays ?? group?.defaultInviteExpiry ?? 7;
-      expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + days);
+      const days = expiresInDays ?? groups?.[0]?.defaultInviteExpiry ?? 7;
+      expiresAtStr = `DATEADD(day, ${days}, GETDATE())`;
+    } else {
+      expiresAtStr = "DATEADD(year, 10, GETDATE())";
     }
 
     // Generate unique token
     const token = randomBytes(32).toString('hex');
 
-    const invite = await prisma.invite.create({
-      data: {
-        groupId,
-        token,
-        email: email ? email.toLowerCase() : null,
-        role: role || 'VIEWER',
-        createdBy: user.id,
-        expiresAt: expiresAt || new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10), // 10 years if null
-      },
-    });
+    // Insert using raw SQL
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO Invite (id, groupId, token, email, role, createdBy, expiresAt, createdAt, updatedAt)
+      VALUES (NEWID(), '${groupId}', '${token}', ${email ? "'" + email.toLowerCase().replace(/'/g, "''") + "'" : 'NULL'}, '${role || 'VIEWER'}', '${user.id}', ${expiresAtStr}, GETDATE(), GETDATE())
+    `);
 
     return NextResponse.json({ 
       token, 
-      expiresAt: expiresAt,
+      expiresAt: expiresInDays === -1 ? null : new Date(Date.now() + (expiresInDays ?? 7) * 24 * 60 * 60 * 1000),
       expiresNever: expiresInDays === -1 
     });
   } catch (error) {
@@ -153,31 +161,29 @@ export async function DELETE(request: Request) {
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     
     // Find the invite to check group ownership
-    const invite = await prisma.invite.findUnique({
-      where: { id: inviteId },
-      include: { group: true },
-    });
+    const invites = await prisma.$queryRawUnsafe(`
+      SELECT i.*, fg.name as groupName
+      FROM Invite i
+      JOIN FlyingGroup fg ON i.groupId = fg.id
+      WHERE i.id = '${inviteId}'
+    `) as any[];
 
-    if (!invite) {
+    if (!invites || invites.length === 0) {
       return NextResponse.json({ error: 'Invite not found' }, { status: 404 });
     }
 
-    // Check if user is admin of the group
-    const membership = await prisma.groupMember.findFirst({
-      where: { 
-        groupId: invite.groupId, 
-        userId: user?.id, 
-        role: 'ADMIN' 
-      },
-    });
+    const invite = invites[0];
 
-    if (!membership) {
+    // Check if user is admin of the group
+    const memberships = await prisma.$queryRawUnsafe(`
+      SELECT * FROM GroupMember WHERE groupId = '${invite.groupId}' AND userId = '${user?.id}' AND role = 'ADMIN'
+    `) as any[];
+
+    if (!memberships || memberships.length === 0) {
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
-    await prisma.invite.delete({
-      where: { id: inviteId },
-    });
+    await prisma.$executeRawUnsafe(`DELETE FROM Invite WHERE id = '${inviteId}'`);
 
     return NextResponse.json({ success: true });
   } catch (error) {

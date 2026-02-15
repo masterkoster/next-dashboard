@@ -17,26 +17,40 @@ export async function GET(request: Request, { params }: RouteParams) {
     const { groupId } = await params;
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     
-    // Check membership
-    const membership = await prisma.groupMember.findFirst({
-      where: { groupId, userId: user?.id },
-    });
+    // Check membership using raw SQL to avoid schema issues
+    const memberships = await prisma.$queryRawUnsafe(`
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user?.id}'
+    `) as any[];
 
-    if (!membership) {
+    if (!memberships || memberships.length === 0) {
       return NextResponse.json({ error: 'Not a member' }, { status: 403 });
     }
 
-    const members = await prisma.groupMember.findMany({
-      where: { groupId },
-      include: {
-        user: { select: { id: true, name: true, email: true } },
-      },
-    });
+    // Get members using raw SQL
+    const members = await prisma.$queryRawUnsafe(`
+      SELECT gm.*, u.name as userName, u.email as userEmail
+      FROM GroupMember gm
+      JOIN User u ON gm.userId = u.id
+      WHERE gm.groupId = '${groupId}'
+    `) as any[];
 
-    return NextResponse.json(members);
+    const formattedMembers = (members || []).map((m: any) => ({
+      id: m.id,
+      userId: m.userId,
+      groupId: m.groupId,
+      role: m.role,
+      joinedAt: m.joinedAt,
+      user: {
+        id: m.userId,
+        name: m.userName,
+        email: m.userEmail
+      }
+    }));
+
+    return NextResponse.json(formattedMembers);
   } catch (error) {
     console.error('Error fetching members:', error);
-    return NextResponse.json({ error: 'Failed to fetch members' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch members', details: String(error) }, { status: 500 });
   }
 }
 
