@@ -17,6 +17,12 @@ export const metadata: Metadata = {
   title: "Aviation Dashboard",
   description:
     "Aviation modules for aircraft search and history.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "AviationDash",
+  },
 };
 
 export default function RootLayout({
