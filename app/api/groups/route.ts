@@ -66,18 +66,45 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const memberships = await prisma.groupMember.findMany({
-      where: { userId: user.id },
-      include: {
-        group: {
-          include: {
-            aircraft: true,
+    // Try to get memberships - may fail if table structure is wrong
+    let memberships = [];
+    try {
+      memberships = await prisma.groupMember.findMany({
+        where: { userId: user.id },
+        include: {
+          group: {
+            include: {
+              aircraft: true,
+            },
           },
         },
-      },
-    });
+      });
+    } catch (dbError) {
+      console.error('Database error fetching memberships:', dbError);
+      // Try direct SQL as fallback
+      const rawMemberships = await prisma.$queryRawUnsafe(`
+        SELECT gm.*, fg.id as group_id, fg.name, fg.description, fg.ownerId, fg.dryRate, fg.wetRate, fg.customRates
+        FROM GroupMember gm
+        JOIN FlyingGroup fg ON gm.groupId = fg.id
+        WHERE gm.userId = ?
+      `, user.id) as any[];
+      
+      memberships = rawMemberships.map((m: any) => ({
+        role: m.role,
+        group: {
+          id: m.group_id,
+          name: m.name,
+          description: m.description,
+          ownerId: m.ownerId,
+          dryRate: m.dryRate,
+          wetRate: m.wetRate,
+          customRates: m.customRates,
+          aircraft: [],
+        }
+      }));
+    }
 
-    const groups = memberships.map((m) => ({
+    const groups = memberships.map((m: any) => ({
       ...m.group,
       role: m.role,
     }));
