@@ -314,7 +314,6 @@ async function applyChange(
           data: {
             aircraftId: data.aircraftId as string,
             userId,
-            groupId: data.groupId as string | null,
             description: data.description as string,
             notes: data.notes as string | null,
             status: 'NEEDED',
