@@ -167,29 +167,35 @@ export default function FuelSaverPage() {
   // Panel visibility
   const [showPanel, setShowPanel] = useState(true);
   
-  // Fetch airports when map bounds change
+  // Cached airports - accumulates as user pans around
+  const [cachedAirports, setCachedAirports] = useState<Airport[]>([]);
+  
+  // Fetch airports when map bounds change - with caching
   useEffect(() => {
     if (!mapLoaded) return;
     
     const fetchAirports = async () => {
       setLoadingAirports(true);
       try {
-        const sizeParam = showAllAirports ? 'seaplane' : 'small';
+        const sizeParam = showAllAirports ? 'seaplane' : 'medium';
         const res = await fetch(
-          `/api/airports/bounds?minLat=${mapBounds.minLat}&maxLat=${mapBounds.maxLat}&minLon=${mapBounds.minLon}&maxLon=${mapBounds.maxLon}&minSize=${sizeParam}&limit=300`
+          `/api/airports/bounds?minLat=${mapBounds.minLat}&maxLat=${mapBounds.maxLat}&minLon=${mapBounds.minLon}&maxLon=${mapBounds.maxLon}&minSize=${sizeParam}&limit=100`
         );
         const data = await res.json();
-        if (data.airports) {
+        if (data.airports && data.airports.length > 0) {
+          // Merge with cached airports (avoid duplicates)
+          setCachedAirports(prev => {
+            const existing = new Set(prev.map(a => a.icao));
+            const newOnes = data.airports.filter((a: Airport) => !existing.has(a.icao));
+            return [...prev, ...newOnes];
+          });
+          // Show recent ones
           setAirports(data.airports);
         }
       } catch (e) {
         console.error('Error fetching airports:', e);
-        // Fallback to demo airports in view
-        const demoInView = DEMO_AIRPORTS.filter(a => 
-          a.latitude >= mapBounds.minLat && a.latitude <= mapBounds.maxLat &&
-          a.longitude >= mapBounds.minLon && a.longitude <= mapBounds.maxLon
-        );
-        setAirports(demoInView);
+        // Fallback to demo airports
+        setAirports(DEMO_AIRPORTS.slice(0, 20));
       }
       setLoadingAirports(false);
     };
@@ -793,7 +799,8 @@ export default function FuelSaverPage() {
 
   // Marker click handler
   const handleMarkerClick = (airport: Airport) => {
-    addWaypoint(airport);
+    // Don't auto-add - just let the popup show
+    // User must click "Add to Route" in popup
   };
 
   // Get marker color based on airport type
@@ -831,9 +838,9 @@ export default function FuelSaverPage() {
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Left Panel - full width on desktop */}
+        {/* Left Panel - Flight Plan Form */}
         {showPanel && (
-          <div className="w-full lg:w-96 bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0 lg:h-auto" style={{ maxHeight: '40vh' }}>
+          <div className="w-full lg:w-96 bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0 lg:h-full lg:max-h-none" style={{ maxHeight: '40vh' }}>
             {/* Flight Plan Details */}
             <div>
               <h2 className="text-lg font-semibold mb-2">Flight Plan</h2>
