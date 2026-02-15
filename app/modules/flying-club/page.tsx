@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { demoGroups, demoBookings, demoMaintenance } from './demoData';
 
 interface Group {
   id: string;
@@ -96,8 +97,41 @@ export default function FlyingClubPage() {
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [userGroups, setUserGroups] = useState<{ group: Group; role: string; members: Member[] }[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [showDemoPopup, setShowDemoPopup] = useState(false);
 
   const loadData = useCallback(async () => {
+    // Check for demo mode from URL
+    const params = new URLSearchParams(window.location.search);
+    const isDemo = params.get('demo') === 'true';
+    
+    if (isDemo) {
+      // Load demo data
+      setIsDemoMode(true);
+      setShowDemoPopup(true);
+      setGroups(demoGroups as any);
+      setBookings(demoBookings as any);
+      
+      // Filter to only show grounded maintenance as blocks
+      const groundedMaintenance = demoMaintenance.filter((m: any) => 
+        m.isGrounded && (m.status === 'NEEDED' || m.status === 'IN_PROGRESS')
+      );
+      
+      // Add groupName to each maintenance block
+      const maintenanceWithGroup = groundedMaintenance.map((m: any) => {
+        const group = demoGroups.find((g: any) => g.aircraft?.some((a: any) => a.id === m.aircraftId));
+        return {
+          ...m,
+          groupName: group?.name || 'Unknown Group'
+        };
+      });
+      
+      setMaintenanceBlocks(maintenanceWithGroup);
+      setLoading(false);
+      return;
+    }
+    
+    // Normal data loading
     try {
       setError(null);
       const [groupsRes, bookingsRes, maintenanceRes] = await Promise.all([
@@ -251,7 +285,37 @@ export default function FlyingClubPage() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white p-4 md:p-8">
+      {/* Demo Mode Popup */}
+      {showDemoPopup && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 rounded-2xl p-8 border-2 border-amber-500/50 max-w-md text-center">
+            <div className="text-5xl mb-4">🎮</div>
+            <h2 className="text-2xl font-bold text-amber-400 mb-2">Demo Mode</h2>
+            <p className="text-slate-300 mb-6">
+              This is <strong>demo data</strong> to help you explore the Flying Club features.
+              <br /><br />
+              Any changes you make will <strong>not be saved</strong>. 
+              <br />
+              When you close this popup, all data resets.
+            </p>
+            <button
+              onClick={() => setShowDemoPopup(false)}
+              className="bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold py-3 px-8 rounded-xl transition-colors"
+            >
+              Got it, let's explore!
+            </button>
+          </div>
+        </div>
+      )}
+      
       <div className="max-w-7xl mx-auto">
+        {/* Demo Badge */}
+        {isDemoMode && (
+          <div className="fixed top-4 right-4 bg-amber-500 text-slate-900 font-bold px-4 py-2 rounded-full z-40 shadow-lg">
+            DEMO
+          </div>
+        )}
+        
         {/* Tab Navigation */}
         <div className="flex gap-2 mb-6 border-b border-slate-700 overflow-x-auto">
           {(['dashboard', 'bookings', 'aircraft', 'flights', 'status', 'maintenance', 'billing', 'members', 'partners'] as const).map((tab) => (
