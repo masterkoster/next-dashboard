@@ -50,6 +50,21 @@ export default function LandingPage() {
             </div>
           </Link>
 
+          {/* Aperture */}
+          <Link
+            href="/modules/aperture"
+            className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg transition hover:border-emerald-500/50 hover:shadow-emerald-500/20"
+          >
+            <div className="text-3xl mb-3">🤝</div>
+            <h3 className="text-lg font-semibold text-white">Aperture</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              Connect with other pilots and aviation businesses. Share resources and grow your network.
+            </p>
+            <div className="mt-4 flex items-center gap-2 text-sm font-medium text-emerald-400">
+              Try now →
+            </div>
+          </Link>
+
           {/* Plane Search - Coming Soon */}
           <div className="group rounded-2xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg opacity-60">
             <div className="text-3xl mb-3">🔍</div>

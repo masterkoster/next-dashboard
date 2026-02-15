@@ -92,7 +92,7 @@ export default function FlyingClubPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [maintenanceBlocks, setMaintenanceBlocks] = useState<MaintenanceBlock[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'aircraft' | 'flights' | 'maintenance' | 'billing' | 'members' | 'status' | 'partners'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'aircraft' | 'flights' | 'maintenance' | 'billing' | 'members' | 'status'>('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [hoveredBooking, setHoveredBooking] = useState<Booking | null>(null);
@@ -360,7 +360,7 @@ export default function FlyingClubPage() {
         
         {/* Tab Navigation */}
         <div className="flex gap-2 mb-6 border-b border-slate-700 overflow-x-auto">
-          {(['dashboard', 'bookings', 'aircraft', 'flights', 'status', 'maintenance', 'billing', 'members', 'partners'] as const).map((tab) => (
+          {(['dashboard', 'bookings', 'aircraft', 'flights', 'status', 'maintenance', 'billing', 'members'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -378,7 +378,6 @@ export default function FlyingClubPage() {
               {tab === 'maintenance' && '🔧 '}
               {tab === 'billing' && '💰 '}
               {tab === 'members' && '👥 '}
-              {tab === 'partners' && '🤝 '}
               {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
@@ -571,9 +570,6 @@ export default function FlyingClubPage() {
           <MembersList groups={groups} isDemoMode={isDemoMode} demoGroups={isDemoMode ? demoGroups : undefined} />
         )}
 
-        {activeTab === 'partners' && (
-          <PartnershipMarketplace />
-        )}
       </div>
     </div>
   );

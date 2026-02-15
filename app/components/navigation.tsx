@@ -8,6 +8,7 @@ import { signOut } from 'next-auth/react';
 const modules = [
   { id: 'plane-carfax', label: 'Plane Carfax', href: '/modules/plane-carfax' },
   { id: 'flying-club', label: 'Flying Club', href: '/modules/flying-club' },
+  { id: 'aperture', label: 'Aperture', href: '/modules/aperture' },
 ];
 
 interface Invite {
