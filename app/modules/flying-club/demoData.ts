@@ -146,9 +146,13 @@ fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
 // Demo users
 export const demoUsers = [
   { id: 'demo-user-1', name: 'Demo Admin', email: 'demo@admin.com' },
-  { id: 'demo-user-2', name: 'John Smith', email: 'john@demo.com' },
+  { id: 'demo-user-2', name: 'Frank Miller', email: 'frank@demo.com' },
   { id: 'demo-user-3', name: 'Sarah Johnson', email: 'sarah@demo.com' },
   { id: 'demo-user-4', name: 'Mike Wilson', email: 'mike@demo.com' },
+  { id: 'demo-user-5', name: 'Emily Chen', email: 'emily@demo.com' },
+  { id: 'demo-user-6', name: 'Tom Roberts', email: 'tom@demo.com' },
+  { id: 'demo-user-7', name: 'Lisa Park', email: 'lisa@demo.com' },
+  { id: 'demo-user-8', name: 'James Wilson', email: 'james@demo.com' },
 ];
 
 // Demo groups
@@ -223,6 +227,8 @@ export const demoGroups: DemoGroup[] = [
       { id: 'demo-member-1', userId: 'demo-user-1', groupId: 'demo-group-1', role: 'ADMIN', joinedAt: '2024-01-15', user: demoUsers[0] },
       { id: 'demo-member-2', userId: 'demo-user-2', groupId: 'demo-group-1', role: 'MEMBER', joinedAt: '2024-03-20', user: demoUsers[1] },
       { id: 'demo-member-3', userId: 'demo-user-3', groupId: 'demo-group-1', role: 'MEMBER', joinedAt: '2024-06-10', user: demoUsers[2] },
+      { id: 'demo-member-6', userId: 'demo-user-5', groupId: 'demo-group-1', role: 'MEMBER', joinedAt: '2024-08-15', user: demoUsers[4] },
+      { id: 'demo-member-7', userId: 'demo-user-6', groupId: 'demo-group-1', role: 'MEMBER', joinedAt: '2024-09-01', user: demoUsers[5] },
     ],
     showBookings: true,
     showAircraft: true,

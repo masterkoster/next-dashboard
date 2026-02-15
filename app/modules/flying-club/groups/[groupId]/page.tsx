@@ -1,7 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { demoGroups, demoUsers, demoFlightLogs, demoMaintenance, demoBookings } from '../../demoData';
 
 interface Group {
   id: string;
@@ -56,6 +57,8 @@ interface Aircraft {
 export default function GroupDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isDemoMode = searchParams.get('demo') === 'true';
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -64,7 +67,33 @@ export default function GroupDetailPage() {
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-    // Get current user info from session
+    // Demo mode - use demo data
+    if (isDemoMode) {
+      const groupId = params.groupId as string;
+      const demoGroup = demoGroups.find(g => g.id === groupId);
+      
+      if (demoGroup) {
+        // Get flight logs for this group
+        const groupAircraft = demoGroup.aircraft.map(a => a.id);
+        const logs = demoFlightLogs.filter(log => groupAircraft.includes(log.aircraftId));
+        const bookings = demoBookings.filter(b => groupAircraft.includes(b.aircraftId));
+        const maint = demoMaintenance.filter(m => groupAircraft.includes(m.aircraftId));
+        
+        setGroup({
+          ...demoGroup,
+          bookings: bookings,
+        } as any);
+        
+        // Set current user to demo admin
+        setCurrentUserId(demoUsers[0].id);
+      } else {
+        setError('Group not found in demo mode');
+      }
+      setLoading(false);
+      return;
+    }
+
+    // Normal mode - get current user info from session
     fetch('/api/auth/session').then(res => res.json()).then(data => {
       if (data?.user?.email) {
         fetch('/api/users/me').then(r => r.json()).then(userData => {
@@ -81,7 +110,7 @@ export default function GroupDetailPage() {
       .then(setGroup)
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
-  }, [params.groupId]);
+  }, [params.groupId, isDemoMode]);
 
   const getUserRole = () => {
     if (!group || !currentUserId) return null;
@@ -226,7 +255,14 @@ export default function GroupDetailPage() {
         )}
 
         {activeTab === 'logs' && (
-          <LogsTab groupId={group.id} aircraft={group.aircraft} bookings={group.bookings} canLog={!!getUserRole()} />
+          <LogsTab 
+            groupId={group.id} 
+            aircraft={group.aircraft} 
+            bookings={group.bookings} 
+            canLog={!!getUserRole()} 
+            demoLogs={isDemoMode ? demoFlightLogs.filter(log => group.aircraft?.some((a: any) => a.id === log.aircraftId)) : undefined}
+            demoMaintenance={isDemoMode ? demoMaintenance.filter(m => group.aircraft?.some((a: any) => a.id === m.aircraftId)) : undefined}
+          />
         )}
 
         {activeTab === 'members' && (
@@ -663,7 +699,14 @@ function BookingsTab({ groupId, aircraft, canBook }: { groupId: string; aircraft
   );
 }
 
-function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; aircraft: Aircraft[]; bookings?: any[]; canLog: boolean }) {
+function LogsTab({ groupId, aircraft, bookings, canLog, demoLogs, demoMaintenance }: { 
+  groupId: string; 
+  aircraft: Aircraft[]; 
+  bookings?: any[]; 
+  canLog: boolean;
+  demoLogs?: any[];
+  demoMaintenance?: any[];
+}) {
   const [logs, setLogs] = useState<any[]>([]);
   const [maintenance, setMaintenance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -697,8 +740,18 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
   
   // Filter bookings to only show completed ones (past end time)
   const completedBookings = groupBookings.filter((b: any) => new Date(b.endTime) < new Date());
+  
+  const isDemoMode = !!demoLogs;
 
   useEffect(() => {
+    // Use demo data if available
+    if (isDemoMode && demoLogs) {
+      setLogs(demoLogs);
+      setMaintenance(demoMaintenance || []);
+      setLoading(false);
+      return;
+    }
+    
     fetch(`/api/groups/${groupId}/logs`)
       .then(res => res.ok ? res.json() : Promise.reject(new Error('Failed to load')))
       .then(data => {
