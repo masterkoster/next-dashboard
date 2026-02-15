@@ -25,14 +25,23 @@ export async function PUT(request: Request, { params }: RouteParams) {
     // First get the maintenance record with its aircraft
     const maintenance = await prisma.maintenance.findUnique({
       where: { id },
-      include: { aircraft: { include: { group: true } } }
+      include: { aircraft: true }
     });
 
     if (!maintenance) {
       return NextResponse.json({ error: 'Maintenance not found' }, { status: 404 });
     }
 
-    const groupId = maintenance.aircraft.groupId;
+    // Get the aircraft's groupId
+    const aircraft = await prisma.clubAircraft.findUnique({
+      where: { id: maintenance.aircraftId }
+    });
+    
+    if (!aircraft) {
+      return NextResponse.json({ error: 'Aircraft not found' }, { status: 404 });
+    }
+    
+    const groupId = aircraft.groupId;
 
     // Check membership
     const membership = await prisma.groupMember.findFirst({
