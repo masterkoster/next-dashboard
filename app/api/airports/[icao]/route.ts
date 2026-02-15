@@ -26,12 +26,15 @@ const DEMO_FUEL_PRICES: Record<string, number> = {
   'KSMF': 9.95, 'KMCO': 9.80, 'KTPA': 10.10,
   'KMDW': 8.55, 'KDAL': 7.95, 'KSAT': 8.25, 'KOAK': 10.40,
   'KSNA': 9.75, 'KBUR': 8.95, 'KFLL': 10.30, 'KPSP': 9.40,
+  'KDTW': 9.25, 'KCLE': 8.95, 'KMKE': 8.75, 'KIND': 8.50,
+  'KSDF': 8.45, 'KTUL': 8.15, 'KABQ': 8.85, 'KOMA': 8.30,
 };
 
 // Demo landing fees
 const DEMO_FEES: Record<string, number> = {
   'KJFK': 45, 'KLAX': 40, 'KSFO': 35, 'KORD': 30,
   'KMIA': 38, 'KATL': 28, 'KDEN': 25, 'KLAS': 22,
+  'KDTW': 28, 'KCLE': 25, 'KMKE': 22, 'KIND': 24,
 };
 
 // GET /api/airports/[icao] - Get full airport details
