@@ -15,15 +15,21 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const { groupId } = await params;
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     
-    if (!user) {
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
+    
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
     
+    const userId = users[0].id;
+    
     // Check membership using raw SQL
     const memberships = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user.id}'
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${userId}'
     `) as any[];
 
     if (!memberships || memberships.length === 0) {
@@ -141,11 +147,21 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     const { groupId } = await params;
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-
+    
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
+    
+    if (!users || users.length === 0) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    
+    const userId = users[0].id;
+    
     // Check membership and role (MEMBER or ADMIN can log flights)
     const memberships = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user?.id}' AND role IN ('MEMBER', 'ADMIN')
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${userId}' AND role IN ('MEMBER', 'ADMIN')
     `) as any[];
 
     if (!memberships || memberships.length === 0) {
@@ -174,7 +190,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     
     await prisma.$executeRawUnsafe(`
       INSERT INTO FlightLog (id, aircraftId, userId, date, tachTime, hobbsTime, notes, createdAt, updatedAt)
-      VALUES ('${logId}', '${aircraftId}', '${user!.id}', '${dateStr}', ${tachUsed || 'NULL'}, ${hobbsUsed || 'NULL'}, ${notes ? "'" + notes.replace(/'/g, "''") + "'" : 'NULL'}, GETDATE(), GETDATE())
+      VALUES ('${logId}', '${aircraftId}', '${userId}', '${dateStr}', ${tachUsed || 'NULL'}, ${hobbsUsed || 'NULL'}, ${notes ? "'" + notes.replace(/'/g, "''") + "'" : 'NULL'}, GETDATE(), GETDATE())
     `);
 
     // Create maintenance if provided
@@ -182,7 +198,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       const maintId = crypto.randomUUID();
       await prisma.$executeRawUnsafe(`
         INSERT INTO Maintenance (id, aircraftId, userId, groupId, description, notes, status, isGrounded, reportedDate, createdAt, updatedAt)
-        VALUES ('${maintId}', '${aircraftId}', '${user!.id}', '${groupId}', '${maintenance.description.replace(/'/g, "''")}', ${maintenance.notes ? "'" + maintenance.notes.replace(/'/g, "''") + "'" : 'NULL'}, 'NEEDED', 0, GETDATE(), GETDATE(), GETDATE())
+        VALUES ('${maintId}', '${aircraftId}', '${userId}', '${groupId}', '${maintenance.description.replace(/'/g, "''")}', ${maintenance.notes ? "'" + maintenance.notes.replace(/'/g, "''") + "'" : 'NULL'}, 'NEEDED', 0, GETDATE(), GETDATE(), GETDATE())
       `);
     }
 

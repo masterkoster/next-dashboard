@@ -15,11 +15,21 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const { groupId } = await params;
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
+    
+    if (!users || users.length === 0) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    
+    const userId = users[0].id;
     
     // Check membership using raw SQL
     const memberships = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user?.id}'
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${userId}'
     `) as any[];
 
     if (!memberships || memberships.length === 0) {
@@ -80,11 +90,21 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     const { groupId } = await params;
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-
+    
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
+    
+    if (!users || users.length === 0) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+    
+    const userId = users[0].id;
+    
     // Check membership and role using raw SQL
     const memberships = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user?.id}' AND role IN ('MEMBER', 'ADMIN')
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${userId}' AND role IN ('MEMBER', 'ADMIN')
     `) as any[];
 
     if (!memberships || memberships.length === 0) {
@@ -134,7 +154,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     const bookingId = crypto.randomUUID();
     await prisma.$executeRawUnsafe(`
       INSERT INTO Booking (id, aircraftId, userId, startTime, endTime, purpose, createdAt, updatedAt)
-      VALUES ('${bookingId}', '${aircraftId}', '${user!.id}', '${startDate}', '${endDate}', ${purpose ? "'" + purpose.replace(/'/g, "''") + "'" : 'NULL'}, GETDATE(), GETDATE())
+      VALUES ('${bookingId}', '${aircraftId}', '${userId}', '${startDate}', '${endDate}', ${purpose ? "'" + purpose.replace(/'/g, "''") + "'" : 'NULL'}, GETDATE(), GETDATE())
     `);
 
     // Fetch created booking
