@@ -13,10 +13,6 @@ export default function ProfilePage() {
   const [aircraftList, setAircraftList] = useState<{id: string, nNumber: string, nickname: string | null}[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // Performance mode
-  const [performanceMode, setPerformanceMode] = useState('auto');
-  const [savedMode, setSavedMode] = useState(false);
-  
   // Delete account states
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -41,27 +37,6 @@ export default function ProfilePage() {
       setSavedName(true);
       setTimeout(() => setSavedName(false), 2000);
     });
-  };
-
-  const handleModeSave = async () => {
-    try {
-      const res = await fetch('/api/user/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ performanceMode }),
-      });
-      if (res.ok) {
-        // Also save to local IndexedDB for offline access
-        if ('indexedDB' in window) {
-          const { setPerformanceMode } = await import('@/lib/offline-db');
-          await setPerformanceMode(performanceMode as 'auto' | 'modern' | 'legacy');
-        }
-        setSavedMode(true);
-        setTimeout(() => setSavedMode(false), 2000);
-      }
-    } catch (err) {
-      console.error('Error saving performance mode:', err);
-    }
   };
 
   const handleAddAircraft = () => {
@@ -136,38 +111,6 @@ export default function ProfilePage() {
             >
               {savedName ? 'Saved!' : 'Save'}
             </button>
-          </div>
-        </div>
-
-        {/* Performance Mode Section */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">
-          <h2 className="text-lg font-semibold text-slate-100">Device Performance</h2>
-          <p className="mt-1 text-sm text-slate-400">Optimize for your device capabilities</p>
-          
-          <div className="mt-4 space-y-3">
-            <div className="flex gap-3">
-              <select
-                value={performanceMode}
-                onChange={(e) => setPerformanceMode(e.target.value)}
-                className="flex-1 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-slate-100 focus:border-emerald-500 focus:outline-none"
-              >
-                <option value="auto">Auto-detect (Recommended)</option>
-                <option value="modern">Modern Device (Fast)</option>
-                <option value="legacy">Older Device (Slower)</option>
-              </select>
-              <button
-                onClick={handleModeSave}
-                disabled={isPending}
-                className="rounded-xl bg-emerald-500 px-6 py-2 font-semibold text-emerald-950 hover:bg-emerald-400 disabled:opacity-50"
-              >
-                {savedMode ? 'Saved!' : 'Save'}
-              </button>
-            </div>
-            <p className="text-xs text-slate-500">
-              {performanceMode === 'auto' && 'Automatically optimizes caching based on your device capabilities.'}
-              {performanceMode === 'modern' && 'Caches more data, uses compression, and enables background sync.'}
-              {performanceMode === 'legacy' && 'Reduces cached data, disables compression, and manual sync only.'}
-            </p>
           </div>
         </div>
 
