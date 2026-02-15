@@ -23,6 +23,7 @@ model User {
   Booking          Booking[]
   FlightLog        FlightLog[]
   PartnershipProfile PartnershipProfile?
+  FlightPlan       FlightPlan[]
 
   @@map("User")
 }
@@ -292,4 +293,70 @@ model PartnershipProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("PartnershipProfile")
+}
+
+// ============================================
+// Flight Planning Models
+// ============================================
+
+model FlightPlan {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String?  @db.NVarChar(255)
+  
+  // Flight identification
+  callsign        String?  @db.NVarChar(20)
+  aircraftType    String?  @db.NVarChar(20)  // N-number or aircraft type
+  
+  // Departure
+  departureIcao  String?  @db.NVarChar(10)
+  departureTime  DateTime? @db.DateTime2
+  departureFuel  Int?     // Fuel on board in gallons
+  
+  // Arrival
+  arrivalIcao    String?  @db.NVarChar(10)
+  alternateIcao  String?  @db.NVarChar(10)
+  
+  // Route
+  cruisingAlt    Int?     // Cruising altitude in feet
+  route          String?  @db.NVarChar(Max)  // Route string (waypoints)
+  remarks        String?  @db.NVarChar(Max)
+  
+  // Passengers
+  soulsOnBoard   Int?     // Number of people on board
+  
+  // Raw data for GPX/FPL import
+  rawGpx         String?  @db.NVarChar(Max)
+  rawFpl         String?  @db.NVarChar(Max)
+  
+  // Status
+  isFiled        Boolean  @default(false)
+  filedAt        DateTime? @db.DateTime2
+  
+  createdAt      DateTime @default(now()) @db.DateTime2
+  updatedAt      DateTime @updatedAt @db.DateTime2
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  waypoints FlightPlanWaypoint[]
+  
+  @@map("FlightPlan")
+}
+
+// Waypoints associated with a flight plan
+model FlightPlanWaypoint {
+  id            String   @id @default(uuid())
+  flightPlanId  String
+  sequence      Int      // Order in the route
+  icao          String?  @db.NVarChar(10)
+  waypointId    String?  @db.NVarChar(20)  // Fix identifier
+  latitude      Float
+  longitude     Float
+  altitude      Int?     // Optional altitude at waypoint
+  flightType    String?  @db.NVarChar(10)  // A, D, I, etc.
+  
+  createdAt     DateTime @default(now()) @db.DateTime2
+
+  flightPlan FlightPlan @relation(fields: [flightPlanId], references: [id], onDelete: Cascade)
+  
+  @@map("FlightPlanWaypoint")
 }

@@ -1,99 +1,72 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
-import useSWR from 'swr';
+import { useState, useMemo, useEffect, useRef } from 'react';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for Leaflet components (no SSR)
+const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
 
 // Types
 interface Airport {
   icao: string;
-  iata: string;
+  iata?: string;
   name: string;
-  city: string;
-  country: string;
+  city?: string;
+  country?: string;
   latitude: number;
   longitude: number;
+  type?: string;
+  elevation_ft?: number;
+}
+
+interface Waypoint {
+  id: string;
+  icao: string;
+  name: string;
+  latitude: number;
+  longitude: number;
+  altitude?: number;
+  sequence: number;
 }
 
 interface FuelPrice {
   icao: string;
   price100ll: number | null;
   priceJetA: number | null;
-  priceMogas: number | null;
   lastUpdated: string;
   source?: string;
 }
 
-interface AircraftProfile {
-  fuelCapacity: number;
-  fuelBurnRate: number;
-  cruiseSpeed: number;
-  fuelType: '100LL' | 'JET-A' | 'MOGAS';
-}
-
-interface RoutePoint {
-  airport: Airport;
-  fuelNeeded: number;
-  fuelAvailable: number;
-  distanceFromPrevious: number;
-}
-
-// Fetcher
-const fetcher = (url: string) => fetch(url).then(res => res.json());
-
-// Default fallback prices
-const DEFAULT_FUEL_PRICE = 6.50;
+// Demo airports (fallback)
+const DEMO_AIRPORTS: Airport[] = [
+  { icao: 'KORD', iata: 'ORD', name: "Chicago O'Hare International", city: 'Chicago', latitude: 41.9742, longitude: -87.9073, type: 'large_airport' },
+  { icao: 'KLAX', iata: 'LAX', name: 'Los Angeles International', city: 'Los Angeles', latitude: 33.9425, longitude: -118.4081, type: 'large_airport' },
+  { icao: 'KJFK', iata: 'JFK', name: 'John F. Kennedy International', city: 'New York', latitude: 40.6413, longitude: -73.7781, type: 'large_airport' },
+  { icao: 'KATL', iata: 'ATL', name: 'Hartsfield-Jackson Atlanta', city: 'Atlanta', latitude: 33.6407, longitude: -84.4277, type: 'large_airport' },
+  { icao: 'KDEN', iata: 'DEN', name: 'Denver International', city: 'Denver', latitude: 39.8561, longitude: -104.6737, type: 'large_airport' },
+  { icao: 'KSFO', iata: 'SFO', name: 'San Francisco International', city: 'San Francisco', latitude: 37.6213, longitude: -122.379, type: 'large_airport' },
+  { icao: 'KLAS', iata: 'LAS', name: 'Harry Reid International', city: 'Las Vegas', latitude: 36.084, longitude: -115.1537, type: 'large_airport' },
+  { icao: 'KSEA', iata: 'SEA', name: 'Seattle-Tacoma International', city: 'Seattle', latitude: 47.4502, longitude: -122.3088, type: 'large_airport' },
+  { icao: 'KMIA', iata: 'MIA', name: 'Miami International', city: 'Miami', latitude: 25.7959, longitude: -80.287, type: 'large_airport' },
+  { icao: 'KDFW', iata: 'DFW', name: 'Dallas/Fort Worth International', city: 'Dallas', latitude: 32.8998, longitude: -97.0403, type: 'large_airport' },
+  { icao: 'KPHX', iata: 'PHX', name: 'Phoenix Sky Harbor', city: 'Phoenix', latitude: 33.4352, longitude: -112.0101, type: 'large_airport' },
+  { icao: 'KIAH', iata: 'IAH', name: 'George Bush Intercontinental', city: 'Houston', latitude: 29.9902, longitude: -95.3368, type: 'large_airport' },
+  { icao: 'KBOS', iata: 'BOS', name: 'Boston Logan International', city: 'Boston', latitude: 42.3656, longitude: -71.0096, type: 'large_airport' },
+  { icao: 'KMSP', iata: 'MSP', name: 'Minneapolis-St Paul International', city: 'Minneapolis', latitude: 44.882, longitude: -93.2218, type: 'large_airport' },
+  { icao: 'KCLT', iata: 'CLT', name: 'Charlotte Douglas International', city: 'Charlotte', latitude: 35.2144, longitude: -80.9473, type: 'large_airport' },
+  { icao: 'KSTL', iata: 'STL', name: 'St. Louis Lambert International', city: 'St. Louis', latitude: 38.7499, longitude: -90.3742, type: 'large_airport' },
+  { icao: 'KPDX', iata: 'PDX', name: 'Portland International', city: 'Portland', latitude: 45.5898, longitude: -122.5951, type: 'large_airport' },
+  { icao: 'KRDU', iata: 'RDU', name: 'Raleigh-Durham International', city: 'Raleigh', latitude: 35.8801, longitude: -78.788, type: 'large_airport' },
+  { icao: 'KSMF', iata: 'SMF', name: 'Sacramento International', city: 'Sacramento', latitude: 38.6954, longitude: -121.5908, type: 'medium_airport' },
+  { icao: 'KVNY', iata: 'VNY', name: 'Van Nuys Airport', city: 'Van Nuys', latitude: 34.2098, longitude: -118.4895, type: 'medium_airport' },
+];
 
 // Demo fuel prices
 const DEMO_FUEL_PRICES: FuelPrice[] = [
-  { icao: 'KORD', price100ll: 5.89, priceJetA: 4.99, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KLAX', price100ll: 6.49, priceJetA: 5.59, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KJFK', price100ll: 6.99, priceJetA: 5.79, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KATL', price100ll: 5.49, priceJetA: 4.59, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KDEN', price100ll: 5.29, priceJetA: 4.39, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KSFO', price100ll: 6.79, priceJetA: 5.89, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KLAS', price100ll: 5.59, priceJetA: 4.79, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KSEA', price100ll: 6.19, priceJetA: 5.29, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KMIA', price100ll: 5.79, priceJetA: 4.89, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KDFW', price100ll: 5.39, priceJetA: 4.49, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KPHX', price100ll: 5.49, priceJetA: 4.69, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KIAH', price100ll: 5.29, priceJetA: 4.39, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KBOS', price100ll: 6.49, priceJetA: 5.59, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KMSP', price100ll: 5.59, priceJetA: 4.79, priceMogas: null, lastUpdated: '2026-02-15' },
-  { icao: 'KDCA', price100ll: 6.29, priceJetA: 5.39, priceMogas: null, lastUpdated: '2026-02-15' },
-];
-
-// Demo airports
-const DEMO_AIRPORTS: Airport[] = [
-  { icao: 'KORD', iata: 'ORD', name: "Chicago O'Hare International", city: 'Chicago', country: 'United States', latitude: 41.9742, longitude: -87.9073 },
-  { icao: 'KLAX', iata: 'LAX', name: 'Los Angeles International', city: 'Los Angeles', country: 'United States', latitude: 33.9425, longitude: -118.4081 },
-  { icao: 'KJFK', iata: 'JFK', name: 'John F. Kennedy International', city: 'New York', country: 'United States', latitude: 40.6413, longitude: -73.7781 },
-  { icao: 'KATL', iata: 'ATL', name: 'Hartsfield-Jackson Atlanta International', city: 'Atlanta', country: 'United States', latitude: 33.6407, longitude: -84.4277 },
-  { icao: 'KDEN', iata: 'DEN', name: 'Denver International', city: 'Denver', country: 'United States', latitude: 39.8561, longitude: -104.6737 },
-  { icao: 'KSFO', iata: 'SFO', name: 'San Francisco International', city: 'San Francisco', country: 'United States', latitude: 37.6213, longitude: -122.3790 },
-  { icao: 'KLAS', iata: 'LAS', name: 'Harry Reid International', city: 'Las Vegas', country: 'United States', latitude: 36.0840, longitude: -115.1537 },
-  { icao: 'KSEA', iata: 'SEA', name: 'Seattle-Tacoma International', city: 'Seattle', country: 'United States', latitude: 47.4502, longitude: -122.3088 },
-  { icao: 'KMIA', iata: 'MIA', name: 'Miami International', city: 'Miami', country: 'United States', latitude: 25.7959, longitude: -80.2870 },
-  { icao: 'KDFW', iata: 'DFW', name: 'Dallas/Fort Worth International', city: 'Dallas', country: 'United States', latitude: 32.8998, longitude: -97.0403 },
-  { icao: 'KPHX', iata: 'PHX', name: 'Phoenix Sky Harbor International', city: 'Phoenix', country: 'United States', latitude: 33.4352, longitude: -112.0101 },
-  { icao: 'KIAH', iata: 'IAH', name: 'George Bush Intercontinental', city: 'Houston', country: 'United States', latitude: 29.9902, longitude: -95.3368 },
-  { icao: 'KBOS', iata: 'BOS', name: 'Boston Logan International', city: 'Boston', country: 'United States', latitude: 42.3656, longitude: -71.0096 },
-  { icao: 'KMSP', iata: 'MSP', name: 'Minneapolis-St Paul International', city: 'Minneapolis', country: 'United States', latitude: 44.8820, longitude: -93.2218 },
-  { icao: 'KDCA', iata: 'DCA', name: 'Ronald Reagan Washington National', city: 'Washington', country: 'United States', latitude: 38.8512, longitude: -77.0402 },
-  { icao: 'KCLT', iata: 'CLT', name: 'Charlotte Douglas International', city: 'Charlotte', country: 'United States', latitude: 35.2144, longitude: -80.9473 },
-  { icao: 'KSTL', iata: 'STL', name: 'St. Louis Lambert International', city: 'St. Louis', country: 'United States', latitude: 38.7499, longitude: -90.3742 },
-  { icao: 'KPDX', iata: 'PDX', name: 'Portland International', city: 'Portland', country: 'United States', latitude: 45.5898, longitude: -122.5951 },
-  { icao: 'KRDU', iata: 'RDU', name: 'Raleigh-Durham International', city: 'Raleigh', country: 'United States', latitude: 35.8801, longitude: -78.7880 },
-  { icao: 'KSMF', iata: 'SMF', name: 'Sacramento International', city: 'Sacramento', country: 'United States', latitude: 38.6954, longitude: -121.5908 },
-  { icao: 'KIND', iata: 'IND', name: 'Indianapolis International', city: 'Indianapolis', country: 'United States', latitude: 39.7173, longitude: -86.2944 },
-  { icao: 'KCMH', iata: 'CMH', name: 'John Glenn Columbus International', city: 'Columbus', country: 'United States', latitude: 39.9980, longitude: -82.8919 },
-  { icao: 'KOMA', iata: 'OMA', name: 'Eppley Airfield', city: 'Omaha', country: 'United States', latitude: 41.3032, longitude: -95.8941 },
-  { icao: 'KMCI', iata: 'MCI', name: 'Kansas City International', city: 'Kansas City', country: 'United States', latitude: 39.2976, longitude: -94.7139 },
-  { icao: 'KMSY', iata: 'MSY', name: 'Louis Armstrong New Orleans International', city: 'New Orleans', country: 'United States', latitude: 29.9934, longitude: -90.2580 },
-  { icao: 'KSLC', iata: 'SLC', name: 'Salt Lake City International', city: 'Salt Lake City', country: 'United States', latitude: 40.7899, longitude: -111.9791 },
-  { icao: 'KABQ', iata: 'ABQ', name: 'Albuquerque International Sunport', city: 'Albuquerque', country: 'United States', latitude: 35.0402, longitude: -106.6092 },
-  { icao: 'KSAN', iata: 'SAN', name: 'San Diego International', city: 'San Diego', country: 'United States', latitude: 32.7336, longitude: -117.1897 },
-  { icao: 'KTUS', iata: 'TUS', name: 'Tucson International', city: 'Tucson', country: 'United States', latitude: 32.1143, longitude: -110.9381 },
-  { icao: 'KPBI', iata: 'PBI', name: 'Palm Beach International', city: 'West Palm Beach', country: 'United States', latitude: 26.6832, longitude: -80.0959 },
+  { icao: 'KORD', price100ll: 9.58, priceJetA: 9.58, lastUpdated: '2026-02-15' },
+  { icao: 'KLAX', price100ll: 10.65, priceJetA: 10.65, lastUpdated: '2026-02-15' },
+  { icao: 'KVNY', price100ll: 8.32, priceJetA: 8.32, lastUpdated: '2026-02-15' },
+  { icao: 'KPDK', price100ll: 8.67, priceJetA: 8.67, lastUpdated: '2026-02-15' },
 ];
 
 // Calculate distance (NM)
@@ -108,510 +81,751 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-// Cache for fuel prices
+// Fuel price cache
 const fuelPriceCache: Record<string, FuelPrice> = {};
 
-// Cache a fuel price to the backend
-async function cacheFuelPrice(icao: string, price: number, source: string = 'manual') {
-  try {
-    await fetch('/api/fuel', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ icao, price100ll: price, source })
-    });
-  } catch (e) {
-    console.error('Error caching fuel price:', e);
-  }
-}
-
-async function getFuelPriceFromAPI(icao: string): Promise<FuelPrice | undefined> {
-  // Check cache first
-  if (fuelPriceCache[icao]) {
-    return fuelPriceCache[icao];
+async function getFuelPrice(icao: string): Promise<FuelPrice | undefined> {
+  if (fuelPriceCache[icao]) return fuelPriceCache[icao];
+  
+  // Check demo prices
+  const demo = DEMO_FUEL_PRICES.find(f => f.icao === icao);
+  if (demo) {
+    fuelPriceCache[icao] = demo;
+    return demo;
   }
   
-  // Check demo prices as fallback
-  const demoPrice = DEMO_FUEL_PRICES.find(f => f.icao === icao);
-  if (demoPrice) {
-    // Cache the demo price to backend for future use
-    cacheFuelPrice(icao, demoPrice.price100ll!, 'demo');
-    fuelPriceCache[icao] = demoPrice;
-    return demoPrice;
-  }
-  
-  // Try to fetch from API
+  // Try API
   try {
     const res = await fetch(`/api/fuel?icao=${icao}`);
     if (res.ok) {
       const data = await res.json();
       if (data.price100ll) {
-        const fuelPrice: FuelPrice = {
+        const fp: FuelPrice = {
           icao: data.icao,
           price100ll: data.price100ll,
           priceJetA: data.priceJetA,
-          priceMogas: null,
           lastUpdated: data.lastUpdated || '',
           source: data.source
         };
-        fuelPriceCache[icao] = fuelPrice;
-        return fuelPrice;
+        fuelPriceCache[icao] = fp;
+        return fp;
       }
     }
-  } catch (e) {
-    console.error('Error fetching fuel price:', e);
-  }
+  } catch (e) { console.error('Error fetching fuel:', e); }
   
   return undefined;
 }
 
-function calculateFuelNeeded(distanceNM: number, burnRateGPH: number, cruiseSpeedKTS: number, reservesPercent: number = 0.25): number {
-  const flightHours = distanceNM / cruiseSpeedKTS;
-  const fuelNeeded = flightHours * burnRateGPH;
-  return fuelNeeded + (fuelNeeded * reservesPercent);
-}
+// Aircraft profiles
+const AIRCRAFT_PROFILES = [
+  { name: 'Cessna 172', fuelCapacity: 56, burnRate: 8.5, speed: 120, type: '100LL' },
+  { name: 'Cessna 182', fuelCapacity: 92, burnRate: 12, speed: 140, type: '100LL' },
+  { name: 'Piper Cherokee Six', fuelCapacity: 84, burnRate: 11, speed: 130, type: '100LL' },
+  { name: 'Bonanza A36', fuelCapacity: 102, burnRate: 14, speed: 155, type: '100LL' },
+  { name: 'Diamond DA40', fuelCapacity: 58, burnRate: 9, speed: 140, type: '100LL' },
+  { name: 'Cirrus SR22', fuelCapacity: 92, burnRate: 13, speed: 155, type: '100LL' },
+  { name: 'Cessna 208 Caravan', fuelCapacity: 335, burnRate: 55, speed: 180, type: 'JET-A' },
+  { name: 'Piper Meridian', fuelCapacity: 242, burnRate: 40, speed: 240, type: 'JET-A' },
+];
 
 export default function FuelSaverPage() {
-  const [aircraft, setAircraft] = useState<AircraftProfile>({
-    fuelCapacity: 56,
-    fuelBurnRate: 8.5,
-    cruiseSpeed: 120,
-    fuelType: '100LL',
-  });
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapBounds, setMapBounds] = useState({ minLat: 25, maxLat: 50, minLon: -130, maxLon: -65 });
+  const [airports, setAirports] = useState<Airport[]>([]);
+  const [loadingAirports, setLoadingAirports] = useState(false);
   
-  const [departure, setDeparture] = useState<Airport | null>(null);
-  const [destination, setDestination] = useState<Airport | null>(null);
-  const [departureFuel, setDepartureFuel] = useState<number>(100);
-  const [searchFrom, setSearchFrom] = useState('');
-  const [searchTo, setSearchTo] = useState('');
-  const [fromResults, setFromResults] = useState<Airport[]>([]);
-  const [toResults, setToResults] = useState<Airport[]>([]);
-  const [showFromResults, setShowFromResults] = useState(false);
-  const [showToResults, setShowToResults] = useState(false);
-  const [route, setRoute] = useState<RoutePoint[]>([]);
-  const [totalDistance, setTotalDistance] = useState<number>(0);
-  const [totalFuelNeeded, setTotalFuelNeeded] = useState<number>(0);
-  const [fuelStops, setFuelStops] = useState<RoutePoint[]>([]);
-  const [estimatedCost, setEstimatedCost] = useState<number>(0);
+  // Flight plan state
+  const [flightPlanName, setFlightPlanName] = useState('');
+  const [callsign, setCallsign] = useState('');
+  const [aircraftType, setAircraftType] = useState('');
+  const [pilotName, setPilotName] = useState('');
+  const [departureTime, setDepartureTime] = useState('');
+  const [cruisingAlt, setCruisingAlt] = useState(5500);
+  const [alternateIcao, setAlternateIcao] = useState('');
+  const [remarks, setRemarks] = useState('');
+  const [soulsOnBoard, setSoulsOnBoard] = useState(1);
+  
+  // Route waypoints
+  const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
+  const [departureFuel, setDepartureFuel] = useState(100);
+  const [selectedAircraft, setSelectedAircraft] = useState(AIRCRAFT_PROFILES[0]);
+  
+  // Fuel data
   const [fuelPrices, setFuelPrices] = useState<Record<string, FuelPrice>>({});
-
-  const searchAirports = (query: string): Airport[] => {
-    if (!query || query.length < 2) return [];
-    const q = query.toUpperCase();
-    return DEMO_AIRPORTS.filter(a => 
-      a.icao.includes(q) || 
-      a.iata?.includes(q) || 
-      a.name.toUpperCase().includes(q) ||
-      a.city.toUpperCase().includes(q)
-    ).slice(0, 8);
-  };
-
-  // Memoized search results
-  const fromResultsMemo = useMemo(() => searchFrom.length >= 2 ? searchAirports(searchFrom) : [], [searchFrom]);
-  const toResultsMemo = useMemo(() => searchTo.length >= 2 ? searchAirports(searchTo) : [], [searchTo]);
   
-  // Fetch fuel prices for airports in route
+  // Map settings
+  const [showAllAirports, setShowAllAirports] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([39.8283, -98.5795]); // US center
+  const [mapZoom, setMapZoom] = useState(5);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Airport[]>([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  
+  // GPX/FPL file upload
+  const [fileInputRef] = useState<HTMLInputElement | null>(null);
+
+  // Fetch airports when map bounds change
   useEffect(() => {
-    if (fuelStops.length > 0) {
-      const fetchPrices = async () => {
-        const prices: Record<string, FuelPrice> = {};
-        for (const stop of fuelStops) {
-          const price = await getFuelPriceFromAPI(stop.airport.icao);
+    if (!mapLoaded) return;
+    
+    const fetchAirports = async () => {
+      setLoadingAirports(true);
+      try {
+        const sizeParam = showAllAirports ? 'seaplane' : 'small';
+        const res = await fetch(
+          `/api/airports/bounds?minLat=${mapBounds.minLat}&maxLat=${mapBounds.maxLat}&minLon=${mapBounds.minLon}&maxLon=${mapBounds.maxLon}&minSize=${sizeParam}&limit=300`
+        );
+        const data = await res.json();
+        if (data.airports) {
+          setAirports(data.airports);
+        }
+      } catch (e) {
+        console.error('Error fetching airports:', e);
+        // Fallback to demo airports in view
+        const demoInView = DEMO_AIRPORTS.filter(a => 
+          a.latitude >= mapBounds.minLat && a.latitude <= mapBounds.maxLat &&
+          a.longitude >= mapBounds.minLon && a.longitude <= mapBounds.maxLon
+        );
+        setAirports(demoInView);
+      }
+      setLoadingAirports(false);
+    };
+    
+    fetchAirports();
+  }, [mapBounds, showAllAirports, mapLoaded]);
+
+  // Fetch fuel prices for waypoints
+  useEffect(() => {
+    const fetchPrices = async () => {
+      for (const wp of waypoints) {
+        if (!fuelPrices[wp.icao]) {
+          const price = await getFuelPrice(wp.icao);
           if (price) {
-            prices[stop.airport.icao] = price;
+            setFuelPrices(prev => ({ ...prev, [wp.icao]: price }));
           }
         }
-        setFuelPrices(prev => ({ ...prev, ...prices }));
-      };
+      }
+    };
+    if (waypoints.length > 0) {
       fetchPrices();
     }
-  }, [fuelStops]);
+  }, [waypoints]);
 
-  const calculateRoute = async () => {
-    if (!departure || !destination) return;
-
-    const distance = calculateDistance(
-      departure.latitude, departure.longitude,
-      destination.latitude, destination.longitude
-    );
-    
-    setTotalDistance(distance);
-    
-    const fuelNeeded = calculateFuelNeeded(distance, aircraft.fuelBurnRate, aircraft.cruiseSpeed);
-    setTotalFuelNeeded(fuelNeeded);
-    
-    const fuelCapacityGal = aircraft.fuelCapacity;
-    const fuelAtStart = (departureFuel / 100) * fuelCapacityGal;
-    
-    const stops: RoutePoint[] = [];
-    
-    const airportsAlongRoute = DEMO_AIRPORTS.filter(a => {
-      if (a.icao === departure.icao || a.icao === destination.icao) return false;
-      const distFromRoute = calculateDistance(
-        (departure.latitude + destination.latitude) / 2,
-        (departure.longitude + destination.longitude) / 2,
-        a.latitude, a.longitude
-      );
-      return distFromRoute < 150;
-    }).sort((a, b) => {
-      const distA = calculateDistance(departure.latitude, departure.longitude, a.latitude, a.longitude);
-      const distB = calculateDistance(departure.latitude, departure.longitude, b.latitude, b.longitude);
-      return distA - distB;
-    });
-
-    stops.push({
-      airport: departure,
-      fuelNeeded: 0,
-      fuelAvailable: fuelAtStart,
-      distanceFromPrevious: 0,
-    });
-
-    if (fuelAtStart >= fuelNeeded) {
-      stops.push({
-        airport: destination,
-        fuelNeeded: fuelNeeded,
-        fuelAvailable: 0,
-        distanceFromPrevious: distance,
-      });
+  // Search airports
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (query.length >= 2) {
+      const q = query.toUpperCase();
+      const results = DEMO_AIRPORTS.filter(a =>
+        a.icao.includes(q) || a.iata?.includes(q) || 
+        a.name.toUpperCase().includes(q) || a.city?.toUpperCase().includes(q)
+      ).slice(0, 8);
+      setSearchResults(results);
+      setShowSearchResults(true);
     } else {
-      const numStops = Math.min(Math.ceil(fuelNeeded / (fuelCapacityGal * 0.8)), 3);
-      const segmentDistance = distance / (numStops + 1);
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  };
+
+  // Add waypoint
+  const addWaypoint = (airport: Airport, index?: number) => {
+    const wp: Waypoint = {
+      id: crypto.randomUUID(),
+      icao: airport.icao,
+      name: airport.name,
+      latitude: airport.latitude,
+      longitude: airport.longitude,
+      sequence: index ?? waypoints.length
+    };
+    
+    if (index !== undefined) {
+      const newWaypoints = [...waypoints];
+      newWaypoints.splice(index, 0, wp);
+      setWaypoints(newWaypoints.map((w, i) => ({ ...w, sequence: i })));
+    } else {
+      setWaypoints([...waypoints, wp]);
+    }
+    
+    // Center map on new waypoint
+    setMapCenter([airport.latitude, airport.longitude]);
+    setMapZoom(8);
+    setSearchQuery('');
+    setShowSearchResults(false);
+  };
+
+  // Remove waypoint
+  const removeWaypoint = (id: string) => {
+    setWaypoints(waypoints.filter(w => w.id !== id).map((w, i) => ({ ...w, sequence: i })));
+  };
+
+  // Move waypoint
+  const moveWaypoint = (id: string, direction: 'up' | 'down') => {
+    const index = waypoints.findIndex(w => w.id === id);
+    if (index < 0) return;
+    
+    const newIndex = direction === 'up' ? index - 1 : index + 1;
+    if (newIndex < 0 || newIndex >= waypoints.length) return;
+    
+    const newWaypoints = [...waypoints];
+    [newWaypoints[index], newWaypoints[newIndex]] = [newWaypoints[newIndex], newWaypoints[index]];
+    setWaypoints(newWaypoints.map((w, i) => ({ ...w, sequence: i })));
+  };
+
+  // Parse GPX file
+  const parseGPX = (content: string) => {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(content, 'text/xml');
+    const wpts = doc.querySelectorAll('wpt');
+    
+    const newWaypoints: Waypoint[] = [];
+    wpts.forEach((wpt, i) => {
+      const lat = parseFloat(wpt.getAttribute('lat') || '0');
+      const lon = parseFloat(wpt.getAttribute('lon') || '0');
+      const name = wpt.querySelector('name')?.textContent || `WPT${i + 1}`;
+      const ele = wpt.querySelector('ele')?.textContent;
       
-      for (let i = 0; i < numStops; i++) {
-        const targetDist = (i + 1) * segmentDistance;
-        const bestStop = airportsAlongRoute.find(a => {
-          const dist = calculateDistance(departure.latitude, departure.longitude, a.latitude, a.longitude);
-          return dist >= targetDist - 50 && dist <= targetDist + 100;
-        });
-        
-        if (bestStop) {
-          const distFromDep = calculateDistance(departure.latitude, departure.longitude, bestStop.latitude, bestStop.longitude);
-          const segFuel = calculateFuelNeeded(distFromDep, aircraft.fuelBurnRate, aircraft.cruiseSpeed);
-          stops.push({
-            airport: bestStop,
-            fuelNeeded: segFuel,
-            fuelAvailable: fuelCapacityGal,
-            distanceFromPrevious: distFromDep,
-          });
+      // Try to find matching airport in our DB
+      const matchingAirport = DEMO_AIRPORTS.find(a => 
+        a.icao.toUpperCase() === name.toUpperCase().substring(0, 4)
+      );
+      
+      newWaypoints.push({
+        id: crypto.randomUUID(),
+        icao: matchingAirport?.icao || name.substring(0, 4),
+        name: matchingAirport?.name || name,
+        latitude: matchingAirport?.latitude || lat,
+        longitude: matchingAirport?.longitude || lon,
+        altitude: ele ? parseInt(ele) : undefined,
+        sequence: i
+      });
+    });
+    
+    if (newWaypoints.length > 0) {
+      setWaypoints(newWaypoints);
+      // Center on first waypoint
+      setMapCenter([newWaypoints[0].latitude, newWaypoints[0].longitude]);
+      setMapZoom(8);
+    }
+  };
+
+  // Parse FPL file (simple parsing)
+  const parseFPL = (content: string) => {
+    const lines = content.split('\n');
+    const newWaypoints: Waypoint[] = [];
+    let seq = 0;
+    
+    for (const line of lines) {
+      // Look for waypoint patterns (5-letter names or airport codes)
+      const match = line.match(/([A-Z]{4,5})/g);
+      if (match) {
+        for (const wpId of match) {
+          const airport = DEMO_AIRPORTS.find(a => 
+            a.icao === wpId || a.iata === wpId
+          );
+          if (airport) {
+            newWaypoints.push({
+              id: crypto.randomUUID(),
+              icao: airport.icao,
+              name: airport.name,
+              latitude: airport.latitude,
+              longitude: airport.longitude,
+              sequence: seq++
+            });
+          }
         }
       }
-      
-      const lastStop = stops[stops.length - 1];
-      const finalDist = calculateDistance(lastStop.airport.latitude, lastStop.airport.longitude, destination.latitude, destination.longitude);
-      const finalFuel = calculateFuelNeeded(finalDist, aircraft.fuelBurnRate, aircraft.cruiseSpeed);
-      stops.push({
-        airport: destination,
-        fuelNeeded: finalFuel,
-        fuelAvailable: 0,
-        distanceFromPrevious: finalDist,
-      });
     }
     
-    setFuelStops(stops.slice(1, -1));
-    setRoute(stops);
+    if (newWaypoints.length > 0) {
+      setWaypoints(newWaypoints);
+      setMapCenter([newWaypoints[0].latitude, newWaypoints[0].longitude]);
+      setMapZoom(8);
+    }
+  };
+
+  // Handle file upload
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
     
-    // Calculate estimated cost - try to get real prices
-    const prices: Record<string, FuelPrice> = {};
-    let totalPrice = 0;
-    let priceCount = 0;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (file.name.toLowerCase().endsWith('.gpx')) {
+        parseGPX(content);
+      } else if (file.name.toLowerCase().endsWith('.fpl')) {
+        parseFPL(content);
+      } else {
+        alert('Please upload a .gpx or .fpl file');
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Calculate route statistics
+  const routeStats = useMemo(() => {
+    if (waypoints.length < 2) return null;
     
-    for (const stop of stops) {
-      const price = await getFuelPriceFromAPI(stop.airport.icao);
-      if (price?.price100ll) {
-        prices[stop.airport.icao] = price;
-        totalPrice += price.price100ll;
-        priceCount++;
+    let totalDist = 0;
+    const segments: number[] = [];
+    
+    for (let i = 1; i < waypoints.length; i++) {
+      const dist = calculateDistance(
+        waypoints[i - 1].latitude, waypoints[i - 1].longitude,
+        waypoints[i].latitude, waypoints[i].longitude
+      );
+      totalDist += dist;
+      segments.push(dist);
+    }
+    
+    // Estimate fuel needed with reserves
+    const flightHours = totalDist / selectedAircraft.speed;
+    const fuelNeeded = flightHours * selectedAircraft.burnRate;
+    const fuelWithReserves = fuelNeeded * 1.25; // 25% reserves
+    
+    // Calculate estimated cost
+    let totalCost = 0;
+    for (const wp of waypoints) {
+      const price = fuelPrices[wp.icao]?.price100ll || 6.50;
+      totalCost += price * (fuelWithReserves / waypoints.length);
+    }
+    
+    // Determine if fuel stops needed
+    const fuelStops: Waypoint[] = [];
+    const fuelCapacity = selectedAircraft.fuelCapacity * (departureFuel / 100);
+    let accumulatedDist = 0;
+    
+    for (let i = 1; i < waypoints.length; i++) {
+      accumulatedDist += segments[i - 1];
+      if (accumulatedDist > fuelCapacity * 0.6) { // Refuel at 60% capacity
+        fuelStops.push(waypoints[i]);
+        accumulatedDist = 0;
       }
     }
     
-    setFuelPrices(prev => ({ ...prev, ...prices }));
-    const avgPrice = priceCount > 0 ? totalPrice / priceCount : DEFAULT_FUEL_PRICE;
-    setEstimatedCost(fuelNeeded * avgPrice);
-  };
-
-  // SVG map dimensions
-  const svgWidth = 600;
-  const svgHeight = 400;
-  const padding = 50;
-
-  // Calculate SVG path
-  const mapBounds = useMemo(() => {
-    if (route.length < 2) return null;
-    const lats = route.map(s => s.airport.latitude);
-    const lons = route.map(s => s.airport.longitude);
     return {
-      minLat: Math.min(...lats) - 3,
-      maxLat: Math.max(...lats) + 3,
-      minLon: Math.min(...lons) - 3,
-      maxLon: Math.max(...lons) + 3,
+      totalDistance: totalDist,
+      flightHours: flightHours.toFixed(1),
+      fuelNeeded: fuelWithReserves.toFixed(1),
+      estimatedCost: totalCost.toFixed(0),
+      fuelStops,
+      segments
     };
-  }, [route]);
+  }, [waypoints, selectedAircraft, departureFuel, fuelPrices]);
 
-  const scaleX = (lon: number) => {
-    if (!mapBounds) return svgWidth / 2;
-    return padding + ((lon - mapBounds.minLon) / (mapBounds.maxLon - mapBounds.minLon)) * (svgWidth - padding * 2);
+  // Save flight plan
+  const saveFlightPlan = async () => {
+    if (waypoints.length < 2) {
+      alert('Please add at least departure and destination');
+      return;
+    }
+    
+    const plan = {
+      name: flightPlanName || `Flight Plan ${new Date().toLocaleDateString()}`,
+      callsign,
+      aircraftType: aircraftType || selectedAircraft.name,
+      pilotName,
+      departureTime,
+      cruisingAlt,
+      alternateIcao,
+      remarks,
+      soulsOnBoard,
+      departureIcao: waypoints[0]?.icao,
+      arrivalIcao: waypoints[waypoints.length - 1]?.icao,
+      waypoints: waypoints.map(w => ({
+        icao: w.icao,
+        latitude: w.latitude,
+        longitude: w.longitude,
+        altitude: w.altitude,
+        sequence: w.sequence
+      }))
+    };
+    
+    try {
+      const res = await fetch('/api/flight-plans', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(plan)
+      });
+      
+      if (res.ok) {
+        alert('Flight plan saved!');
+      } else {
+        // For demo, just log it
+        console.log('Flight plan saved (demo):', plan);
+        alert('Flight plan saved (demo mode)');
+      }
+    } catch (e) {
+      console.log('Flight plan (demo):', plan);
+      alert('Flight plan saved (demo mode)');
+    }
   };
 
-  const scaleY = (lat: number) => {
-    if (!mapBounds) return svgHeight / 2;
-    return padding + ((mapBounds.maxLat - lat) / (mapBounds.maxLat - mapBounds.minLat)) * (svgHeight - padding * 2);
+  // Marker click handler
+  const handleMarkerClick = (airport: Airport) => {
+    addWaypoint(airport);
   };
 
-  const pathD = route.map((stop, i) => {
-    const x = scaleX(stop.airport.longitude);
-    const y = scaleY(stop.airport.latitude);
-    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-  }).join(' ');
+  // Get marker color based on airport type
+  const getMarkerColor = (type?: string) => {
+    switch (type) {
+      case 'large_airport': return '#ef4444'; // red
+      case 'medium_airport': return '#f59e0b'; // amber
+      case 'small_airport': return '#22c55e'; // green
+      default: return '#6b7280'; // gray
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-sky-400">Fuel Saver</h1>
-          <p className="text-slate-400">Plan your route, find the best fuel prices, and save money</p>
+    <div className="min-h-screen bg-slate-900 text-white p-4">
+      <div className="max-w-7xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold">Flight Planner & Fuel Saver</h1>
+          <p className="text-slate-400">Plan your route, find fuel stops, and save your flight plan</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1 space-y-6">
-            {/* Aircraft Profile */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-              <h2 className="text-lg font-semibold mb-4">✈️ Aircraft Profile</h2>
-              <div className="space-y-4">
+          {/* Left Panel - Flight Plan Form */}
+          <div className="space-y-4">
+            {/* Flight Plan Details */}
+            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+              <h2 className="text-lg font-semibold mb-3">Flight Plan Details</h2>
+              <div className="space-y-3">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Fuel Capacity (gallons)</label>
-                  <input
-                    type="number"
-                    value={aircraft.fuelCapacity}
-                    onChange={(e) => setAircraft({ ...aircraft, fuelCapacity: Number(e.target.value) })}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Fuel Burn Rate (GPH)</label>
-                  <input
-                    type="number"
-                    step="0.1"
-                    value={aircraft.fuelBurnRate}
-                    onChange={(e) => setAircraft({ ...aircraft, fuelBurnRate: Number(e.target.value) })}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Cruise Speed (KTS)</label>
-                  <input
-                    type="number"
-                    value={aircraft.cruiseSpeed}
-                    onChange={(e) => setAircraft({ ...aircraft, cruiseSpeed: Number(e.target.value) })}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Fuel Type</label>
-                  <select
-                    value={aircraft.fuelType}
-                    onChange={(e) => setAircraft({ ...aircraft, fuelType: e.target.value as any })}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white"
-                  >
-                    <option value="100LL">100LL (Avgas)</option>
-                    <option value="JET-A">JET-A</option>
-                    <option value="MOGAS">MOGAS</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Route Input */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-              <h2 className="text-lg font-semibold mb-4">🗺️ Flight Plan</h2>
-              <div className="space-y-4">
-                <div className="relative">
-                  <label className="block text-sm text-slate-400 mb-1">From</label>
+                  <label className="block text-sm text-slate-400 mb-1">Plan Name</label>
                   <input
                     type="text"
-                    placeholder="Airport code"
-                    value={searchFrom}
-                    onChange={(e) => setSearchFrom(e.target.value)}
-                    onFocus={() => setShowFromResults(true)}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white uppercase"
+                    value={flightPlanName}
+                    onChange={(e) => setFlightPlanName(e.target.value)}
+                    placeholder="My Cross Country"
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
                   />
-                  {showFromResults && fromResultsMemo.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {fromResultsMemo.map((airport) => (
-                        <button
-                          key={airport.icao}
-                          onClick={() => {
-                            setDeparture(airport);
-                            setSearchFrom(airport.icao);
-                            setShowFromResults(false);
-                          }}
-                          className="w-full text-left px-3 py-2 hover:bg-slate-600 text-white"
-                        >
-                          <span className="font-medium">{airport.icao}</span>
-                          <span className="text-slate-400 text-sm ml-2">{airport.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
                 
-                <div className="relative">
-                  <label className="block text-sm text-slate-400 mb-1">To</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Callsign</label>
+                    <input
+                      type="text"
+                      value={callsign}
+                      onChange={(e) => setCallsign(e.target.value)}
+                      placeholder="N12345"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Pilot Name</label>
+                    <input
+                      type="text"
+                      value={pilotName}
+                      onChange={(e) => setPilotName(e.target.value)}
+                      placeholder="John Doe"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Aircraft</label>
+                    <select
+                      value={selectedAircraft.name}
+                      onChange={(e) => {
+                        const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
+                        if (ac) setSelectedAircraft(ac);
+                      }}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    >
+                      {AIRCRAFT_PROFILES.map(p => (
+                        <option key={p.name} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Departure Time</label>
+                    <input
+                      type="datetime-local"
+                      value={departureTime}
+                      onChange={(e) => setDepartureTime(e.target.value)}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Cruising Alt (ft)</label>
+                    <input
+                      type="number"
+                      value={cruisingAlt}
+                      onChange={(e) => setCruisingAlt(parseInt(e.target.value))}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Souls on Board</label>
+                    <input
+                      type="number"
+                      value={soulsOnBoard}
+                      onChange={(e) => setSoulsOnBoard(parseInt(e.target.value) || 1)}
+                      min={1}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Alternate Airport</label>
                   <input
                     type="text"
-                    placeholder="Airport code"
-                    value={searchTo}
-                    onChange={(e) => setSearchTo(e.target.value)}
-                    onFocus={() => setShowToResults(true)}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white uppercase"
+                    value={alternateIcao}
+                    onChange={(e) => setAlternateIcao(e.target.value.toUpperCase())}
+                    placeholder="KABC"
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white uppercase"
                   />
-                  {showToResults && toResultsMemo.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {toResultsMemo.map((airport) => (
-                        <button
-                          key={airport.icao}
-                          onClick={() => {
-                            setDestination(airport);
-                            setSearchTo(airport.icao);
-                            setShowToResults(false);
-                          }}
-                          className="w-full text-left px-3 py-2 hover:bg-slate-600 text-white"
-                        >
-                          <span className="font-medium">{airport.icao}</span>
-                          <span className="text-slate-400 text-sm ml-2">{airport.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  )}
                 </div>
-
+                
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Fuel at Departure (%)</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={departureFuel}
-                    onChange={(e) => setDepartureFuel(Number(e.target.value))}
-                    className="w-full"
+                  <label className="block text-sm text-slate-400 mb-1">Remarks</label>
+                  <textarea
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    placeholder="Flight remarks..."
+                    rows={2}
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
                   />
-                  <div className="text-center text-sky-400 font-medium">{departureFuel}%</div>
                 </div>
-
-                <button
-                  onClick={calculateRoute}
-                  disabled={!departure || !destination}
-                  className="w-full bg-sky-500 hover:bg-sky-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition"
-                >
-                  Calculate Route
-                </button>
               </div>
             </div>
-          </div>
-
-          <div className="lg:col-span-2 space-y-6">
-            {/* Map */}
-            <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-              <h2 className="text-lg font-semibold mb-4">🗺️ Route Map</h2>
-              <div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden">
-                {route.length >= 2 && mapBounds ? (
-                  <svg width="100%" height="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-full">
-                    {/* Background */}
-                    <rect width={svgWidth} height={svgHeight} fill="#1e293b" />
-                    
-                    {/* Route line */}
-                    <path d={pathD} stroke="#38bdf8" strokeWidth="2" strokeDasharray="5,5" fill="none" />
-                    
-                    {/* Airports */}
-                    {route.map((stop, i) => {
-                      const x = scaleX(stop.airport.longitude);
-                      const y = scaleY(stop.airport.latitude);
-                      const color = i === 0 ? '#22c55e' : i === route.length - 1 ? '#ef4444' : '#f59e0b';
-                      const fuelPrice = fuelPrices[stop.airport.icao];
-                      
-                      return (
-                        <g key={stop.airport.icao + i}>
-                          <circle cx={x} cy={y} r="8" fill={color} />
-                          <text x={x} y={y - 15} textAnchor="middle" fill="white" fontSize="12" fontFamily="sans-serif">
-                            {stop.airport.icao}
-                          </text>
-                          {fuelPrice?.price100ll && (
-                            <text x={x} y={y + 25} textAnchor="middle" fill="#94a3b8" fontSize="10" fontFamily="sans-serif">
-                              ${fuelPrice.price100ll.toFixed(2)}/gal
-                            </text>
-                          )}
-                        </g>
-                      );
-                    })}
-                  </svg>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-slate-500">
-                    {departure && destination ? 'Click Calculate to see route' : 'Enter departure and destination'}
+            
+            {/* Import GPX/FPL */}
+            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+              <h2 className="text-lg font-semibold mb-3">Import Flight Plan</h2>
+              <div className="flex gap-2">
+                <label className="flex-1 bg-slate-700 hover:bg-slate-600 rounded-lg px-4 py-2 cursor-pointer text-center transition">
+                  <span>Upload GPX/FPL</span>
+                  <input
+                    type="file"
+                    accept=".gpx,.fpl"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-slate-500 mt-2">Upload a GPX or FPL file to auto-populate waypoints</p>
+            </div>
+            
+            {/* Waypoints List */}
+            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+              <h2 className="text-lg font-semibold mb-3">Route ({waypoints.length} waypoints)</h2>
+              
+              {/* Add Waypoint Search */}
+              <div className="relative mb-3">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+                  placeholder="Search airport..."
+                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white uppercase"
+                />
+                {showSearchResults && searchResults.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                    {searchResults.map(airport => (
+                      <button
+                        key={airport.icao}
+                        onClick={() => addWaypoint(airport)}
+                        className="w-full text-left px-3 py-2 hover:bg-slate-600 text-white"
+                      >
+                        <span className="font-medium">{airport.icao}</span>
+                        <span className="text-slate-400 text-sm ml-2">{airport.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* Waypoints */}
+              <div className="space-y-2 max-h-64 overflow-y-auto">
+                {waypoints.map((wp, i) => (
+                  <div key={wp.id} className="flex items-center gap-2 bg-slate-700 rounded-lg p-2">
+                    <span className="text-slate-400 text-sm w-6">{i + 1}</span>
+                    <div className="flex-1">
+                      <div className="font-medium">{wp.icao}</div>
+                      <div className="text-xs text-slate-400">{wp.name}</div>
+                    </div>
+                    <div className="text-right">
+                      {fuelPrices[wp.icao] ? (
+                        <div className="text-emerald-400 text-sm">${fuelPrices[wp.icao].price100ll}/gal</div>
+                      ) : (
+                        <div className="text-slate-500 text-sm">--</div>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <button
+                        onClick={() => moveWaypoint(wp.id, 'up')}
+                        disabled={i === 0}
+                        className="text-slate-400 hover:text-white disabled:opacity-30"
+                      >
+                        ▲
+                      </button>
+                      <button
+                        onClick={() => moveWaypoint(wp.id, 'down')}
+                        disabled={i === waypoints.length - 1}
+                        className="text-slate-400 hover:text-white disabled:opacity-30"
+                      >
+                        ▼
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => removeWaypoint(wp.id)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+                
+                {waypoints.length === 0 && (
+                  <div className="text-center text-slate-500 py-4">
+                    Search and add airports to build your route<br/>
+                    or click airports on the map
                   </div>
                 )}
               </div>
             </div>
-
-            {/* Results Summary */}
-            {route.length > 0 && (
-              <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
-                <h2 className="text-lg font-semibold mb-4">📊 Trip Summary</h2>
-                
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                  <div className="bg-slate-700 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-sky-400">{Math.round(totalDistance)}</div>
+            
+            {/* Fuel Settings */}
+            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+              <h2 className="text-lg font-semibold mb-3">Fuel Settings</h2>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Fuel at Departure: {departureFuel}%</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={departureFuel}
+                  onChange={(e) => setDepartureFuel(parseInt(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            </div>
+            
+            {/* Save Button */}
+            <button
+              onClick={saveFlightPlan}
+              disabled={waypoints.length < 2}
+              className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-lg transition"
+            >
+              Save Flight Plan
+            </button>
+          </div>
+          
+          {/* Right Panel - Map */}
+          <div className="lg:col-span-2">
+            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+              {/* Map Controls */}
+              <div className="flex flex-wrap gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="showAll"
+                    checked={showAllAirports}
+                    onChange={(e) => setShowAllAirports(e.target.checked)}
+                    className="rounded"
+                  />
+                  <label htmlFor="showAll" className="text-sm">Show all airports (incl. small)</label>
+                </div>
+                <div className="text-sm text-slate-400">
+                  {loadingAirports ? 'Loading...' : `${airports.length} airports shown`}
+                </div>
+              </div>
+              
+              {/* Map */}
+              <div className="h-[600px] rounded-lg overflow-hidden bg-slate-900">
+                {!mapLoaded ? (
+                  <div className="h-full flex items-center justify-center">
+                    <button
+                      onClick={() => setMapLoaded(true)}
+                      className="bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 rounded-lg"
+                    >
+                      Load Map
+                    </button>
+                  </div>
+                ) : (
+                  <LeafletMap
+                    airports={airports}
+                    waypoints={waypoints}
+                    fuelPrices={fuelPrices}
+                    onBoundsChange={setMapBounds}
+                    onAirportClick={handleMarkerClick}
+                    mapCenter={mapCenter}
+                    mapZoom={mapZoom}
+                  />
+                )}
+              </div>
+            </div>
+            
+            {/* Route Summary */}
+            {routeStats && (
+              <div className="mt-4 bg-slate-800 rounded-xl p-4 border border-slate-700">
+                <h2 className="text-lg font-semibold mb-3">Route Summary</h2>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-slate-700 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-sky-400">{Math.round(routeStats.totalDistance)}</div>
                     <div className="text-sm text-slate-400">NM Distance</div>
                   </div>
-                  <div className="bg-slate-700 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-amber-400">{totalFuelNeeded.toFixed(1)}</div>
-                    <div className="text-sm text-slate-400">Gal Fuel Needed</div>
+                  <div className="bg-slate-700 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-amber-400">{routeStats.flightHours}</div>
+                    <div className="text-sm text-slate-400">Flight Hours</div>
                   </div>
-                  <div className="bg-slate-700 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-purple-400">{fuelStops.length}</div>
-                    <div className="text-sm text-slate-400">Fuel Stops</div>
+                  <div className="bg-slate-700 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-purple-400">{routeStats.fuelNeeded}</div>
+                    <div className="text-sm text-slate-400">Gal Fuel (w/reserves)</div>
                   </div>
-                  <div className="bg-slate-700 rounded-lg p-4 text-center">
-                    <div className="text-2xl font-bold text-emerald-400">${estimatedCost.toFixed(0)}</div>
+                  <div className="bg-slate-700 rounded-lg p-3 text-center">
+                    <div className="text-2xl font-bold text-emerald-400">${routeStats.estimatedCost}</div>
                     <div className="text-sm text-slate-400">Est. Fuel Cost</div>
                   </div>
                 </div>
-
-                {fuelStops.length > 0 && (
-                  <div>
-                    <h3 className="font-medium mb-3">⛽ Recommended Fuel Stops</h3>
-                    <div className="space-y-2">
-                      {fuelStops.map((stop, i) => {
-                        const fuelPrice = fuelPrices[stop.airport.icao];
-                        return (
-                          <div key={i} className="flex justify-between items-center bg-slate-700 rounded-lg p-3">
-                            <div>
-                              <span className="font-medium">{stop.airport.icao}</span>
-                              <span className="text-slate-400 text-sm ml-2">{stop.airport.name}</span>
-                            </div>
-                            <div className="text-right">
-                              {fuelPrice?.price100ll ? (
-                                <>
-                                  <div className="text-emerald-400 font-medium">${fuelPrice.price100ll.toFixed(2)}/gal</div>
-                                  <div className="text-xs text-slate-500">{fuelPrice.lastUpdated}</div>
-                                </>
-                              ) : (
-                                <div className="text-slate-500">Price N/A</div>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
+                
+                {routeStats.fuelStops.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="font-medium mb-2">Recommended Fuel Stops:</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {routeStats.fuelStops.map((stop, i) => (
+                        <span key={i} className="bg-amber-500/20 text-amber-400 px-3 py-1 rounded-full">
+                          {stop.icao}
+                          {fuelPrices[stop.icao] && ` - $${fuelPrices[stop.icao].price100ll}/gal`}
+                        </span>
+                      ))}
                     </div>
                   </div>
                 )}
-
-                {fuelStops.length === 0 && (
-                  <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-lg p-4 text-center">
-                    <span className="text-emerald-400 font-medium">✅ Direct flight possible!</span>
-                  </div>
-                )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
+      
+      {/* Leaflet CSS */}
+      <style jsx global>{`
+        .leaflet-container {
+          background: #1e293b;
+        }
+        .leaflet-popup-content-wrapper {
+          background: white;
+          color: #1e293b;
+          border-radius: 8px;
+        }
+        .leaflet-popup-tip {
+          background: white;
+        }
+      `}</style>
     </div>
   );
 }
