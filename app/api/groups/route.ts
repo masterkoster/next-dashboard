@@ -11,11 +11,11 @@ export async function POST(request: Request) {
 
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`
-      SELECT id FROM User WHERE email = '${session.user.email}'
+      SELECT id FROM [User] WHERE email = '${session.user.email}'
     `) as any[];
 
     if (!users || users.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: '[User] not found' }, { status: 404 });
     }
 
     const userId = users[0].id;
@@ -98,17 +98,17 @@ export async function GET() {
 
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`
-      SELECT id FROM User WHERE email = '${session.user.email}'
+      SELECT id FROM [User] WHERE email = '${session.user.email}'
     `) as any[];
 
     if (!users || users.length === 0) {
-      console.log('User not found for email:', session.user.email);
+      console.log('[User] not found for email:', session.user.email);
       return NextResponse.json([]);
     }
 
     const userId = users[0].id;
     console.log('Fetching groups for user:', userId);
-    console.log('User email:', session.user.email);
+    console.log('[User] email:', session.user.email);
 
     // Use raw SQL - SQL Server doesn't support ? placeholders in $queryRawUnsafe
     // userId is a UUID from auth, so string interpolation is safe

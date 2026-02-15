@@ -11,11 +11,11 @@ export async function GET(request: Request) {
 
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`
-      SELECT id FROM User WHERE email = '${session.user.email}'
+      SELECT id FROM [User] WHERE email = '${session.user.email}'
     `) as any[];
     
     if (!users || users.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: '[User] not found' }, { status: 404 });
     }
     
     const userId = users[0].id;
@@ -58,7 +58,7 @@ export async function GET(request: Request) {
         u.name as userName, u.email as userEmail
       FROM FlightLog fl
       JOIN ClubAircraft a ON fl.aircraftId = a.id
-      JOIN User u ON fl.userId = u.id
+      JOIN [User] u ON fl.userId = u.id
       WHERE fl.date >= '${startDate}' AND fl.date <= '${endDate}'
       AND a.groupId IN (${groupIdList})
     `) as any[];

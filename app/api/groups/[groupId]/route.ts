@@ -17,11 +17,11 @@ export async function GET(request: Request, { params }: RouteParams) {
     
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`
-      SELECT id FROM User WHERE email = '${session.user.email}'
+      SELECT id FROM [User] WHERE email = '${session.user.email}'
     `) as any[];
     
     if (!users || users.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: '[User] not found' }, { status: 404 });
     }
     
     const userId = users[0].id;
@@ -50,7 +50,7 @@ export async function GET(request: Request, { params }: RouteParams) {
     const members = await prisma.$queryRawUnsafe(`
       SELECT gm.*, u.name as userName, u.email as userEmail
       FROM GroupMember gm
-      JOIN User u ON gm.userId = u.id
+      JOIN [User] u ON gm.userId = u.id
       WHERE gm.groupId = '${groupId}'
     `) as any[];
 
@@ -130,11 +130,11 @@ export async function PUT(request: Request, { params }: RouteParams) {
     
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`
-      SELECT id FROM User WHERE email = '${session.user.email}'
+      SELECT id FROM [User] WHERE email = '${session.user.email}'
     `) as any[];
     
     if (!users || users.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: '[User] not found' }, { status: 404 });
     }
     
     const userId = users[0].id;
@@ -200,11 +200,11 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`
-      SELECT id FROM User WHERE email = '${session.user.email}'
+      SELECT id FROM [User] WHERE email = '${session.user.email}'
     `) as any[];
     
     if (!users || users.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: '[User] not found' }, { status: 404 });
     }
     
     const userId = users[0].id;

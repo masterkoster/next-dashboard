@@ -17,11 +17,11 @@ export async function PUT(request: Request, { params }: RouteParams) {
     
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`
-      SELECT id FROM User WHERE email = '${session.user.email}'
+      SELECT id FROM [User] WHERE email = '${session.user.email}'
     `) as any[];
     
     if (!users || users.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: '[User] not found' }, { status: 404 });
     }
     
     const userId = users[0].id;
@@ -71,11 +71,11 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`
-      SELECT id FROM User WHERE email = '${session.user.email}'
+      SELECT id FROM [User] WHERE email = '${session.user.email}'
     `) as any[];
     
     if (!users || users.length === 0) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: '[User] not found' }, { status: 404 });
     }
     
     const userId = users[0].id;
