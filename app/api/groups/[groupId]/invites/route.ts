@@ -145,7 +145,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Insert using raw SQL
     await prisma.$executeRawUnsafe(`
       INSERT INTO Invite (id, groupId, token, email, role, createdBy, expiresAt, createdAt, updatedAt)
-      VALUES (NEWID(), '${groupId}', '${token}', ${email ? "'" + email.toLowerCase().replace(/'/g, "''") + "'" : 'NULL'}, '${role || 'VIEWER'}', '${user.id}', ${expiresAtStr}, GETDATE(), GETDATE())
+      VALUES (NEWID(), '${groupId}', '${token}', ${email ? "'" + email.toLowerCase().replace(/'/g, "''") + "'" : 'NULL'}, '${role || 'VIEWER'}', '${userId}', ${expiresAtStr}, GETDATE(), GETDATE())
     `);
 
     return NextResponse.json({ 

@@ -9,14 +9,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-    if (!user) {
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
+    
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
+    
+    const userId = users[0].id;
+    
     // Check admin role using raw SQL
     const adminMemberships = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE userId = '${user.id}' AND role = 'ADMIN'
+      SELECT * FROM GroupMember WHERE userId = '${userId}' AND role = 'ADMIN'
     `) as any[];
 
     if (!adminMemberships || adminMemberships.length === 0) {

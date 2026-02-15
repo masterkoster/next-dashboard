@@ -97,15 +97,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const users = await prisma.$queryRawUnsafe(`
       SELECT id FROM User WHERE email = '${session.user.email}'
     `) as any[];
-    const user = users?.[0];
-
-    if (!user) {
+    
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
+    
+    const userId = users[0].id;
+    
     // Check admin role
     const memberships = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user.id}' AND role = 'ADMIN'
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${userId}' AND role = 'ADMIN'
     `) as any[];
 
     if (!memberships || memberships.length === 0) {
@@ -140,12 +141,13 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const users = await prisma.$queryRawUnsafe(`
       SELECT id FROM User WHERE email = '${session.user.email}'
     `) as any[];
-    const user = users?.[0];
-
-    if (!user) {
+    
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
+    
+    const userId = users[0].id;
+    
     const url = new URL(request.url);
     const memberId = url.searchParams.get('memberId');
 
@@ -163,11 +165,11 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     }
 
     const targetMember = targetMembers[0];
-    const isSelfRemoval = targetMember.userId === user.id;
+    const isSelfRemoval = targetMember.userId === userId;
     
     // Check if user is admin
     const adminMemberships = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user.id}' AND role = 'ADMIN'
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${userId}' AND role = 'ADMIN'
     `) as any[];
 
     if ((!adminMemberships || adminMemberships.length === 0) && !isSelfRemoval) {

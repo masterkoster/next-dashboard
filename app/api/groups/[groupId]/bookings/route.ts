@@ -184,9 +184,9 @@ export async function POST(request: Request, { params }: RouteParams) {
         model: b.model,
       },
       user: {
-        id: user!.id,
-        name: user!.name,
-        email: user!.email,
+        id: userId,
+        name: b.userName,
+        email: b.userEmail,
       },
     });
   } catch (error) {
