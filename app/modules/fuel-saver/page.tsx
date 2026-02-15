@@ -214,16 +214,29 @@ export default function FuelSaverPage() {
     }
   }, [waypoints]);
 
-  // Search airports
+  // Search airports - searches demo + loaded airports
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     if (query.length >= 2) {
       const q = query.toUpperCase();
-      const results = DEMO_AIRPORTS.filter(a =>
+      // Search demo airports
+      const demoResults = DEMO_AIRPORTS.filter(a =>
         a.icao.includes(q) || a.iata?.includes(q) || 
         a.name.toUpperCase().includes(q) || a.city?.toUpperCase().includes(q)
-      ).slice(0, 8);
-      setSearchResults(results);
+      );
+      // Also search loaded airports from map
+      const mapResults = airports.filter(a =>
+        a.icao.toUpperCase().includes(q) || a.iata?.toUpperCase().includes(q) || 
+        a.name.toUpperCase().includes(q) || a.city?.toUpperCase().includes(q)
+      );
+      // Combine and dedupe
+      const combined = [...demoResults];
+      for (const a of mapResults) {
+        if (!combined.find(d => d.icao === a.icao)) {
+          combined.push(a);
+        }
+      }
+      setSearchResults(combined.slice(0, 10));
       setShowSearchResults(true);
     } else {
       setSearchResults([]);
@@ -233,6 +246,11 @@ export default function FuelSaverPage() {
 
   // Add waypoint
   const addWaypoint = (airport: Airport, index?: number) => {
+    // Check if already in route
+    if (waypoints.find(w => w.icao === airport.icao)) {
+      alert('Airport already in route');
+      return;
+    }
     const wp: Waypoint = {
       id: crypto.randomUUID(),
       icao: airport.icao,
@@ -792,7 +810,7 @@ export default function FuelSaverPage() {
     <div className="min-h-screen bg-slate-900 text-white flex flex-col">
       {/* Header */}
       <div className="p-3 lg:p-4 bg-slate-800 border-b border-slate-700 flex-shrink-0">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-2">
           <div>
             <h1 className="text-xl lg:text-3xl font-bold">Flight Planner</h1>
             <p className="text-slate-400 text-sm">Plan route, find fuel stops</p>
@@ -804,12 +822,18 @@ export default function FuelSaverPage() {
             {showPanel ? '✕' : '☰'}
           </button>
         </div>
+        {/* Legend */}
+        <div className="flex flex-wrap gap-3 text-xs">
+          <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500"></span> Large</div>
+          <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-orange-500"></span> Medium</div>
+          <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500"></span> Small</div>
+        </div>
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Left Panel - collapsible on mobile */}
+        {/* Left Panel - full width on desktop */}
         {showPanel && (
-          <div className="w-full lg:w-80 bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0" style={{ maxHeight: '40vh' }}>
+          <div className="w-full lg:w-96 bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0 lg:h-auto" style={{ maxHeight: '40vh' }}>
             {/* Flight Plan Details */}
             <div>
               <h2 className="text-lg font-semibold mb-2">Flight Plan</h2>

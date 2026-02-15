@@ -197,9 +197,6 @@ export default function LeafletMap({ airports, waypoints, fuelPrices, onBoundsCh
             fillOpacity: 0.7,
             weight: 1
           }}
-          eventHandlers={{
-            click: () => onAirportClick(airport)
-          }}
         >
           <Popup>
             <AirportPopup airport={airport} onAddToRoute={() => onAirportClick(airport)} />
