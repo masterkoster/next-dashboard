@@ -100,6 +100,10 @@ export default function FlyingClubPage() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [showDemoPopup, setShowDemoPopup] = useState(false);
 
+  // Demo mode param for links
+  const isDemoModeParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('demo') === 'true' : false;
+  const demoParam = isDemoModeParam ? '?demo=true' : '';
+
   // Check for demo mode on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -486,7 +490,7 @@ export default function FlyingClubPage() {
                     </div>
                   </div>
                   <Link
-                    href={`/modules/flying-club/groups/${groups.find(g => g.name === booking.groupName)?.id}`}
+                    href={`/modules/flying-club/groups/${groups.find(g => g.name === booking.groupName)?.id}${demoParam}`}
                     className="text-sky-400 hover:text-sky-300"
                   >
                     View →
@@ -540,6 +544,10 @@ export default function FlyingClubPage() {
 function BookingsList({ bookings, groups }: { bookings: Booking[]; groups: Group[] }) {
   const router = useRouter();
   
+  const isDemoModeParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('demo') === 'true' : false;
+  const demoParam = isDemoModeParam ? '?demo=true' : '';
+
+  // Get group ID helper
   const getGroupId = (groupName: string) => {
     const group = groups.find(g => g.name === groupName);
     return group?.id;
@@ -578,7 +586,7 @@ function BookingsList({ bookings, groups }: { bookings: Booking[]; groups: Group
                     {booking.purpose && <div className="text-slate-500 text-sm mt-1">{booking.purpose}</div>}
                   </div>
                   <button
-                    onClick={() => router.push(`/modules/flying-club/groups/${getGroupId(booking.groupName)}`)}
+                    onClick={() => router.push(`/modules/flying-club/groups/${getGroupId(booking.groupName)}${demoParam}`)}
                     className="text-sky-400 hover:text-sky-300 text-sm"
                   >
                     View →
@@ -605,7 +613,7 @@ function BookingsList({ bookings, groups }: { bookings: Booking[]; groups: Group
                     </div>
                   </div>
                   <button
-                    onClick={() => router.push(`/modules/flying-club/groups/${getGroupId(booking.groupName)}`)}
+                    onClick={() => router.push(`/modules/flying-club/groups/${getGroupId(booking.groupName)}${demoParam}`)}
                     className="text-slate-400 hover:text-slate-300 text-sm"
                   >
                     View →
@@ -698,7 +706,7 @@ function AircraftList({ groups }: { groups: Group[] }) {
                 {aircraft.hourlyRate && <div className="text-sky-400">${Number(aircraft.hourlyRate)}/hr</div>}
               </div>
               <button
-                onClick={() => router.push(`/modules/flying-club/groups/${groups.find(g => g.name === groupName)?.id}`)}
+                onClick={() => router.push(`/modules/flying-club/groups/${groups.find(g => g.name === groupName)?.id}${demoParam}`)}
                 className="text-sky-400 hover:text-sky-300 text-sm mt-2 block"
               >
                 View details →
