@@ -16,15 +16,29 @@ export default function LandingPage() {
       </div>
 
       {/* Current Status Overview */}
-      <div className="mx-auto max-w-4xl px-6 pb-12">
+      <div className="mx-auto max-w-4xl px-6 pb-8">
         <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
           <h2 className="text-xl font-semibold text-amber-400 mb-2">Where We Are Right Now</h2>
-          <p className="text-slate-300">
+          <p className="text-slate-300 mb-4">
             We're building something ambitious - a unified aviation platform where all your data flows together. 
             Some modules are ready to use, some are preview demos of what's coming, and others are on the roadmap. 
             Everything connects: flight logs sync to currency tracking, which notifies you of maintenance, 
             which connects you to services, which finds fuel along your route.
           </p>
+          <div className="flex justify-center gap-4">
+            <Link
+              href="/signup"
+              className="rounded-xl bg-sky-500 px-6 py-2 font-semibold text-white hover:bg-sky-400 transition"
+            >
+              Create Account
+            </Link>
+            <Link
+              href="/login"
+              className="rounded-xl border border-slate-500 px-6 py-2 font-semibold text-white hover:bg-slate-800 transition"
+            >
+              Sign In
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -187,36 +201,6 @@ export default function LandingPage() {
             </ul>
           </div>
 
-        </div>
-      </div>
-
-      {/* The Vision - Bottom CTA with Sign Up/Login */}
-      <div className="mx-auto max-w-4xl px-6 pb-16">
-        <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-8 text-center">
-          <h3 className="text-2xl font-bold text-white mb-4">One Platform, Infinite Possibilities</h3>
-          <p className="text-slate-300 max-w-2xl mx-auto mb-6">
-            Imagine booking a flight and having it automatically log your hours, track your currency, 
-            notify you when maintenance is due, suggest fuel stops along your route, and connect 
-            you with other pilots heading the same way. <span className="text-sky-400 font-medium">That's the vision.</span>
-          </p>
-          <p className="text-slate-400 text-sm mb-6">
-            Sign up to get early access as we connect everything together. 
-            Your data syncs across whatever you use.
-          </p>
-          <div className="flex justify-center gap-4">
-            <Link
-              href="/signup"
-              className="rounded-xl bg-sky-500 px-6 py-3 font-semibold text-white hover:bg-sky-400 transition"
-            >
-              Create Account
-            </Link>
-            <Link
-              href="/login"
-              className="rounded-xl border border-slate-600 px-6 py-3 font-semibold text-white hover:bg-slate-800 transition"
-            >
-              Sign In
-            </Link>
-          </div>
         </div>
       </div>
 
