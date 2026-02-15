@@ -27,23 +27,49 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    // Create group using raw SQL
-    const groupId = crypto.randomUUID();
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO FlyingGroup (id, name, description, ownerId, dryRate, wetRate, customRates, createdAt, updatedAt)
-      VALUES ('${groupId}', '${name.replace(/'/g, "''")}', ${description ? "'" + description.replace(/'/g, "''") + "'" : 'NULL'}, '${userId}', ${dryRate ? parseFloat(dryRate) : 'NULL'}, ${wetRate ? parseFloat(wetRate) : 'NULL'}, ${customRates ? "'" + JSON.stringify(customRates).replace(/'/g, "''") + "'" : 'NULL'}, GETDATE(), GETDATE())
-    `);
+    // Try using Prisma create with error handling
+    let group;
+    try {
+      group = await prisma.flyingGroup.create({
+        data: {
+          name,
+          description,
+          ownerId: userId,
+          dryRate: dryRate ? parseFloat(dryRate) : null,
+          wetRate: wetRate ? parseFloat(wetRate) : null,
+          customRates: customRates ? JSON.stringify(customRates) : null,
+        },
+      });
+    } catch (prismaError: any) {
+      console.error('Prisma error creating group:', prismaError);
+      // If Prisma fails, try raw SQL
+      const groupId = crypto.randomUUID();
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO FlyingGroup (id, name, description, ownerId, dryRate, wetRate, customRates, createdAt, updatedAt)
+        VALUES ('${groupId}', '${name.replace(/'/g, "''")}', ${description ? "'" + description.replace(/'/g, "''") + "'" : 'NULL'}, '${userId}', ${dryRate ? parseFloat(dryRate) : 'NULL'}, ${wetRate ? parseFloat(wetRate) : 'NULL'}, ${customRates ? "'" + JSON.stringify(customRates).replace(/'/g, "''") + "'" : 'NULL'}, GETDATE(), GETDATE())
+      `);
+      const groups = await prisma.$queryRawUnsafe(`SELECT * FROM FlyingGroup WHERE id = '${groupId}'`) as any[];
+      group = { id: groups[0].id, name: groups[0].name, description: groups[0].description, ownerId: groups[0].ownerId };
+    }
 
     // Add creator as admin member
-    const memberId = crypto.randomUUID();
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO GroupMember (id, userId, groupId, role, joinedAt)
-      VALUES ('${memberId}', '${userId}', '${groupId}', 'ADMIN', GETDATE())
-    `);
-
-    // Fetch created group
-    const groups = await prisma.$queryRawUnsafe(`SELECT * FROM FlyingGroup WHERE id = '${groupId}'`) as any[];
-    const group = groups[0];
+    try {
+      await prisma.groupMember.create({
+        data: {
+          userId: userId,
+          groupId: group.id,
+          role: 'ADMIN',
+        },
+      });
+    } catch (prismaError: any) {
+      console.error('Prisma error adding member:', prismaError);
+      // Try raw SQL
+      const memberId = crypto.randomUUID();
+      await prisma.$executeRawUnsafe(`
+        INSERT INTO GroupMember (id, userId, groupId, role, joinedAt)
+        VALUES ('${memberId}', '${userId}', '${group.id}', 'ADMIN', GETDATE())
+      `);
+    }
 
     return NextResponse.json({
       id: group.id,
