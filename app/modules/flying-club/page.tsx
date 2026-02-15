@@ -512,7 +512,7 @@ export default function FlyingClubPage() {
         )}
 
         {activeTab === 'aircraft' && (
-          <AircraftList groups={groups} demoParam={demoParam} />
+          <AircraftList groups={groups} demoParam={demoParam} isDemoMode={isDemoMode} />
         )}
 
         {activeTab === 'flights' && (
@@ -637,7 +637,7 @@ function BookingsList({ bookings, groups }: { bookings: Booking[]; groups: Group
   );
 }
 
-function AircraftList({ groups, demoParam }: { groups: Group[]; demoParam?: string }) {
+function AircraftList({ groups, demoParam, isDemoMode }: { groups: Group[]; demoParam?: string; isDemoMode?: boolean }) {
   const router = useRouter();
   const [allAircraft, setAllAircraft] = useState<{ aircraft: any; groupName: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -648,6 +648,22 @@ function AircraftList({ groups, demoParam }: { groups: Group[]; demoParam?: stri
         setLoading(false);
         return;
       }
+      
+      // Use demo data if in demo mode
+      if (isDemoMode) {
+        const data: { aircraft: any; groupName: string }[] = [];
+        for (const group of groups) {
+          if (group.aircraft && Array.isArray(group.aircraft)) {
+            group.aircraft.forEach((ac: any) => {
+              data.push({ aircraft: ac, groupName: group.name });
+            });
+          }
+        }
+        setAllAircraft(data);
+        setLoading(false);
+        return;
+      }
+      
       const data: { aircraft: any; groupName: string }[] = [];
       for (const group of groups) {
         if (!group?.id) continue;
@@ -667,7 +683,7 @@ function AircraftList({ groups, demoParam }: { groups: Group[]; demoParam?: stri
       setLoading(false);
     };
     loadAircraft();
-  }, [groups]);
+  }, [groups, isDemoMode]);
 
   if (loading) return <div className="text-center py-12">Loading...</div>;
 
@@ -1640,24 +1656,25 @@ function BillingView({ groups, isDemoMode, demoBookings }: { groups: Group[]; is
             name: b.user?.name || 'Unknown',
             email: b.user?.email || '',
             flights: 0,
-            hobbs: 0,
-            tach: 0,
-            cost: 0,
+            totalHobbs: 0,
+            totalTach: 0,
+            totalCost: 0,
             flightDetails: []
           });
         }
         const member = memberMap.get(userId);
         member.flights++;
-        const hobbs = b.hobbsTime || Math.random() * 2 + 0.5;
-        member.hobbs += hobbs;
-        member.tach += hobbs;
+        const hobbs = b.hobbsTime || 1.5;
+        member.totalHobbs += hobbs;
+        member.totalTach += hobbs;
         const rate = group.hourlyRate || 165;
-        member.cost += hobbs * rate;
+        const flightCost = hobbs * rate;
+        member.totalCost += flightCost;
         member.flightDetails.push({
           date: b.startTime,
           aircraft: b.aircraft?.nNumber || '',
           hobbs,
-          cost: hobbs * rate
+          cost: flightCost
         });
       });
       
@@ -1666,8 +1683,8 @@ function BillingView({ groups, isDemoMode, demoBookings }: { groups: Group[]; is
         members,
         totalMembers: members.length,
         totalFlights: monthBookings.length,
-        totalHobbs: members.reduce((sum: number, m: any) => sum + m.hobbs, 0),
-        totalCost: members.reduce((sum: number, m: any) => sum + m.cost, 0)
+        totalHobbs: members.reduce((sum: number, m: any) => sum + m.totalHobbs, 0),
+        totalCost: members.reduce((sum: number, m: any) => sum + m.totalCost, 0)
       });
       setLoading(false);
       return;
@@ -1808,7 +1825,7 @@ function BillingView({ groups, isDemoMode, demoBookings }: { groups: Group[]; is
                       </td>
                     </tr>
                     {/* Expanded Details */}
-                    {showDetail === member.email && member.details && (
+                    {showDetail === member.email && member.flightDetails && (
                       <tr key={`${i}-detail`}>
                         <td colSpan={6} className="p-0 bg-slate-800/50">
                           <div className="p-4">
