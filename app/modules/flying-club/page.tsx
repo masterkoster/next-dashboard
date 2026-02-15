@@ -100,24 +100,19 @@ export default function FlyingClubPage() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [showDemoPopup, setShowDemoPopup] = useState(false);
 
-  const loadData = useCallback(async () => {
-    // Check for demo mode from URL
+  // Check for demo mode on mount
+  useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const isDemo = params.get('demo') === 'true';
-    
-    if (isDemo) {
-      // Load demo data
+    if (params.get('demo') === 'true') {
       setIsDemoMode(true);
       setShowDemoPopup(true);
       setGroups(demoGroups as any);
       setBookings(demoBookings as any);
       
-      // Filter to only show grounded maintenance as blocks
       const groundedMaintenance = demoMaintenance.filter((m: any) => 
         m.isGrounded && (m.status === 'NEEDED' || m.status === 'IN_PROGRESS')
       );
       
-      // Add groupName to each maintenance block
       const maintenanceWithGroup = groundedMaintenance.map((m: any) => {
         const group = demoGroups.find((g: any) => g.aircraft?.some((a: any) => a.id === m.aircraftId));
         return {
@@ -128,8 +123,13 @@ export default function FlyingClubPage() {
       
       setMaintenanceBlocks(maintenanceWithGroup);
       setLoading(false);
-      return;
     }
+  }, []);
+
+  const loadData = useCallback(async () => {
+    // Skip if in demo mode
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('demo') === 'true') return;
     
     // Normal data loading
     try {
@@ -794,6 +794,8 @@ function FlightsList({ groups }: { groups: Group[] }) {
           <div>
             <label className="block text-xs text-slate-400 mb-1">Pilot</label>
             <input
+              id="filterUser"
+              name="filterUser"
               type="text"
               placeholder="Search pilot..."
               value={filterUser}
@@ -804,6 +806,8 @@ function FlightsList({ groups }: { groups: Group[] }) {
           <div>
             <label className="block text-xs text-slate-400 mb-1">Aircraft</label>
             <select
+              id="filterAircraft"
+              name="filterAircraft"
               value={filterAircraft}
               onChange={(e) => setFilterAircraft(e.target.value)}
               className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
@@ -817,6 +821,8 @@ function FlightsList({ groups }: { groups: Group[] }) {
           <div>
             <label className="block text-xs text-slate-400 mb-1">From Date</label>
             <input
+              id="filterDateFrom"
+              name="filterDateFrom"
               type="date"
               value={filterDateFrom}
               onChange={(e) => setFilterDateFrom(e.target.value)}
@@ -826,6 +832,16 @@ function FlightsList({ groups }: { groups: Group[] }) {
           <div>
             <label className="block text-xs text-slate-400 mb-1">To Date</label>
             <input
+              id="filterDateTo"
+              name="filterDateTo"
+              type="date"
+              value={filterDateTo}
+              onChange={(e) => setFilterDateTo(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
+            />
+          </div>
+        </div>
+        {(filterUser || filterAircraft || filterDateFrom || filterDateTo) && (
               type="date"
               value={filterDateTo}
               onChange={(e) => setFilterDateTo(e.target.value)}
@@ -1217,6 +1233,8 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
           <h3 className="text-lg font-semibold mb-4">Report Maintenance Issue</h3>
           <div className="space-y-4">
             <select
+              id="maintenanceGroup"
+              name="maintenanceGroup"
               value={selectedGroupId}
               onChange={(e) => {
                 setSelectedGroupId(e.target.value);
@@ -1232,6 +1250,8 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
             </select>
             {selectedGroupId && (
               <select
+                id="maintenanceAircraft"
+                name="maintenanceAircraft"
                 value={formData.aircraftId}
                 onChange={(e) => setFormData({ ...formData, aircraftId: e.target.value })}
                 className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
@@ -1244,6 +1264,8 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
               </select>
             )}
             <input
+              id="maintenanceDescription"
+              name="maintenanceDescription"
               type="text"
               placeholder="Description (e.g., Flat tire, Oil leak)"
               value={formData.description}
@@ -1268,6 +1290,8 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
               </div>
             </div>
             <textarea
+              id="maintenanceNotes"
+              name="maintenanceNotes"
               placeholder="Additional notes"
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
@@ -1955,6 +1979,8 @@ function NoGroupsPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Group Name *</label>
                 <input
+                  id="groupName"
+                  name="groupName"
                   type="text"
                   value={groupData.name}
                   onChange={(e) => setGroupData({ ...groupData, name: e.target.value })}
@@ -1966,6 +1992,8 @@ function NoGroupsPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
                 <textarea
+                  id="groupDescription"
+                  name="groupDescription"
                   value={groupData.description}
                   onChange={(e) => setGroupData({ ...groupData, description: e.target.value })}
                   className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 h-24"
@@ -1977,6 +2005,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Dry Rate ($/hr)</label>
                   <input
+                    id="dryRate"
+                    name="dryRate"
                     type="number"
                     value={groupData.dryRate}
                     onChange={(e) => setGroupData({ ...groupData, dryRate: e.target.value })}
@@ -1987,6 +2017,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Wet Rate ($/hr)</label>
                   <input
+                    id="wetRate"
+                    name="wetRate"
                     type="number"
                     value={groupData.wetRate}
                     onChange={(e) => setGroupData({ ...groupData, wetRate: e.target.value })}
@@ -2016,6 +2048,8 @@ function NoGroupsPage() {
               {invites.map((invite, i) => (
                 <div key={i} className="flex gap-2">
                   <input
+                    id={`inviteName${i}`}
+                    name={`inviteName${i}`}
                     type="text"
                     value={invite.name}
                     onChange={(e) => {
@@ -2027,6 +2061,8 @@ function NoGroupsPage() {
                     placeholder="Name"
                   />
                   <input
+                    id={`inviteEmail${i}`}
+                    name={`inviteEmail${i}`}
                     type="email"
                     value={invite.email}
                     onChange={(e) => {
@@ -2082,6 +2118,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">N-Number</label>
                   <input
+                    id="nNumber"
+                    name="nNumber"
                     type="text"
                     value={aircraftData.nNumber}
                     onChange={(e) => setAircraftData({ ...aircraftData, nNumber: e.target.value.toUpperCase() })}
@@ -2092,6 +2130,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Nickname</label>
                   <input
+                    id="nickname"
+                    name="nickname"
                     type="text"
                     value={aircraftData.nickname}
                     onChange={(e) => setAircraftData({ ...aircraftData, nickname: e.target.value })}
@@ -2105,6 +2145,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Make</label>
                   <input
+                    id="make"
+                    name="make"
                     type="text"
                     value={aircraftData.make}
                     onChange={(e) => setAircraftData({ ...aircraftData, make: e.target.value })}
@@ -2115,6 +2157,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Model</label>
                   <input
+                    id="model"
+                    name="model"
                     type="text"
                     value={aircraftData.model}
                     onChange={(e) => setAircraftData({ ...aircraftData, model: e.target.value })}
@@ -2125,6 +2169,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Year</label>
                   <input
+                    id="year"
+                    name="year"
                     type="number"
                     value={aircraftData.year}
                     onChange={(e) => setAircraftData({ ...aircraftData, year: e.target.value })}
@@ -2138,6 +2184,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Total Tach Hours</label>
                   <input
+                    id="totalTachHours"
+                    name="totalTachHours"
                     type="number"
                     step="0.1"
                     value={aircraftData.totalTachHours}
@@ -2149,6 +2197,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Total Hobbs Hours</label>
                   <input
+                    id="totalHobbsHours"
+                    name="totalHobbsHours"
                     type="number"
                     step="0.1"
                     value={aircraftData.totalHobbsHours}
@@ -2163,6 +2213,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Registration Type</label>
                   <select
+                    id="registrationType"
+                    name="registrationType"
                     value={aircraftData.registrationType}
                     onChange={(e) => setAircraftData({ ...aircraftData, registrationType: e.target.value })}
                     className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
@@ -2176,6 +2228,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Max Passengers</label>
                   <input
+                    id="maxPassengers"
+                    name="maxPassengers"
                     type="number"
                     value={aircraftData.maxPassengers}
                     onChange={(e) => setAircraftData({ ...aircraftData, maxPassengers: e.target.value })}
@@ -2185,6 +2239,8 @@ function NoGroupsPage() {
                 <div>
                   <label className="block text-sm font-medium text-slate-300 mb-2">Hourly Rate ($)</label>
                   <input
+                    id="hourlyRate"
+                    name="hourlyRate"
                     type="number"
                     value={aircraftData.hourlyRate}
                     onChange={(e) => setAircraftData({ ...aircraftData, hourlyRate: e.target.value })}
@@ -2720,6 +2776,8 @@ function PartnershipMarketplace() {
                 <div>
                   <label className="block text-sm text-slate-400 mb-1">City</label>
                   <input
+                    id="city"
+                    name="city"
                     type="text"
                     value={formData.city}
                     onChange={(e) => setFormData({ ...formData, city: e.target.value })}
@@ -2730,6 +2788,8 @@ function PartnershipMarketplace() {
                 <div>
                   <label className="block text-sm text-slate-400 mb-1">State</label>
                   <select
+                    id="state"
+                    name="state"
                     value={formData.state}
                     onChange={(e) => setFormData({ ...formData, state: e.target.value })}
                     className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2"
@@ -2743,6 +2803,8 @@ function PartnershipMarketplace() {
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Home Airport (ICAO)</label>
                 <input
+                  id="homeAirport"
+                  name="homeAirport"
                   type="text"
                   value={formData.homeAirport}
                   onChange={(e) => setFormData({ ...formData, homeAirport: e.target.value.toUpperCase() })}
@@ -2754,6 +2816,8 @@ function PartnershipMarketplace() {
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Experience Level</label>
                 <select
+                  id="experienceLevel"
+                  name="experienceLevel"
                   value={formData.experienceLevel}
                   onChange={(e) => setFormData({ ...formData, experienceLevel: e.target.value })}
                   className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2"
@@ -2766,6 +2830,8 @@ function PartnershipMarketplace() {
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Availability</label>
                 <input
+                  id="availability"
+                  name="availability"
                   type="text"
                   value={formData.availability}
                   onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
@@ -2804,6 +2870,8 @@ function PartnershipMarketplace() {
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Bio</label>
                 <textarea
+                  id="bio"
+                  name="bio"
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 h-20"
@@ -2814,6 +2882,8 @@ function PartnershipMarketplace() {
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Looking For</label>
                 <input
+                  id="lookingFor"
+                  name="lookingFor"
                   type="text"
                   value={formData.lookingFor}
                   onChange={(e) => setFormData({ ...formData, lookingFor: e.target.value })}
