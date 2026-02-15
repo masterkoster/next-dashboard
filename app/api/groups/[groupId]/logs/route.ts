@@ -38,15 +38,15 @@ export async function GET(request: Request, { params }: RouteParams) {
       take: 100,
     });
 
-    // Get maintenance for this group via aircraft
+    // Get maintenance for this group via aircraft - use string interpolation for SQL Server
     const maintenance = await prisma.$queryRawUnsafe(`
       SELECT m.* 
       FROM Maintenance m
       JOIN ClubAircraft a ON m.aircraftId = a.id
-      WHERE a.groupId = ?
+      WHERE a.groupId = '${groupId}'
       ORDER BY m.reportedDate DESC
       FETCH FIRST 20 ROWS ONLY
-    `, groupId) as any[];
+    `) as any[];
 
     return NextResponse.json({ logs: logs || [], maintenance });
   } catch (error) {

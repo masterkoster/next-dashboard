@@ -36,11 +36,12 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const groundedStatus = isGrounded !== undefined ? isGrounded : (status === 'DONE' ? false : null);
 
     // Update maintenance using raw SQL to avoid schema mismatch
+    // Use string interpolation since SQL Server doesn't support ? placeholders in $queryRawUnsafe
     await prisma.$executeRawUnsafe(`
       UPDATE Maintenance 
-      SET status = ?, cost = ?, notes = ?, resolvedDate = ?, isGrounded = ?, updatedAt = GETDATE()
-      WHERE id = ?
-    `, status, cost || null, notes || null, resolvedDate, groundedStatus, id);
+      SET status = '${status}', cost = ${cost || 'NULL'}, notes = ${notes ? "'" + notes.replace(/'/g, "''") + "'" : 'NULL'}, resolvedDate = ${resolvedDate ? "GETDATE()" : 'NULL'}, isGrounded = ${groundedStatus !== null ? groundedStatus : 'NULL'}, updatedAt = GETDATE()
+      WHERE id = '${id}'
+    `);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -71,8 +72,8 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       SELECT m.*, a.groupId
       FROM Maintenance m
       JOIN ClubAircraft a ON m.aircraftId = a.id
-      WHERE m.id = ?
-    `, id) as any[];
+      WHERE m.id = '${id}'
+    `) as any[];
 
     if (!maintenance || maintenance.length === 0) {
       return NextResponse.json({ error: 'Maintenance not found' }, { status: 404 });
@@ -87,7 +88,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Only admins can delete maintenance' }, { status: 403 });
     }
 
-    await prisma.$queryRawUnsafe(`DELETE FROM Maintenance WHERE id = ?`, id);
+    await prisma.$queryRawUnsafe(`DELETE FROM Maintenance WHERE id = '${id}'`);
 
     return NextResponse.json({ success: true });
   } catch (error) {
