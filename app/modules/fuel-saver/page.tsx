@@ -503,6 +503,128 @@ export default function FuelSaverPage() {
     }
   };
 
+  // Parse simple route string (comma or space separated ICAOs)
+  const parseRouteString = (content: string) => {
+    const newWaypoints: Waypoint[] = [];
+    
+    // Split by comma, space, or newline
+    const tokens = content.split(/[,\s\n]+/).filter(t => t.length >= 3 && t.length <= 5);
+    
+    for (const token of tokens) {
+      const icao = token.toUpperCase().replace(/[^A-Z]/g, '').substring(0, 4);
+      if (icao.length < 3) continue;
+      
+      const airport = DEMO_AIRPORTS.find(a => a.icao === icao || a.iata === icao);
+      if (airport) {
+        newWaypoints.push({
+          id: crypto.randomUUID(),
+          icao: airport.icao,
+          name: airport.name,
+          latitude: airport.latitude,
+          longitude: airport.longitude,
+          sequence: newWaypoints.length
+        });
+      }
+    }
+    
+    if (newWaypoints.length > 0) {
+      setWaypoints(newWaypoints);
+      setMapCenter([newWaypoints[0].latitude, newWaypoints[0].longitude]);
+      setMapZoom(6);
+      return true;
+    }
+    return false;
+  };
+
+  // Parse X-Plane FMS format
+  const parseFMS = (content: string) => {
+    const lines = content.split('\n');
+    const newWaypoints: Waypoint[] = [];
+    
+    for (const line of lines) {
+      // FMS format: 5 WAYPOINT_NAME lat lon alt (approximate)
+      // Or: I waypoint lat lon altitude airWay
+      const parts = line.trim().split(/[\s,]+/);
+      if (parts.length < 4) continue;
+      
+      // Check if it's a valid line (starts with number or I)
+      if (!parts[0].match(/^[0-9I]/)) continue;
+      
+      const waypointName = parts[1] || parts[0];
+      const lat = parseFloat(parts[parts.length - 3]);
+      const lon = parseFloat(parts[parts.length - 2]);
+      
+      if (!isNaN(lat) && !isNaN(lon)) {
+        const airport = DEMO_AIRPORTS.find(a => a.icao === waypointName.substring(0, 4));
+        newWaypoints.push({
+          id: crypto.randomUUID(),
+          icao: airport?.icao || waypointName.substring(0, 4),
+          name: airport?.name || waypointName,
+          latitude: airport?.latitude || lat,
+          longitude: airport?.longitude || lon,
+          sequence: newWaypoints.length
+        });
+      }
+    }
+    
+    if (newWaypoints.length > 0) {
+      setWaypoints(newWaypoints);
+      setMapCenter([newWaypoints[0].latitude, newWaypoints[0].longitude]);
+      setMapZoom(6);
+      return true;
+    }
+    return false;
+  };
+
+  // Parse VATSIM/IVAO flight plan (plain text)
+  const parseVATSIM = (content: string) => {
+    const lines = content.split('\n');
+    const newWaypoints: Waypoint[] = [];
+    let foundRoute = false;
+    
+    for (const line of lines) {
+      const upperLine = line.toUpperCase();
+      
+      // Look for ROUTE: or similar markers
+      if (upperLine.includes('ROUTE:') || upperLine.includes('SID') || upperLine.includes('STAR')) {
+        foundRoute = true;
+      }
+      
+      if (foundRoute) {
+        // Extract ICAO codes (4 letters)
+        const matches = line.match(/[A-Z]{4}/g);
+        if (matches) {
+          for (const icao of matches) {
+            const airport = DEMO_AIRPORTS.find(a => a.icao === icao);
+            if (airport && !newWaypoints.find(w => w.icao === icao)) {
+              newWaypoints.push({
+                id: crypto.randomUUID(),
+                icao: airport.icao,
+                name: airport.name,
+                latitude: airport.latitude,
+                longitude: airport.longitude,
+                sequence: newWaypoints.length
+              });
+            }
+          }
+        }
+        
+        // Stop at next section
+        if (upperLine.includes('REMARKS:') || upperLine.includes('NOTES:')) {
+          break;
+        }
+      }
+    }
+    
+    if (newWaypoints.length > 0) {
+      setWaypoints(newWaypoints);
+      setMapCenter([newWaypoints[0].latitude, newWaypoints[0].longitude]);
+      setMapZoom(6);
+      return true;
+    }
+    return false;
+  };
+
   // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -769,62 +891,6 @@ export default function FuelSaverPage() {
               </div>
             </div>
             
-            {/* Import GPX/FPL/JSON/CSV */}
-            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
-              <h2 className="text-lg font-semibold mb-3">Import Flight Plan</h2>
-              
-              {/* File upload */}
-              <div className="mb-3">
-                <label className="block text-sm text-slate-400 mb-1">From File</label>
-                <label className="flex-1 bg-slate-700 hover:bg-slate-600 rounded-lg px-4 py-2 cursor-pointer text-center transition block">
-                  <span>Upload GPX, FPL, JSON, CSV</span>
-                  <input
-                    type="file"
-                    accept=".gpx,.fpl,.json,.csv"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-              
-              {/* From flightplandatabase.com */}
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">From flightplandatabase.com</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    id="fpdbPlanId"
-                    placeholder="Plan ID (e.g., 123456)"
-                    className="flex-1 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const input = document.getElementById('fpdbPlanId') as HTMLInputElement;
-                        if (input.value) {
-                          importFromFPDB(input.value);
-                          input.value = '';
-                        }
-                      }
-                    }}
-                  />
-                  <button
-                    onClick={() => {
-                      const input = document.getElementById('fpdbPlanId') as HTMLInputElement;
-                      if (input.value) {
-                        importFromFPDB(input.value);
-                        input.value = '';
-                      }
-                    }}
-                    className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded transition"
-                  >
-                    Import
-                  </button>
-                </div>
-                <p className="text-xs text-slate-500 mt-1">
-                  Enter a plan ID from <a href="https://flightplandatabase.com" target="_blank" rel="noopener noreferrer" className="underline">flightplandatabase.com</a>
-                </p>
-              </div>
-            </div>
-            
             {/* Waypoints List */}
             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
               <h2 className="text-lg font-semibold mb-3">Route ({waypoints.length} waypoints)</h2>
@@ -935,14 +1001,55 @@ export default function FuelSaverPage() {
           
           {/* Right Panel - Map */}
           <div className="flex-1 min-h-[500px] lg:min-h-0 flex flex-col">
-            {/* Toggle button */}
-            <button
-              onClick={() => setShowPanel(!showPanel)}
-              className="self-start mb-2 bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-white"
-              title={showPanel ? 'Hide panel' : 'Show panel'}
-            >
-              {showPanel ? '◀' : '▶'}
-            </button>
+            {/* Toggle button and import in toolbar */}
+            <div className="flex items-center gap-2 mb-2">
+              <button
+                onClick={() => setShowPanel(!showPanel)}
+                className="bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-white"
+                title={showPanel ? 'Hide panel' : 'Show panel'}
+              >
+                {showPanel ? '◀' : '▶'}
+              </button>
+              
+              {/* Quick import button */}
+              <label className="bg-sky-500 hover:bg-sky-600 px-3 py-2 rounded-lg text-white text-sm cursor-pointer transition">
+                Import Plan
+                <input
+                  type="file"
+                  accept=".gpx,.fpl,.json,.csv"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+              
+              <input
+                type="text"
+                id="fpdbPlanId"
+                placeholder="FPDB Plan ID"
+                className="bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const input = document.getElementById('fpdbPlanId') as HTMLInputElement;
+                    if (input.value) {
+                      importFromFPDB(input.value);
+                      input.value = '';
+                    }
+                  }
+                }}
+              />
+              <button
+                onClick={() => {
+                  const input = document.getElementById('fpdbPlanId') as HTMLInputElement;
+                  if (input.value) {
+                    importFromFPDB(input.value);
+                    input.value = '';
+                  }
+                }}
+                className="bg-slate-700 hover:bg-slate-600 px-3 py-2 rounded-lg text-white text-sm"
+              >
+                Go
+              </button>
+            </div>
             
             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex-1 flex flex-col">
               {/* Map Controls */}
@@ -955,7 +1062,7 @@ export default function FuelSaverPage() {
                     onChange={(e) => setShowAllAirports(e.target.checked)}
                     className="rounded"
                   />
-                  <label htmlFor="showAll" className="text-sm">Show all airports (incl. small)</label>
+                  <label htmlFor="showAll" className="text-sm">Show all airports</label>
                 </div>
                 <div className="text-sm text-slate-400">
                   {loadingAirports ? 'Loading...' : `${airports.length} airports shown`}
