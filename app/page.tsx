@@ -1,181 +1,220 @@
 import Link from "next/link";
 
-// Landing page - public entry point with module previews
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800">
       {/* Hero */}
       <div className="mx-auto max-w-6xl px-6 py-16 text-center">
         <h1 className="text-4xl font-bold tracking-tight text-white md:text-6xl">
-          Aviation Dashboard
+          Your Aviation Data, <span className="text-sky-400">Unified</span>
         </h1>
         <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300">
           The all-in-one platform for pilots and aviation businesses. 
           Search aircraft, manage your flying group, and connect with others - 
-          use individual modules or sync your data across everything.
+          use individual modules or get the full experience with synced data.
         </p>
       </div>
 
-      {/* Beta Notice */}
-      <div className="mx-auto max-w-4xl px-6 mb-8">
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-center">
-          <p className="text-amber-200">
-            <span className="font-semibold">Building the vision:</span> Some modules are in beta, 
-            some are demos of future features, and some are functional but need improvement. 
-            Your data syncs across whatever you choose to use.
+      {/* Current Status Overview */}
+      <div className="mx-auto max-w-4xl px-6 pb-12">
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-6">
+          <h2 className="text-xl font-semibold text-amber-400 mb-2">Where We Are Right Now</h2>
+          <p className="text-slate-300">
+            We're building something ambitious - a unified aviation platform where all your data flows together. 
+            Some modules are ready to use, some are preview demos of what's coming, and others are on the roadmap. 
+            Everything connects: flight logs sync to currency tracking, which notifies you of maintenance, 
+            which connects you to services, which finds fuel along your route.
           </p>
         </div>
       </div>
 
-      {/* Modules Grid - Accessible without login */}
-      <div className="mx-auto max-w-6xl px-6 pb-20">
-        <h2 className="mb-6 text-xl font-semibold text-white">Try Our Tools</h2>
+      {/* Available Now - Ready to use */}
+      <div className="mx-auto max-w-6xl px-6 pb-16">
+        <h2 className="mb-2 text-2xl font-bold text-white flex items-center gap-3">
+          <span className="text-emerald-400">◆</span> Available Now
+        </h2>
+        <p className="text-slate-400 mb-6">Ready to use - click any module to try it</p>
+        
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
           
           {/* Flying Club - Beta */}
-          <div className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg relative">
-            <div className="absolute top-4 right-4">
+          <Link href="/modules/flying-club?demo=true" className="group block rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg hover:border-emerald-500/50 transition">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-3xl">✈️</span>
               <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
                 BETA
               </span>
             </div>
-            <div className="text-3xl mb-3">✈️</div>
             <h3 className="text-lg font-semibold text-white">Flying Club</h3>
             <p className="mt-2 text-sm text-slate-400">
-              Manage your flying group, book aircraft, track flight hours, and handle billing. 
-              Works well for clubs and shared ownership groups.
+              Complete flight group management. Schedule bookings, track hours, manage aircraft, 
+              handle billing, and coordinate with members.
             </p>
-            <Link 
-              href="/modules/flying-club?demo=true"
-              className="mt-4 flex items-center gap-2 text-sm font-medium text-emerald-400 hover:text-emerald-300"
-            >
-              Try now →
-            </Link>
-          </div>
+            <ul className="mt-3 space-y-1 text-xs text-slate-500">
+              <li>✓ Book flights & manage schedule</li>
+              <li>✓ Track flight hours & hobbs</li>
+              <li>✓ Aircraft maintenance tracking</li>
+              <li>✓ Member billing & invoicing</li>
+            </ul>
+          </Link>
 
+          {/* Plane Carfax - Functional */}
+          <Link href="/modules/plane-carfax" className="group block rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg hover:border-emerald-500/50 transition">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-3xl">📋</span>
+              <span className="text-xs font-medium px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                FUNCTIONAL
+              </span>
+            </div>
+            <h3 className="text-lg font-semibold text-white">Plane Carfax</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              FAA aircraft records search. Look up any N-Number for registration details, 
+              owner history, and aircraft specifications.
+            </p>
+            <ul className="mt-3 space-y-1 text-xs text-slate-500">
+              <li>✓ N-Number lookup</li>
+              <li>✓ Owner history</li>
+              <li>✓ Aircraft specs</li>
+              <li>⚠ Alerts & tracking (coming)</li>
+            </ul>
+          </Link>
+
+        </div>
+      </div>
+
+      {/* Coming Soon - Preview Demos */}
+      <div className="mx-auto max-w-6xl px-6 pb-16">
+        <h2 className="mb-2 text-2xl font-bold text-white flex items-center gap-3">
+          <span className="text-purple-400">◇</span> Coming Soon
+        </h2>
+        <p className="text-slate-400 mb-6">Preview demos - see what we're building</p>
+        
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
+          
           {/* Aperture - Demo */}
-          <div className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg relative">
-            <div className="absolute top-4 right-4">
+          <Link href="/modules/aperture" className="group block rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg hover:border-purple-500/50 transition">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-3xl">🤝</span>
               <span className="text-xs font-medium px-2 py-1 rounded-full bg-purple-500/20 text-purple-400 border border-purple-500/30">
                 DEMO
               </span>
             </div>
-            <div className="text-3xl mb-3">🤝</div>
             <h3 className="text-lg font-semibold text-white">Aperture</h3>
             <p className="mt-2 text-sm text-slate-400">
-              Connect with other pilots and aviation businesses. 
-              Share resources, find partners, and grow your network.
+              The aviation network. Connect with pilots, find flight partners, 
+              discover businesses, and share resources safely.
             </p>
-            <Link 
-              href="/modules/aperture"
-              className="mt-4 flex items-center gap-2 text-sm font-medium text-purple-400 hover:text-purple-300"
-            >
-              View demo →
-            </Link>
-          </div>
+            <ul className="mt-3 space-y-1 text-xs text-slate-500">
+              <li>○ Pilot profiles & directories</li>
+              <li>○ Partnership matching</li>
+              <li>○ Business listings</li>
+              <li>○ Resource sharing</li>
+            </ul>
+          </Link>
 
-          {/* Plane Carfax - Functional but needs work */}
-          <div className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg relative">
-            <div className="absolute top-4 right-4">
-              <span className="text-xs font-medium px-2 py-1 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">
-                FUNCTIONAL
+        </div>
+      </div>
+
+      {/* On the Roadmap - Planned */}
+      <div className="mx-auto max-w-6xl px-6 pb-16">
+        <h2 className="mb-2 text-2xl font-bold text-white flex items-center gap-3">
+          <span className="text-slate-500">○</span> On the Roadmap
+        </h2>
+        <p className="text-slate-400 mb-6">Planned features - help us prioritize what matters most</p>
+        
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
+          
+          {/* Plane Search */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg opacity-60">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-3xl">🔍</span>
+              <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-700 text-slate-400 border border-slate-600">
+                PLANNED
               </span>
             </div>
-            <div className="text-3xl mb-3">📋</div>
-            <h3 className="text-lg font-semibold text-white">Plane Carfax</h3>
-            <p className="mt-2 text-sm text-slate-400">
-              Look up any N-Number to see FAA registration details, owner history, and aircraft specs. 
-              Works but needs improvement to fully fulfill its purpose.
-            </p>
-            <Link 
-              href="/modules/plane-carfax"
-              className="mt-4 flex items-center gap-2 text-sm font-medium text-emerald-400 hover:text-emerald-300"
-            >
-              Try now →
-            </Link>
-          </div>
-
-          {/* Plane Search - Coming Soon */}
-          <div className="group rounded-2xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg opacity-60">
-            <div className="text-3xl mb-3">🔍</div>
             <h3 className="text-lg font-semibold text-white">Plane Search</h3>
             <p className="mt-2 text-sm text-slate-400">
-              Search and filter aircraft by manufacturer, model, year, and more.
+              Advanced aircraft search with powerful filters. Find aircraft by manufacturer, 
+              model, year, price range, and more.
             </p>
-            <div className="mt-4 flex items-center gap-2 text-sm font-medium text-slate-500">
-              Coming soon →
-            </div>
+            <ul className="mt-3 space-y-1 text-xs text-slate-600">
+              <li>○ Multi-filter search</li>
+              <li>○ Price analytics</li>
+              <li>○ Market trends</li>
+              <li>○ Save searches</li>
+            </ul>
           </div>
 
-          {/* Fuel Saver - Coming Soon */}
-          <div className="group rounded-2xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg opacity-60">
-            <div className="text-3xl mb-3">⛽</div>
+          {/* Fuel Saver */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg opacity-60">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-3xl">⛽</span>
+              <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-700 text-slate-400 border border-slate-600">
+                PLANNED
+              </span>
+            </div>
             <h3 className="text-lg font-semibold text-white">Fuel Saver</h3>
             <p className="mt-2 text-sm text-slate-400">
-              Find the cheapest fuel prices along your route. Save money on every flight.
+              Never overpay for fuel. Find the cheapest prices along your route, 
+              track fuel burns, and optimize your flights for economy.
             </p>
-            <div className="mt-4 flex items-center gap-2 text-sm font-medium text-slate-500">
-              Coming soon →
-            </div>
+            <ul className="mt-3 space-y-1 text-xs text-slate-600">
+              <li>○ Fuel price lookup</li>
+              <li>○ Route optimization</li>
+              <li>○ Fuel burn tracking</li>
+              <li>○ Historical analytics</li>
+            </ul>
           </div>
 
-          {/* TailHistory - Coming Soon */}
-          <div className="group rounded-2xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg opacity-60">
-            <div className="text-3xl mb-3">📜</div>
+          {/* TailHistory */}
+          <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg opacity-60">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-3xl">📜</span>
+              <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-700 text-slate-400 border border-slate-600">
+                PLANNED
+              </span>
+            </div>
             <h3 className="text-lg font-semibold text-white">TailHistory</h3>
             <p className="mt-2 text-sm text-slate-400">
-              3D timeline view of aircraft registration history and ownership changes.
+              Visual timeline of any aircraft's life. See registration changes, 
+              ownership history, and maintenance events in an interactive 3D view.
             </p>
-            <div className="mt-4 flex items-center gap-2 text-sm font-medium text-slate-500">
-              Coming soon →
-            </div>
+            <ul className="mt-3 space-y-1 text-xs text-slate-600">
+              <li>○ 3D timeline view</li>
+              <li>○ Ownership chain</li>
+              <li>○ Event history</li>
+              <li>○ Export reports</li>
+            </ul>
           </div>
 
         </div>
+      </div>
 
-        {/* The Vision Section */}
-        <div className="mt-16 rounded-2xl border border-slate-800 bg-slate-900/50 p-8">
-          <h3 className="text-xl font-semibold text-white text-center mb-4">The Vision</h3>
-          <p className="text-slate-400 text-center max-w-2xl mx-auto mb-6">
-            We're building a unified platform where your data flows seamlessly across all modules. 
-            Book a flight in Flying Club → it appears in your logbook → tracks your currency → 
-            connects you with maintenance when needed → finds fuel along your route. 
-            Use what you need, or use it all.
+      {/* The Vision - Bottom CTA with Sign Up/Login */}
+      <div className="mx-auto max-w-4xl px-6 pb-16">
+        <div className="rounded-2xl border border-sky-500/20 bg-sky-500/5 p-8 text-center">
+          <h3 className="text-2xl font-bold text-white mb-4">One Platform, Infinite Possibilities</h3>
+          <p className="text-slate-300 max-w-2xl mx-auto mb-6">
+            Imagine booking a flight and having it automatically log your hours, track your currency, 
+            notify you when maintenance is due, suggest fuel stops along your route, and connect 
+            you with other pilots heading the same way. <span className="text-sky-400 font-medium">That's the vision.</span>
           </p>
-          <div className="flex flex-wrap justify-center gap-4 text-sm">
-            <div className="flex items-center gap-2 text-slate-300">
-              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              Beta - Works well
-            </div>
-            <div className="flex items-center gap-2 text-slate-300">
-              <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-              Demo - Coming soon
-            </div>
-            <div className="flex items-center gap-2 text-slate-300">
-              <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-              Functional - Needs work
-            </div>
-          </div>
-        </div>
-
-        {/* CTA */}
-        <div className="mt-16 rounded-2xl border border-slate-800 bg-slate-900/50 p-8 text-center">
-          <h3 className="text-xl font-semibold text-white">Want more features?</h3>
-          <p className="mt-2 text-slate-400">
-            Create an account to save your searches, track aircraft, and access premium modules.
+          <p className="text-slate-400 text-sm mb-6">
+            Sign up to get early access as we connect everything together. 
+            Your data syncs across whatever you use.
           </p>
-          <div className="mt-6 flex justify-center gap-4">
+          <div className="flex justify-center gap-4">
             <Link
               href="/signup"
-              className="rounded-xl bg-emerald-500 px-6 py-3 font-semibold text-white hover:bg-emerald-400"
+              className="rounded-xl bg-sky-500 px-6 py-3 font-semibold text-white hover:bg-sky-400 transition"
             >
-              Sign Up Free
+              Create Account
             </Link>
             <Link
               href="/login"
-              className="rounded-xl border border-slate-600 px-6 py-3 font-semibold text-white hover:bg-slate-800"
+              className="rounded-xl border border-slate-600 px-6 py-3 font-semibold text-white hover:bg-slate-800 transition"
             >
-              Login
+              Sign In
             </Link>
           </div>
         </div>
