@@ -16,31 +16,37 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const { groupId, aircraftId } = await params;
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
 
-    // Check admin role
-    const membership = await prisma.groupMember.findFirst({
-      where: { groupId, userId: user?.id, role: 'ADMIN' },
-    });
+    // Check admin role using raw SQL
+    const memberships = await prisma.$queryRawUnsafe(`
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user?.id}' AND role = 'ADMIN'
+    `) as any[];
 
-    if (!membership) {
+    if (!memberships || memberships.length === 0) {
       return NextResponse.json({ error: 'Only admins can update aircraft' }, { status: 403 });
     }
 
     const body = await request.json();
     const { notes, status } = body;
 
-    const updateData: any = {};
-    if (notes !== undefined) updateData.aircraftNotes = notes;
-    if (status !== undefined) updateData.status = status;
+    // Build update query
+    const updates: string[] = [];
+    if (notes !== undefined) updates.push(`aircraftNotes = ${notes ? "'" + notes.replace(/'/g, "''") + "'" : 'NULL'}`);
+    if (status !== undefined) updates.push(`status = '${status}'`);
+    updates.push(`updatedAt = GETDATE()`);
 
-    const aircraft = await prisma.clubAircraft.update({
-      where: { id: aircraftId },
-      data: updateData,
-    });
+    await prisma.$executeRawUnsafe(`
+      UPDATE ClubAircraft SET ${updates.join(', ')} WHERE id = '${aircraftId}' AND groupId = '${groupId}'
+    `);
 
-    return NextResponse.json(aircraft);
+    // Fetch updated aircraft
+    const aircraft = await prisma.$queryRawUnsafe(`
+      SELECT * FROM ClubAircraft WHERE id = '${aircraftId}'
+    `) as any[];
+
+    return NextResponse.json(aircraft[0]);
   } catch (error) {
     console.error('Error updating aircraft:', error);
-    return NextResponse.json({ error: 'Failed to update aircraft' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to update aircraft', details: String(error) }, { status: 500 });
   }
 }
 
@@ -54,18 +60,18 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     const { groupId, aircraftId } = await params;
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
 
-    // Check admin role
-    const membership = await prisma.groupMember.findFirst({
-      where: { groupId, userId: user?.id, role: 'ADMIN' },
-    });
+    // Check admin role using raw SQL
+    const memberships = await prisma.$queryRawUnsafe(`
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user?.id}' AND role = 'ADMIN'
+    `) as any[];
 
-    if (!membership) {
+    if (!memberships || memberships.length === 0) {
       return NextResponse.json({ error: 'Only admins can remove aircraft' }, { status: 403 });
     }
 
-    await prisma.clubAircraft.delete({
-      where: { id: aircraftId },
-    });
+    await prisma.$executeRawUnsafe(`
+      DELETE FROM ClubAircraft WHERE id = '${aircraftId}' AND groupId = '${groupId}'
+    `);
 
     return NextResponse.json({ success: true });
   } catch (error) {
