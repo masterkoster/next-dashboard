@@ -956,181 +956,169 @@ export default function FuelSaverPage() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left Panel - Flight Plan Form */}
         {showPanel && (
-          <div className="w-full lg:w-72 lg:h-full bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-2 space-y-2 flex-shrink-0">
-            {/* Flight Plan Details */}
-            <div>
-              <h2 className="text-base font-semibold mb-1.5">Flight Plan Details</h2>
-              <div className="space-y-2">
-                <div>
-                  <label className="block text-xs text-slate-400 mb-0.5">Plan Name</label>
-                  <input
-                    type="text"
-                    value={flightPlanName}
-                    onChange={(e) => setFlightPlanName(e.target.value)}
-                    placeholder="My Cross Country"
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Callsign</label>
-                    <input
-                      type="text"
-                      value={callsign}
-                      onChange={(e) => setCallsign(e.target.value)}
-                      placeholder="N12345"
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Pilot Name</label>
-                    <input
-                      type="text"
-                      value={pilotName}
-                      onChange={(e) => setPilotName(e.target.value)}
-                      placeholder="John Doe"
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Aircraft</label>
-                    <select
-                      value={selectedAircraft.name}
-                      onChange={(e) => {
-                        const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
-                        if (ac) setSelectedAircraft(ac);
-                      }}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                    >
-                      {AIRCRAFT_PROFILES.map(p => (<option key={p.name} value={p.name}>{p.name}</option>))}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Departure Time</label>
-                    <input
-                      type="datetime-local"
-                      value={departureTime}
-                      onChange={(e) => setDepartureTime(e.target.value)}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Cruising Alt (ft)</label>
-                    <input
-                      type="number"
-                      value={cruisingAlt}
-                      onChange={(e) => setCruisingAlt(parseInt(e.target.value))}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Souls on Board</label>
-                    <input
-                      type="number"
-                      min="1"
-                      value={soulsOnBoard}
-                      onChange={(e) => setSoulsOnBoard(parseInt(e.target.value))}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-0.5">Alternate Airport</label>
-                  <input
-                    type="text"
-                    value={alternateIcao}
-                    onChange={(e) => setAlternateIcao(e.target.value.toUpperCase())}
-                    placeholder="KABC"
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-0.5">Remarks</label>
-                  <textarea
-                    value={remarks}
-                    onChange={(e) => setRemarks(e.target.value)}
-                    placeholder="Flight remarks..."
-                    rows={2}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Waypoints */}
-            <div>
-              <h2 className="text-base font-semibold mb-1.5">Route ({waypoints.length} waypoints)</h2>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                placeholder="Search airport..."
-                className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase mb-2 text-sm"
-              />
-              <div className="space-y-1 max-h-24 overflow-y-auto">
-                {waypoints.map((wp, i) => (
-                  <div key={wp.id} className="flex items-center justify-between bg-slate-700 rounded px-2 py-1 text-sm">
-                    <span><span className="text-slate-400">{i+1}.</span> <strong>{wp.icao}</strong></span>
-                    <button onClick={() => removeWaypoint(wp.id)} className="text-red-400 text-xs">✕</button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Fuel Settings */}
-            <div>
-              <h2 className="text-base font-semibold mb-1.5">Fuel Settings</h2>
+          <div className="w-full lg:w-72 lg:h-full bg-slate-800 border-b lg:border-r border-slate-700 flex flex-col flex-shrink-0">
+            {/* Scrollable: Flight Plan Details + Route */}
+            <div className="overflow-y-auto p-2 space-y-2 flex-1">
+              {/* Flight Plan Details */}
               <div>
-                <label className="block text-xs text-slate-400 mb-0.5">Fuel at Departure: {departureFuel}%</label>
+                <h2 className="text-base font-semibold mb-1.5">Flight Plan Details</h2>
+                <div className="space-y-2">
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-0.5">Plan Name</label>
+                    <input
+                      type="text"
+                      value={flightPlanName}
+                      onChange={(e) => setFlightPlanName(e.target.value)}
+                      placeholder="My Cross Country"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-0.5">Callsign</label>
+                      <input
+                        type="text"
+                        value={callsign}
+                        onChange={(e) => setCallsign(e.target.value)}
+                        placeholder="N12345"
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-0.5">Pilot Name</label>
+                      <input
+                        type="text"
+                        value={pilotName}
+                        onChange={(e) => setPilotName(e.target.value)}
+                        placeholder="John Doe"
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-0.5">Aircraft</label>
+                      <select
+                        value={selectedAircraft.name}
+                        onChange={(e) => {
+                          const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
+                          if (ac) setSelectedAircraft(ac);
+                        }}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                      >
+                        {AIRCRAFT_PROFILES.map(p => (<option key={p.name} value={p.name}>{p.name}</option>))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-0.5">Departure Time</label>
+                      <input
+                        type="datetime-local"
+                        value={departureTime}
+                        onChange={(e) => setDepartureTime(e.target.value)}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-0.5">Cruising Alt (ft)</label>
+                      <input
+                        type="number"
+                        value={cruisingAlt}
+                        onChange={(e) => setCruisingAlt(parseInt(e.target.value))}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-0.5">Souls on Board</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={soulsOnBoard}
+                        onChange={(e) => setSoulsOnBoard(parseInt(e.target.value))}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-0.5">Alternate Airport</label>
+                    <input
+                      type="text"
+                      value={alternateIcao}
+                      onChange={(e) => setAlternateIcao(e.target.value.toUpperCase())}
+                      placeholder="KABC"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-0.5">Remarks</label>
+                    <textarea
+                      value={remarks}
+                      onChange={(e) => setRemarks(e.target.value)}
+                      placeholder="Flight remarks..."
+                      rows={2}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Waypoints */}
+              <div>
+                <h2 className="text-base font-semibold mb-1.5">Route ({waypoints.length} waypoints)</h2>
                 <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={departureFuel}
-                  onChange={(e) => setDepartureFuel(parseInt(e.target.value))}
-                  className="w-full"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder="Search airport..."
+                  className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase mb-2 text-sm"
                 />
+                <div className="space-y-1 max-h-24 overflow-y-auto">
+                  {waypoints.map((wp, i) => (
+                    <div key={wp.id} className="flex items-center justify-between bg-slate-700 rounded px-2 py-1 text-sm">
+                      <span><span className="text-slate-400">{i+1}.</span> <strong>{wp.icao}</strong></span>
+                      <button onClick={() => removeWaypoint(wp.id)} className="text-red-400 text-xs">✕</button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
-            {/* Save Button */}
-            <div className="flex gap-2">
-              <button
-                onClick={() => setShowPlanList(!showPlanList)}
-                className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-1.5 rounded-lg text-sm"
-              >
-                Load Plan {savedPlans.length > 0 && `(${savedPlans.length})`}
-              </button>
-              <button
-                onClick={saveFlightPlan}
-                disabled={waypoints.length < 2}
-                className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 text-white font-semibold py-1.5 rounded-lg text-sm"
-              >
-                Save Plan
-              </button>
-            </div>
-            
-            {/* Saved Plans List */}
-            {showPlanList && savedPlans.length > 0 && (
-              <div className="bg-slate-700 rounded p-2 space-y-2 max-h-48 overflow-y-auto">
-                <div className="text-sm font-semibold text-slate-300">Saved Plans</div>
-                {savedPlans.map((plan, i) => (
-                  <div key={i} className="flex items-center justify-between bg-slate-600 rounded p-2 text-sm">
-                    <button onClick={() => loadFlightPlan(plan)} className="text-left flex-1 hover:text-sky-400">
-                      <div className="font-medium">{plan.name || 'Untitled'}</div>
-                      <div className="text-xs text-slate-400">
-                        {plan.departureIcao} → {plan.arrivalIcao} • {plan.waypoints?.length || 0} waypoints
-                      </div>
-                    </button>
-                    <button onClick={() => deleteFlightPlan(i)} className="text-red-400 hover:text-red-300 px-2">✕</button>
-                  </div>
-                ))}
+            {/* Fixed: Fuel Settings + Save/Load */}
+            <div className="p-2 space-y-2 flex-shrink-0 bg-slate-800">
+              {/* Fuel Settings */}
+              <div>
+                <h2 className="text-base font-semibold mb-1.5">Fuel Settings</h2>
+                <div>
+                  <label className="block text-xs text-slate-400 mb-0.5">Fuel at Departure: {departureFuel}%</label>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={departureFuel}
+                    onChange={(e) => setDepartureFuel(parseInt(e.target.value))}
+                    className="w-full"
+                  />
+                </div>
               </div>
-            )}
+
+              {/* Save Button */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowPlanList(!showPlanList)}
+                  className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-1.5 rounded-lg text-sm"
+                >
+                  Load Plan {savedPlans.length > 0 && `(${savedPlans.length})`}
+                </button>
+                <button
+                  onClick={saveFlightPlan}
+                  disabled={waypoints.length < 2}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 text-white font-semibold py-1.5 rounded-lg text-sm"
+                >
+                  Save Plan
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
