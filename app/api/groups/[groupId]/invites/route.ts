@@ -69,6 +69,33 @@ export async function POST(request: Request, { params }: RouteParams) {
     const body = await request.json();
     const { email, role } = body;
 
+    // Check if invite already exists for this email+group (and not expired)
+    if (email) {
+      const existingInvite = await prisma.invite.findFirst({
+        where: { 
+          groupId,
+          email: email.toLowerCase(),
+          expiresAt: { gt: new Date() },
+        },
+      });
+
+      if (existingInvite) {
+        return NextResponse.json({ error: 'An invitation has already been sent to this email' }, { status: 400 });
+      }
+
+      // Also check if user is already a member
+      const existingMember = await prisma.groupMember.findFirst({
+        where: { 
+          groupId,
+          user: { email: email.toLowerCase() },
+        },
+      });
+
+      if (existingMember) {
+        return NextResponse.json({ error: 'This user is already a member of the group' }, { status: 400 });
+      }
+    }
+
     // Generate unique token
     const token = randomBytes(32).toString('hex');
     const expiresAt = new Date();
@@ -78,7 +105,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       data: {
         groupId,
         token,
-        email: email || null,
+        email: email ? email.toLowerCase() : null,
         role: role || 'VIEWER',
         createdBy: user.id,
         expiresAt,

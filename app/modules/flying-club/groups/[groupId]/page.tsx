@@ -1071,9 +1071,10 @@ function MembersTab({ groupId, members, isAdmin, currentUserId }: {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        setInviteLink(`${window.location.origin}/modules/flying-club/groups/${groupId}/join?token=${data.token}`);
+      if (        const data = await res.json();
+res.ok) {
+        // Include groupId in the join URL
+        setInviteLink(`${window.location.origin}/modules/flying-club/groups/${groupId}/join?groupId=${groupId}&token=${data.token}`);
       }
     } finally {
       setInviting(false);

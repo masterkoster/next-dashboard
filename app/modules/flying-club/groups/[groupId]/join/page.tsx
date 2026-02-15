@@ -20,38 +20,34 @@ export default function JoinGroupPage() {
       return;
     }
 
-    // Check if user is logged in
-    fetch('/api/auth/session')
+    // Accept the invite (will work for VIEWER without login)
+    fetch(`/api/groups/${groupId}/join`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
       .then(res => res.json())
-      .then(session => {
-        if (!session?.user?.email) {
+      .then(data => {
+        if (data.success) {
+          setStatus('success');
+          if (data.role === 'VIEWER') {
+            setMessage('You can now view this group as a viewer!');
+          } else {
+            setMessage('You have successfully joined the group!');
+          }
+        } else if (data.error === 'Please log in to join as a member') {
+          // Need to login for MEMBER/ADMIN roles
           setNeedsLogin(true);
           setStatus('error');
-          setMessage('Please log in to join this group');
-          return;
+          setMessage('This invite requires you to log in to become a member');
+        } else {
+          setStatus('error');
+          setMessage(data.error || 'Failed to join group');
         }
-
-        // Accept the invite
-        fetch(`/api/groups/${groupId}/join`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token }),
-        })
-          .then(res => {
-            if (res.ok) {
-              setStatus('success');
-              setMessage('You have successfully joined the group!');
-            } else {
-              return res.json().then(data => {
-                setStatus('error');
-                setMessage(data.error || 'Failed to join group');
-              });
-            }
-          })
-          .catch(() => {
-            setStatus('error');
-            setMessage('Failed to join group');
-          });
+      })
+      .catch(() => {
+        setStatus('error');
+        setMessage('Failed to join group');
       });
   }, [token, groupId]);
 

@@ -9,19 +9,8 @@ interface RouteParams {
 export async function POST(request: Request, { params }: RouteParams) {
   try {
     const session = await auth();
-    if (!session?.user?.email) {
-      return NextResponse.json({ error: 'Please log in to join' }, { status: 401 });
-    }
-
+    
     const { groupId } = await params;
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     const body = await request.json();
     const { token } = body;
 
@@ -50,6 +39,36 @@ export async function POST(request: Request, { params }: RouteParams) {
         return NextResponse.json({ error: 'Invalid invite link for this group' }, { status: 404 });
       }
       return NextResponse.json({ error: 'Invalid invite link' }, { status: 404 });
+    }
+
+    // VIEWER role can join without account - just return success
+    if (invite.role === 'VIEWER' && !session?.user?.email) {
+      // For viewer invites without login, just return success info
+      // The user can view public group info
+      const group = await prisma.flyingGroup.findUnique({
+        where: { id: groupId },
+        select: { id: true, name: true, description: true }
+      });
+      
+      return NextResponse.json({ 
+        success: true, 
+        role: 'VIEWER',
+        group,
+        message: 'You can view this group as a viewer'
+      });
+    }
+
+    // For MEMBER/ADMIN roles, require login
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Please log in to join as a member' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
     // Check if already a member
