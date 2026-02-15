@@ -1674,6 +1674,7 @@ function BillingView({ groups, isDemoMode, demoBookings }: { groups: Group[]; is
           date: b.startTime,
           aircraft: b.aircraft?.nNumber || '',
           hobbs,
+          tach: hobbs,
           cost: flightCost
         });
       });
