@@ -931,8 +931,8 @@ export default function FuelSaverPage() {
 
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col">
-      {/* Header - same width as panel */}
-      <div className="w-full lg:w-72 p-2 lg:p-3 bg-slate-800 border-b border-slate-700 flex-shrink-0">
+      {/* Header - full width */}
+      <div className="w-full p-2 lg:p-3 bg-slate-800 border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg lg:text-xl font-bold">Flight Planner & Fuel Saver</h1>
