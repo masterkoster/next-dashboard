@@ -658,6 +658,7 @@ export default function FuelSaverPage() {
     
     let totalDist = 0;
     const segments: number[] = [];
+    const legs: { from: Waypoint; to: Waypoint; distance: number; fuelNeeded: number; cost: number }[] = [];
     
     for (let i = 1; i < waypoints.length; i++) {
       const dist = calculateDistance(
@@ -666,9 +667,22 @@ export default function FuelSaverPage() {
       );
       totalDist += dist;
       segments.push(dist);
+      
+      // Calculate fuel and cost for this leg
+      const legFuel = (dist / selectedAircraft.speed) * selectedAircraft.burnRate * 1.25; // with reserves
+      const fuelPrice = fuelPrices[waypoints[i].icao]?.price100ll || 6.50;
+      const legCost = legFuel * fuelPrice;
+      
+      legs.push({
+        from: waypoints[i - 1],
+        to: waypoints[i],
+        distance: dist,
+        fuelNeeded: legFuel,
+        cost: legCost
+      });
     }
     
-    // Estimate fuel needed with reserves
+    // Estimate total fuel needed with reserves
     const flightHours = totalDist / selectedAircraft.speed;
     const fuelNeeded = flightHours * selectedAircraft.burnRate;
     const fuelWithReserves = fuelNeeded * 1.25; // 25% reserves
@@ -699,7 +713,8 @@ export default function FuelSaverPage() {
       fuelNeeded: fuelWithReserves.toFixed(1),
       estimatedCost: totalCost.toFixed(0),
       fuelStops,
-      segments
+      segments,
+      legs
     };
   }, [waypoints, selectedAircraft, departureFuel, fuelPrices]);
 
@@ -1116,6 +1131,40 @@ export default function FuelSaverPage() {
                     <div className="text-sm text-slate-400">Est. Fuel Cost</div>
                   </div>
                 </div>
+                
+                {/* Leg-by-leg breakdown */}
+                {routeStats.legs && routeStats.legs.length > 0 && (
+                  <div className="mt-4">
+                    <h3 className="font-medium mb-2">Route Legs:</h3>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {routeStats.legs.map((leg, i) => (
+                        <div key={i} className="flex items-center justify-between bg-slate-700 rounded-lg p-2 text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sky-400 font-bold">{leg.from.icao}</span>
+                            <span className="text-slate-500">→</span>
+                            <span className="text-amber-400 font-bold">{leg.to.icao}</span>
+                          </div>
+                          <div className="flex items-center gap-4 text-right">
+                            <div>
+                              <span className="text-slate-400">{Math.round(leg.distance)} NM</span>
+                            </div>
+                            <div>
+                              <span className="text-purple-400">{leg.fuelNeeded.toFixed(1)} gal</span>
+                            </div>
+                            <div>
+                              <span className="text-emerald-400 font-medium">${leg.cost.toFixed(0)}</span>
+                              {fuelPrices[leg.to.icao] && (
+                                <span className="text-xs text-slate-500 ml-1">
+                                  @ ${fuelPrices[leg.to.icao].price100ll}/gal
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 
                 {routeStats.fuelStops.length > 0 && (
                   <div className="mt-4">
