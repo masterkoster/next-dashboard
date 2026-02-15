@@ -960,41 +960,105 @@ export default function FuelSaverPage() {
           <div className="w-full lg:w-80 bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0" style={{ maxHeight: '40vh' }}>
             {/* Flight Plan Details */}
             <div>
-              <h2 className="text-lg font-semibold mb-2">Flight Plan</h2>
-              <div className="space-y-2">
-                <input
-                  type="text"
-                  value={flightPlanName}
-                  onChange={(e) => setFlightPlanName(e.target.value)}
-                  placeholder="Plan Name"
-                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
-                />
-                <div className="grid grid-cols-2 gap-2">
+              <h2 className="text-lg font-semibold mb-2">Flight Plan Details</h2>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Plan Name</label>
                   <input
                     type="text"
-                    value={callsign}
-                    onChange={(e) => setCallsign(e.target.value)}
-                    placeholder="Callsign"
-                    className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
-                  />
-                  <input
-                    type="text"
-                    value={pilotName}
-                    onChange={(e) => setPilotName(e.target.value)}
-                    placeholder="Pilot"
-                    className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    value={flightPlanName}
+                    onChange={(e) => setFlightPlanName(e.target.value)}
+                    placeholder="My Cross Country"
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
                   />
                 </div>
-                <select
-                  value={selectedAircraft.name}
-                  onChange={(e) => {
-                    const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
-                    if (ac) setSelectedAircraft(ac);
-                  }}
-                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
-                >
-                  {AIRCRAFT_PROFILES.map(p => (<option key={p.name} value={p.name}>{p.name}</option>))}
-                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Callsign</label>
+                    <input
+                      type="text"
+                      value={callsign}
+                      onChange={(e) => setCallsign(e.target.value)}
+                      placeholder="N12345"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Pilot Name</label>
+                    <input
+                      type="text"
+                      value={pilotName}
+                      onChange={(e) => setPilotName(e.target.value)}
+                      placeholder="John Doe"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Aircraft</label>
+                    <select
+                      value={selectedAircraft.name}
+                      onChange={(e) => {
+                        const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
+                        if (ac) setSelectedAircraft(ac);
+                      }}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    >
+                      {AIRCRAFT_PROFILES.map(p => (<option key={p.name} value={p.name}>{p.name}</option>))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Departure Time</label>
+                    <input
+                      type="datetime-local"
+                      value={departureTime}
+                      onChange={(e) => setDepartureTime(e.target.value)}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Cruising Alt (ft)</label>
+                    <input
+                      type="number"
+                      value={cruisingAlt}
+                      onChange={(e) => setCruisingAlt(parseInt(e.target.value))}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-slate-400 mb-1">Souls on Board</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={soulsOnBoard}
+                      onChange={(e) => setSoulsOnBoard(parseInt(e.target.value))}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Alternate Airport</label>
+                  <input
+                    type="text"
+                    value={alternateIcao}
+                    onChange={(e) => setAlternateIcao(e.target.value.toUpperCase())}
+                    placeholder="KABC"
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-400 mb-1">Remarks</label>
+                  <textarea
+                    value={remarks}
+                    onChange={(e) => setRemarks(e.target.value)}
+                    placeholder="Flight remarks..."
+                    rows={2}
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                  />
+                </div>
               </div>
             </div>
 
