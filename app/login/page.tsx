@@ -1,32 +1,34 @@
 'use client';
 
-import { signIn, useSession } from "next-auth/react";
+import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-function LoginForm() {
-  const { data: session, status } = useSession();
+export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Redirect if already logged in (only on client)
+  // Check if already logged in on mount
   useEffect(() => {
-    if (status === "authenticated") {
-      router.push("/dashboard");
-    }
-  }, [status, router]);
+    fetch('/api/auth/session')
+      .then(res => res.json())
+      .then(data => {
+        if (data?.user) {
+          router.push("/dashboard");
+        }
+      })
+      .catch(() => {});
+  }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setLoading(true);
 
-    console.log("Logging in with:", email);
-    
     const result = await signIn("credentials", {
       email,
       password,
@@ -34,7 +36,6 @@ function LoginForm() {
     });
 
     setLoading(false);
-    console.log("SignIn result:", result);
 
     if (result?.error) {
       setError("Invalid email or password");
@@ -44,24 +45,6 @@ function LoginForm() {
       setError("Something went wrong");
     }
   };
-
-  // Show loading while checking session
-  if (status === "loading") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-      </div>
-    );
-  }
-
-  // Don't show login form if already authenticated (will redirect)
-  if (status === "authenticated") {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
@@ -128,8 +111,4 @@ function LoginForm() {
       </div>
     </div>
   );
-}
-
-export default function LoginPage() {
-  return <LoginForm />;
 }
