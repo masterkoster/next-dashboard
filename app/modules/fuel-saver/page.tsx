@@ -958,7 +958,7 @@ export default function FuelSaverPage() {
         {showPanel && (
           <div className="w-full lg:w-72 lg:h-full bg-slate-800 border-b lg:border-r border-slate-700 flex flex-col">
             {/* Scrollable: Flight Plan Details + Route */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-2">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2">
               {/* Flight Plan Details */}
               <div>
                 <h2 className="text-base font-semibold mb-1.5">Flight Plan Details</h2>
@@ -1075,9 +1075,9 @@ export default function FuelSaverPage() {
                 />
                 <div className="space-y-1">
                   {waypoints.map((wp, i) => (
-                    <div key={wp.id} className="flex items-center justify-between bg-slate-700 rounded px-2 py-1 text-sm">
-                      <span><span className="text-slate-400">{i+1}.</span> <strong>{wp.icao}</strong></span>
-                      <button onClick={() => removeWaypoint(wp.id)} className="text-red-400 text-xs">✕</button>
+                    <div key={wp.id} className="flex items-center justify-between bg-slate-700 rounded px-2 py-1 text-sm overflow-x-hidden">
+                      <span className="truncate"><span className="text-slate-400">{i+1}.</span> <strong className="truncate">{wp.icao}</strong></span>
+                      <button onClick={() => removeWaypoint(wp.id)} className="text-red-400 text-xs flex-shrink-0">✕</button>
                     </div>
                   ))}
                 </div>
