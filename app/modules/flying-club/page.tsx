@@ -854,19 +854,21 @@ function MembersList({ groups }: { groups: Group[] }) {
       
       // Load pending invites for admin groups
       if (isAdmin) {
+        const allInvites: any[] = [];
         for (const group of userGroups.filter((g: any) => g.role === 'ADMIN')) {
           try {
             const res = await fetch(`/api/groups/${group.id}/invites`);
             if (res.ok) {
               const invites = await res.json();
               if (Array.isArray(invites)) {
-                setPendingInvites(prev => [...prev, ...invites.map((i: any) => ({ ...i, groupName: group.name }))]);
+                allInvites.push(...invites.map((i: any) => ({ ...i, groupName: group.name })));
               }
             }
           } catch (e) {
             console.error('Error loading invites:', e);
           }
         }
+        setPendingInvites(allInvites);
       }
       setLoading(false);
     };

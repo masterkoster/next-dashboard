@@ -81,6 +81,34 @@ export async function GET() {
 
     console.log('Memberships found:', memberships.length);
 
+    // Now fetch aircraft for each group
+    const groupIds = memberships.map((m: any) => m.id);
+    let aircraftMap: Record<string, any[]> = {};
+    
+    if (groupIds.length > 0) {
+      const aircraftList = await prisma.$queryRawUnsafe(`
+        SELECT a.*, fg.name as groupName
+        FROM ClubAircraft a
+        JOIN FlyingGroup fg ON a.groupId = fg.id
+        WHERE a.groupId IN (${groupIds.map((id: string) => "'" + id + "'").join(',')})
+      `) as any[];
+      
+      // Group aircraft by groupId
+      aircraftList.forEach((a: any) => {
+        if (!aircraftMap[a.groupId]) aircraftMap[a.groupId] = [];
+        aircraftMap[a.groupId].push({
+          id: a.id,
+          nNumber: a.nNumber,
+          nickname: a.nickname,
+          customName: a.customName,
+          make: a.make,
+          model: a.model,
+          status: a.status,
+          hourlyRate: a.hourlyRate ? Number(a.hourlyRate) : null,
+        });
+      });
+    }
+
     const groups = memberships.map((m: any) => ({
       id: m.id,
       name: m.name,
@@ -92,6 +120,7 @@ export async function GET() {
       createdAt: m.createdAt,
       updatedAt: m.updatedAt,
       role: m.role,
+      aircraft: aircraftMap[m.id] || [],
     }));
     
     return NextResponse.json(groups);
