@@ -108,6 +108,7 @@ export async function GET() {
 
     const userId = users[0].id;
     console.log('Fetching groups for user:', userId);
+    console.log('User email:', session.user.email);
 
     // Use raw SQL - SQL Server doesn't support ? placeholders in $queryRawUnsafe
     // userId is a UUID from auth, so string interpolation is safe
@@ -117,6 +118,9 @@ export async function GET() {
       JOIN FlyingGroup fg ON gm.groupId = fg.id
       WHERE gm.userId = '${userId}'
     `) as any[];
+
+    console.log('Memberships SQL:', memberships);
+    console.log('Memberships count:', memberships?.length || 0);
 
     console.log('Memberships found:', memberships.length);
 
