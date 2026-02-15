@@ -514,11 +514,11 @@ export default function FlyingClubPage() {
         )}
 
         {activeTab === 'flights' && (
-          <FlightsList groups={groups} />
+          <FlightsList groups={groups} isDemoMode={isDemoMode} demoLogs={isDemoMode ? demoFlightLogs : undefined} />
         )}
 
         {activeTab === 'maintenance' && (
-          <MaintenanceList groups={groups} />
+          <MaintenanceList groups={groups} isDemoMode={isDemoMode} demoMaintenance={isDemoMode ? demoMaintenance : undefined} />
         )}
 
         {activeTab === 'status' && (
@@ -526,7 +526,7 @@ export default function FlyingClubPage() {
         )}
 
         {activeTab === 'billing' && (
-          <BillingView groups={groups} />
+          <BillingView groups={groups} isDemoMode={isDemoMode} demoBookings={isDemoMode ? demoBookings : undefined} />
         )}
 
         {activeTab === 'members' && (
@@ -726,7 +726,7 @@ function AircraftList({ groups }: { groups: Group[] }) {
   );
 }
 
-function FlightsList({ groups }: { groups: Group[] }) {
+function FlightsList({ groups, isDemoMode, demoLogs }: { groups: Group[]; isDemoMode?: boolean; demoLogs?: any[] }) {
   const router = useRouter();
   const [allLogs, setAllLogs] = useState<{ log: any; groupName: string }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -741,6 +741,21 @@ function FlightsList({ groups }: { groups: Group[] }) {
         setLoading(false);
         return;
       }
+      
+      // Use demo data if available
+      if (isDemoMode && demoLogs) {
+        const data: { log: any; groupName: string }[] = [];
+        for (const log of demoLogs) {
+          const group = groups.find(g => g.aircraft?.some((a: any) => a.id === log.aircraftId));
+          if (group) {
+            data.push({ log, groupName: group.name });
+          }
+        }
+        setAllLogs(data.sort((a, b) => new Date(b.log.date).getTime() - new Date(a.log.date).getTime()));
+        setLoading(false);
+        return;
+      }
+      
       const data: { log: any; groupName: string }[] = [];
       for (const group of groups) {
         if (!group?.id) continue;
@@ -761,7 +776,7 @@ function FlightsList({ groups }: { groups: Group[] }) {
       setLoading(false);
     };
     loadLogs();
-  }, [groups]);
+  }, [groups, isDemoMode]);
 
   const filteredLogs = allLogs.filter(({ log, groupName }) => {
     if (filterUser) {
@@ -1052,7 +1067,7 @@ function MembersList({ groups }: { groups: Group[] }) {
   );
 }
 
-function MaintenanceList({ groups }: { groups: Group[] }) {
+function MaintenanceList({ groups, isDemoMode, demoMaintenance }: { groups: Group[]; isDemoMode?: boolean; demoMaintenance?: any[] }) {
   const [maintenance, setMaintenance] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -1078,34 +1093,18 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
     'Fuel drain',
   ];
 
-  const handleFixSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fixingMaintenance) return;
-    
-    const res = await fetch(`/api/maintenance/${fixingMaintenance.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        status: 'DONE',
-        cost: fixData.cost || null,
-        notes: fixData.notes,
-        isGrounded: fixData.isGrounded,
-      }),
-    });
-    
-    if (res.ok) {
-      setShowFixForm(false);
-      setFixingMaintenance(null);
-      setFixData({ notes: '', cost: '', isGrounded: false });
-      // Reload maintenance
-      const reloadRes = await fetch('/api/maintenance');
-      if (reloadRes.ok) {
-        setMaintenance(await reloadRes.json());
-      }
-    }
-  };
-
   useEffect(() => {
+    // Use demo data if available
+    if (isDemoMode && demoMaintenance) {
+      const data = demoMaintenance.map((m: any) => {
+        const group = groups.find(g => g.aircraft?.some((a: any) => a.id === m.aircraftId));
+        return { ...m, groupName: group?.name || 'Unknown' };
+      });
+      setMaintenance(data);
+      setLoading(false);
+      return;
+    }
+    
     fetch('/api/maintenance')
       .then(async (res) => {
         if (!res.ok) {
@@ -1464,7 +1463,7 @@ function MaintenanceList({ groups }: { groups: Group[] }) {
   );
 }
 
-function BillingView({ groups }: { groups: Group[] }) {
+function BillingView({ groups, isDemoMode, demoBookings }: { groups: Group[]; isDemoMode?: boolean; demoBookings?: any[] }) {
   const [billing, setBilling] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [month, setMonth] = useState(new Date().getMonth());
@@ -1556,8 +1555,72 @@ function BillingView({ groups }: { groups: Group[] }) {
   }, [adminGroups]);
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!isAdmin && !isDemoMode) return;
     
+    // Demo mode - generate fake billing from demo bookings
+    if (isDemoMode && demoBookings && adminGroups.length > 0) {
+      const groupId = selectedGroupId || adminGroups[0].id;
+      const group = groups.find((g: any) => g.id === groupId);
+      if (!group) {
+        setLoading(false);
+        return;
+      }
+      
+      // Filter bookings for selected group and month/year
+      const groupBookings = demoBookings.filter((b: any) => {
+        const bookingGroup = groups.find((g: any) => g.aircraft?.some((a: any) => a.id === b.aircraftId));
+        return bookingGroup?.id === groupId;
+      });
+      
+      const monthBookings = groupBookings.filter((b: any) => {
+        const bookingDate = new Date(b.startTime);
+        return bookingDate.getMonth() === month && bookingDate.getFullYear() === year;
+      });
+      
+      // Group by user
+      const memberMap = new Map();
+      monthBookings.forEach((b: any) => {
+        const userId = b.userId;
+        if (!memberMap.has(userId)) {
+          memberMap.set(userId, {
+            userId,
+            name: b.user?.name || 'Unknown',
+            email: b.user?.email || '',
+            flights: 0,
+            hobbs: 0,
+            tach: 0,
+            cost: 0,
+            flightDetails: []
+          });
+        }
+        const member = memberMap.get(userId);
+        member.flights++;
+        const hobbs = b.hobbsTime || Math.random() * 2 + 0.5;
+        member.hobbs += hobbs;
+        member.tach += hobbs;
+        const rate = group.hourlyRate || 165;
+        member.cost += hobbs * rate;
+        member.flightDetails.push({
+          date: b.startTime,
+          aircraft: b.aircraft?.nNumber || '',
+          hobbs,
+          cost: hobbs * rate
+        });
+      });
+      
+      const members = Array.from(memberMap.values());
+      setBilling({
+        members,
+        totalMembers: members.length,
+        totalFlights: monthBookings.length,
+        totalHobbs: members.reduce((sum: number, m: any) => sum + m.hobbs, 0),
+        totalCost: members.reduce((sum: number, m: any) => sum + m.cost, 0)
+      });
+      setLoading(false);
+      return;
+    }
+    
+    // Normal mode
     setLoading(true);
     setError(null);
     const groupParam = selectedGroupId ? `&groupId=${selectedGroupId}` : '';
@@ -1569,7 +1632,7 @@ function BillingView({ groups }: { groups: Group[] }) {
         setError(e.message);
       })
       .finally(() => setLoading(false));
-  }, [month, year, selectedGroupId, isAdmin]);
+  }, [month, year, selectedGroupId, isAdmin, isDemoMode]);
 
   if (!isAdmin) {
     return (
