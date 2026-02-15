@@ -22,17 +22,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const body = await request.json();
     const { status, cost, notes, isGrounded } = body;
 
-    // First get the maintenance record with its aircraft
+    // Get maintenance record first
     const maintenance = await prisma.maintenance.findUnique({
-      where: { id },
-      include: { aircraft: true }
+      where: { id }
     });
 
     if (!maintenance) {
       return NextResponse.json({ error: 'Maintenance not found' }, { status: 404 });
     }
 
-    // Get the aircraft's groupId
+    // Get the aircraft to find groupId
     const aircraft = await prisma.clubAircraft.findUnique({
       where: { id: maintenance.aircraftId }
     });
@@ -55,7 +54,7 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const resolvedDate = status === 'DONE' ? new Date() : null;
     const groundedStatus = isGrounded !== undefined ? isGrounded : (status === 'DONE' ? false : null);
 
-    // Use Prisma update instead of raw SQL
+    // Update maintenance
     await prisma.maintenance.update({
       where: { id },
       data: {
