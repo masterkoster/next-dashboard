@@ -131,10 +131,14 @@ const AIRCRAFT_PROFILES = [
 ];
 
 export default function FuelSaverPage() {
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const [mapBounds, setMapBounds] = useState({ minLat: 25, maxLat: 50, minLon: -130, maxLon: -65 });
+  // Core state
+  const [mapLoaded, setMapLoaded] = useState(true);
   const [airports, setAirports] = useState<Airport[]>([]);
   const [loadingAirports, setLoadingAirports] = useState(false);
+  const [mapBounds, setMapBounds] = useState({ minLat: 25, maxLat: 50, minLon: -130, maxLon: -65 });
+  const [showAllAirports, setShowAllAirports] = useState(false);
+  const [mapCenter, setMapCenter] = useState<[number, number]>([39.8283, -98.5795]);
+  const [mapZoom, setMapZoom] = useState(5);
   
   // Flight plan state
   const [flightPlanName, setFlightPlanName] = useState('');
@@ -155,11 +159,6 @@ export default function FuelSaverPage() {
   // Fuel data
   const [fuelPrices, setFuelPrices] = useState<Record<string, FuelPrice>>({});
   
-  // Map settings
-  const [showAllAirports, setShowAllAirports] = useState(false);
-  const [mapCenter, setMapCenter] = useState<[number, number]>([39.8283, -98.5795]); // US center
-  const [mapZoom, setMapZoom] = useState(5);
-  
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Airport[]>([]);
@@ -168,9 +167,6 @@ export default function FuelSaverPage() {
   // Panel visibility
   const [showPanel, setShowPanel] = useState(true);
   
-  // GPX/FPL file upload
-  const [fileInputRef] = useState<HTMLInputElement | null>(null);
-
   // Fetch airports when map bounds change
   useEffect(() => {
     if (!mapLoaded) return;

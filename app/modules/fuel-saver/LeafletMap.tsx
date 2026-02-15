@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react';
 import { MapContainer, TileLayer, Popup, Polyline, CircleMarker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
+// Fix Leaflet icon issue
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  delete (window as any).L?.Icon?.Default?.prototype?._getIconUrl;
+}
+
 interface Airport {
   icao: string;
   iata?: string;
