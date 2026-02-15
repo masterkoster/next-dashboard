@@ -346,20 +346,182 @@ export default function FuelSaverPage() {
     }
   };
 
+  // Parse flightplandatabase.com JSON format
+  const parseFPDBJson = async (content: string) => {
+    try {
+      const data = JSON.parse(content);
+      const newWaypoints: Waypoint[] = [];
+      
+      // Handle flightplandatabase.com JSON format
+      // The route is in data.route as array of waypoints
+      const route = data.route || data.plan?.route || [];
+      
+      for (const wp of route) {
+        // Each waypoint can have: id, name, type, lat, lon, airway
+        const lat = wp.lat || wp.latitude;
+        const lon = wp.lon || wp.longitude;
+        const icao = wp.id || wp.icao || wp.name;
+        
+        // Try to find airport in our database
+        let airport = DEMO_AIRPORTS.find(a => a.icao === icao?.substring(0, 4));
+        
+        if (airport || (lat && lon)) {
+          newWaypoints.push({
+            id: crypto.randomUUID(),
+            icao: airport?.icao || icao?.substring(0, 4) || 'WAYPT',
+            name: airport?.name || icao || 'Waypoint',
+            latitude: airport?.latitude || lat,
+            longitude: airport?.longitude || lon,
+            sequence: newWaypoints.length
+          });
+        }
+      }
+      
+      if (newWaypoints.length > 0) {
+        setWaypoints(newWaypoints);
+        setMapCenter([newWaypoints[0].latitude, newWaypoints[0].longitude]);
+        setMapZoom(6);
+        return true;
+      }
+    } catch (e) {
+      console.error('Error parsing FPDB JSON:', e);
+    }
+    return false;
+  };
+
+  // Parse flightplandatabase.com CSV format
+  const parseFPDBCSV = (content: string) => {
+    try {
+      const lines = content.split('\n');
+      const newWaypoints: Waypoint[] = [];
+      
+      // Skip header if present, find waypoint data
+      for (const line of lines) {
+        const parts = line.split(',').map(p => p.trim().replace(/"/g, ''));
+        if (parts.length < 3) continue;
+        
+        // Try to extract waypoint info - format varies
+        // Could be: id,type,lat,lon,airway or waypoint,lat,lon,alt,etc.
+        let lat: number | undefined, lon: number | undefined, icao: string | undefined;
+        
+        // Try to find lat/lon in the line
+        for (let i = 0; i < parts.length; i++) {
+          const val = parseFloat(parts[i]);
+          if (!isNaN(val)) {
+            if (val >= -90 && val <= 90 && !lat) lat = val;
+            else if (val >= -180 && val <= 180 && !lon) lon = val;
+          }
+          // Look for 4-letter ICAO codes
+          if (parts[i].match(/^[A-Z]{4}$/)) {
+            icao = parts[i];
+          }
+        }
+        
+        if (lat && lon) {
+          const airport = DEMO_AIRPORTS.find(a => a.icao === icao);
+          newWaypoints.push({
+            id: crypto.randomUUID(),
+            icao: airport?.icao || icao || `WPT${newWaypoints.length}`,
+            name: airport?.name || icao || 'Waypoint',
+            latitude: airport?.latitude || lat,
+            longitude: airport?.longitude || lon,
+            sequence: newWaypoints.length
+          });
+        }
+      }
+      
+      if (newWaypoints.length > 0) {
+        setWaypoints(newWaypoints);
+        setMapCenter([newWaypoints[0].latitude, newWaypoints[0].longitude]);
+        setMapZoom(6);
+        return true;
+      }
+    } catch (e) {
+      console.error('Error parsing FPDB CSV:', e);
+    }
+    return false;
+  };
+
+  // Import from flightplandatabase.com by plan ID
+  const importFromFPDB = async (planId: string) => {
+    try {
+      // Fetch from flightplandatabase.com API (public endpoint)
+      const res = await fetch(`https://flightplandatabase.com/api/plan/${planId}?format=json`);
+      if (!res.ok) {
+        alert('Plan not found. Check the plan ID.');
+        return;
+      }
+      const data = await res.json();
+      
+      // Parse the route from FPDB format
+      const newWaypoints: Waypoint[] = [];
+      const route = data.route || [];
+      
+      for (const wp of route) {
+        const lat = wp.lat;
+        const lon = wp.lon;
+        const waypointId = wp.id;
+        
+        // Try to find airport in our database
+        const airport = DEMO_AIRPORTS.find(a => a.icao === waypointId?.substring(0, 4));
+        
+        if (airport || (lat && lon)) {
+          newWaypoints.push({
+            id: crypto.randomUUID(),
+            icao: airport?.icao || waypointId?.substring(0, 4) || 'WAYPT',
+            name: airport?.name || waypointId || 'Waypoint',
+            latitude: airport?.latitude || lat,
+            longitude: airport?.longitude || lon,
+            sequence: newWaypoints.length
+          });
+        }
+      }
+      
+      if (newWaypoints.length > 0) {
+        setWaypoints(newWaypoints);
+        setMapCenter([newWaypoints[0].latitude, newWaypoints[0].longitude]);
+        setMapZoom(6);
+        
+        // Also fill in flight plan details if available
+        if (data.origin) {
+          setDepartureTime(data.departureTime || '');
+        }
+        if (data.altitude) {
+          setCruisingAlt(data.altitude);
+        }
+        
+        alert(`Imported ${newWaypoints.length} waypoints from flightplandatabase.com!`);
+      } else {
+        alert('No waypoints found in this plan.');
+      }
+    } catch (e) {
+      console.error('Error importing from FPDB:', e);
+      alert('Failed to import plan. Make sure the plan ID is correct.');
+    }
+  };
+
   // Handle file upload
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const content = event.target?.result as string;
-      if (file.name.toLowerCase().endsWith('.gpx')) {
+      const ext = file.name.toLowerCase();
+      
+      if (ext.endsWith('.gpx')) {
         parseGPX(content);
-      } else if (file.name.toLowerCase().endsWith('.fpl')) {
+      } else if (ext.endsWith('.fpl')) {
         parseFPL(content);
+      } else if (ext.endsWith('.json')) {
+        const success = await parseFPDBJson(content);
+        if (!success) alert('Could not parse JSON file. Make sure it\'s from flightplandatabase.com');
+      } else if (ext.endsWith('.csv')) {
+        const success = parseFPDBCSV(content);
+        if (!success) alert('Could not parse CSV file. Make sure it\'s from flightplandatabase.com');
       } else {
-        alert('Please upload a .gpx or .fpl file');
+        alert('Please upload a .gpx, .fpl, .json, or .csv file');
       }
     };
     reader.readAsText(file);
@@ -602,21 +764,60 @@ export default function FuelSaverPage() {
               </div>
             </div>
             
-            {/* Import GPX/FPL */}
+            {/* Import GPX/FPL/JSON/CSV */}
             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
               <h2 className="text-lg font-semibold mb-3">Import Flight Plan</h2>
-              <div className="flex gap-2">
-                <label className="flex-1 bg-slate-700 hover:bg-slate-600 rounded-lg px-4 py-2 cursor-pointer text-center transition">
-                  <span>Upload GPX/FPL</span>
+              
+              {/* File upload */}
+              <div className="mb-3">
+                <label className="block text-sm text-slate-400 mb-1">From File</label>
+                <label className="flex-1 bg-slate-700 hover:bg-slate-600 rounded-lg px-4 py-2 cursor-pointer text-center transition block">
+                  <span>Upload GPX, FPL, JSON, CSV</span>
                   <input
                     type="file"
-                    accept=".gpx,.fpl"
+                    accept=".gpx,.fpl,.json,.csv"
                     onChange={handleFileUpload}
                     className="hidden"
                   />
                 </label>
               </div>
-              <p className="text-xs text-slate-500 mt-2">Upload a GPX or FPL file to auto-populate waypoints</p>
+              
+              {/* From flightplandatabase.com */}
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">From flightplandatabase.com</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    id="fpdbPlanId"
+                    placeholder="Plan ID (e.g., 123456)"
+                    className="flex-1 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        const input = document.getElementById('fpdbPlanId') as HTMLInputElement;
+                        if (input.value) {
+                          importFromFPDB(input.value);
+                          input.value = '';
+                        }
+                      }
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      const input = document.getElementById('fpdbPlanId') as HTMLInputElement;
+                      if (input.value) {
+                        importFromFPDB(input.value);
+                        input.value = '';
+                      }
+                    }}
+                    className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded transition"
+                  >
+                    Import
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Enter a plan ID from <a href="https://flightplandatabase.com" target="_blank" rel="noopener noreferrer" className="underline">flightplandatabase.com</a>
+                </p>
+              </div>
             </div>
             
             {/* Waypoints List */}
