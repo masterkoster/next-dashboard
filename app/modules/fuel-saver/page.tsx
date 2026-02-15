@@ -958,7 +958,7 @@ export default function FuelSaverPage() {
         {showPanel && (
           <div className="w-full lg:w-72 lg:h-full bg-slate-800 border-b lg:border-r border-slate-700 flex flex-col">
             {/* Scrollable: Flight Plan Details + Route */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-2" style={{ maxHeight: 'calc(100vh - 220px)' }}>
+            <div className="flex-1 overflow-y-auto p-2 space-y-2">
               {/* Flight Plan Details */}
               <div>
                 <h2 className="text-base font-semibold mb-1.5">Flight Plan Details</h2>
