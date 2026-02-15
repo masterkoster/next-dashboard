@@ -163,6 +163,9 @@ export default function FuelSaverPage() {
   const [searchResults, setSearchResults] = useState<Airport[]>([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   
+  // Panel visibility
+  const [showPanel, setShowPanel] = useState(true);
+  
   // GPX/FPL file upload
   const [fileInputRef] = useState<HTMLInputElement | null>(null);
 
@@ -652,7 +655,9 @@ export default function FuelSaverPage() {
 
         <div className="flex flex-col lg:flex-row gap-4 p-4 pt-0">
           {/* Left Panel - Flight Plan Form */}
-          <div className="w-full lg:w-80 flex-shrink-0 space-y-4 overflow-y-auto" style={{ maxHeight: 'calc(100vh - 100px)' }}>
+          <div className={`flex-shrink-0 transition-all duration-300 ${showPanel ? 'w-full lg:w-80' : 'w-0 lg:w-12'} overflow-hidden`}>
+            {showPanel && (
+              <div className="space-y-4 overflow-y-auto pr-2" style={{ maxHeight: 'calc(100vh - 100px)' }}>
             {/* Flight Plan Details */}
             <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
               <h2 className="text-lg font-semibold mb-3">Flight Plan Details</h2>
@@ -924,11 +929,22 @@ export default function FuelSaverPage() {
             >
               Save Flight Plan
             </button>
+            </div>
+            )}
           </div>
           
           {/* Right Panel - Map */}
-          <div className="flex-1 min-h-[500px] lg:min-h-0">
-            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 h-full flex flex-col">
+          <div className="flex-1 min-h-[500px] lg:min-h-0 flex flex-col">
+            {/* Toggle button */}
+            <button
+              onClick={() => setShowPanel(!showPanel)}
+              className="self-start mb-2 bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-white"
+              title={showPanel ? 'Hide panel' : 'Show panel'}
+            >
+              {showPanel ? '◀' : '▶'}
+            </button>
+            
+            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex-1 flex flex-col">
               {/* Map Controls */}
               <div className="flex flex-wrap gap-3 mb-3 flex-shrink-0">
                 <div className="flex items-center gap-2">
