@@ -220,15 +220,8 @@ export default function FuelSaverPage() {
     
     // Determine if we need fuel stops
     const stops: RoutePoint[] = [];
-    let currentFuel = fuelAtStart;
-    let currentLat = departure.latitude;
-    let currentLon = departure.longitude;
-    let remainingDistance = distance;
     
-    // Simple algorithm: check for fuel stops every ~2 hours of flight
-    const maxRange = (fuelCapacityGal / aircraft.fuelBurnRate) * aircraft.cruiseSpeed * 0.8; // 80% of max range
-    
-    // For demo, find airports along the route (simplified)
+    // Find airports along route
     const airportsAlongRoute = DEMO_AIRPORTS.filter(a => {
       if (a.icao === departure.icao || a.icao === destination.icao) return false;
       const distFromRoute = calculateDistance(
@@ -236,14 +229,14 @@ export default function FuelSaverPage() {
         (departure.longitude + destination.longitude) / 2,
         a.latitude, a.longitude
       );
-      return distFromRoute < 150; // Within 150 NM of route center
+      return distFromRoute < 150;
     }).sort((a, b) => {
       const distA = calculateDistance(departure.latitude, departure.longitude, a.latitude, a.longitude);
       const distB = calculateDistance(departure.latitude, departure.longitude, b.latitude, b.longitude);
       return distA - distB;
     });
 
-    // Add departure point
+    // Add departure
     stops.push({
       airport: departure,
       fuelNeeded: 0,
@@ -251,9 +244,8 @@ export default function FuelSaverPage() {
       distanceFromPrevious: 0,
     });
 
-    // Check if we can make it direct
+    // Check direct or need stops
     if (fuelAtStart >= fuelNeeded) {
-      // Direct flight possible
       stops.push({
         airport: destination,
         fuelNeeded: fuelNeeded,
@@ -261,12 +253,10 @@ export default function FuelSaverPage() {
         distanceFromPrevious: distance,
       });
     } else {
-      // Need fuel stops - simplify for demo
-      const numStops = Math.ceil(fuelNeeded / (fuelCapacityGal * 0.8));
+      const numStops = Math.min(Math.ceil(fuelNeeded / (fuelCapacityGal * 0.8)), 3);
       const segmentDistance = distance / (numStops + 1);
       
-      for (let i = 0; i < numStops && i < 3; i++) {
-        // Find best airport for this segment
+      for (let i = 0; i < numStops; i++) {
         const targetDist = (i + 1) * segmentDistance;
         const bestStop = airportsAlongRoute.find(a => {
           const dist = calculateDistance(departure.latitude, departure.longitude, a.latitude, a.longitude);
@@ -276,7 +266,6 @@ export default function FuelSaverPage() {
         if (bestStop) {
           const distFromDep = calculateDistance(departure.latitude, departure.longitude, bestStop.latitude, bestStop.longitude);
           const segFuel = calculateFuelNeeded(distFromDep, aircraft.fuelBurnRate, aircraft.cruiseSpeed);
-          
           stops.push({
             airport: bestStop,
             fuelNeeded: segFuel,
@@ -290,7 +279,6 @@ export default function FuelSaverPage() {
       const lastStop = stops[stops.length - 1];
       const finalDist = calculateDistance(lastStop.airport.latitude, lastStop.airport.longitude, destination.latitude, destination.longitude);
       const finalFuel = calculateFuelNeeded(finalDist, aircraft.fuelBurnRate, aircraft.cruiseSpeed);
-      
       stops.push({
         airport: destination,
         fuelNeeded: finalFuel,
@@ -307,10 +295,14 @@ export default function FuelSaverPage() {
       ? DEMO_FUEL_PRICES.reduce((sum, f) => sum + (f.price100ll || 0), 0) / DEMO_FUEL_PRICES.length
       : 5.50;
     setEstimatedCost(fuelNeeded * avgPrice);
-    
-    // Draw on map
-    setTimeout(() => drawRouteOnMap(stops), 100);
   };
+
+  // Draw map when route changes
+  useEffect(() => {
+    if (route.length >= 2) {
+      drawRouteOnMap(route);
+    }
+  }, [route]);
 
   // Draw route on map using SVG (more React-friendly)
   const drawRouteOnMap = (stops: RoutePoint[]) => {
@@ -640,7 +632,7 @@ export default function FuelSaverPage() {
               <p className="text-amber-200 text-sm">
                 <span className="font-medium">Demo Mode:</span> This is using placeholder data. 
                 We're working on connecting real fuel price APIs. 
-                <Link href="/contact" className="underline ml-1">Contact us</Link> to help prioritize features.
+                <Link href="/signup" className="underline ml-1">Sign up</Link> to help prioritize features.
               </p>
             </div>
           </div>
