@@ -956,9 +956,9 @@ export default function FuelSaverPage() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left Panel - Flight Plan Form */}
         {showPanel && (
-          <div className="w-full lg:w-72 lg:h-full bg-slate-800 border-b lg:border-r border-slate-700 flex flex-col flex-shrink-0">
+          <div className="w-full lg:w-72 lg:h-full bg-slate-800 border-b lg:border-r border-slate-700 flex flex-col">
             {/* Scrollable: Flight Plan Details + Route */}
-            <div className="overflow-y-auto p-2 space-y-2 flex-1">
+            <div className="overflow-y-auto p-2 space-y-2 flex-1 min-h-0">
               {/* Flight Plan Details */}
               <div>
                 <h2 className="text-base font-semibold mb-1.5">Flight Plan Details</h2>
@@ -1073,7 +1073,7 @@ export default function FuelSaverPage() {
                   placeholder="Search airport..."
                   className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase mb-2 text-sm"
                 />
-                <div className="space-y-1 max-h-24 overflow-y-auto">
+                <div className="space-y-1">
                   {waypoints.map((wp, i) => (
                     <div key={wp.id} className="flex items-center justify-between bg-slate-700 rounded px-2 py-1 text-sm">
                       <span><span className="text-slate-400">{i+1}.</span> <strong>{wp.icao}</strong></span>
@@ -1118,6 +1118,24 @@ export default function FuelSaverPage() {
                   Save Plan
                 </button>
               </div>
+              
+              {/* Saved Plans List */}
+              {showPlanList && savedPlans.length > 0 && (
+                <div className="bg-slate-700 rounded p-2 space-y-2 max-h-32 overflow-y-auto">
+                  <div className="text-sm font-semibold text-slate-300">Saved Plans</div>
+                  {savedPlans.map((plan, i) => (
+                    <div key={i} className="flex items-center justify-between bg-slate-600 rounded p-2 text-sm">
+                      <button onClick={() => loadFlightPlan(plan)} className="text-left flex-1 hover:text-sky-400">
+                        <div className="font-medium">{plan.name || 'Untitled'}</div>
+                        <div className="text-xs text-slate-400">
+                          {plan.departureIcao} → {plan.arrivalIcao} • {plan.waypoints?.length || 0} waypoints
+                        </div>
+                      </button>
+                      <button onClick={() => deleteFlightPlan(i)} className="text-red-400 hover:text-red-300 px-2">✕</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
