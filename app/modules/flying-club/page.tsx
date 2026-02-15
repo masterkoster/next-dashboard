@@ -1925,7 +1925,7 @@ function BillingView({ groups, isDemoMode, demoBookings }: { groups: Group[]; is
                       </tr>
                     </thead>
                     <tbody>
-                      {selectedMemberDetails.details?.map((detail: any, di: number) => (
+                      {selectedMemberDetails.flightDetails?.map((detail: any, di: number) => (
                         <tr key={di} className="border-b border-slate-700">
                           <td className="p-3">{new Date(detail.date).toLocaleDateString()}</td>
                           <td className="p-3">{detail.aircraft}</td>
