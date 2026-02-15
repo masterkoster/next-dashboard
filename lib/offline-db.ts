@@ -370,10 +370,14 @@ export async function getConflicts(): Promise<ConflictItem[]> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('conflicts', 'readonly');
     const store = transaction.objectStore('conflicts');
-    const index = store.index('resolved');
-    const request = index.getAll(IDBKeyRange.only(false));
+    const request = store.getAll();
 
-    request.onsuccess = () => resolve(request.result || []);
+    request.onsuccess = () => {
+      // Filter in memory since resolved is boolean and IDBKeyRange doesn't work well with booleans
+      const all = request.result || [];
+      const unresolved = all.filter((c: ConflictItem) => c.resolved === false);
+      resolve(unresolved);
+    };
     request.onerror = () => reject(request.error);
   });
 }
@@ -387,10 +391,13 @@ export async function getConflictsCount(): Promise<number> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('conflicts', 'readonly');
     const store = transaction.objectStore('conflicts');
-    const index = store.index('resolved');
-    const request = index.count(IDBKeyRange.only(false));
+    const request = store.getAll();
 
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => {
+      const all = request.result || [];
+      const unresolved = all.filter((c: ConflictItem) => c.resolved === false);
+      resolve(unresolved.length);
+    };
     request.onerror = () => reject(request.error);
   });
 }
