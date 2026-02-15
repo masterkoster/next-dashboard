@@ -1313,6 +1313,24 @@ function BillingView({ groups }: { groups: Group[] }) {
 
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
+  // Format number with thousands separator
+  const formatNumber = (num: number | undefined | null, decimals = 0): string => {
+    if (num === undefined || num === null) return '0';
+    return num.toLocaleString('en-US', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
+  };
+
+  // Format currency with thousands separator
+  const formatCurrency = (amount: number | undefined | null): string => {
+    if (amount === undefined || amount === null) return '$0.00';
+    return '$' + amount.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+  };
+
   // Get groups where user is admin
   const adminGroups = groups?.filter((g: any) => g.role === 'ADMIN') || [];
   const isAdmin = adminGroups.length > 0;
@@ -1459,19 +1477,19 @@ function BillingView({ groups }: { groups: Group[] }) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
               <div className="text-slate-400 text-sm">Total Members</div>
-              <div className="text-2xl font-bold">{billing?.totalMembers || 0}</div>
+              <div className="text-2xl font-bold">{formatNumber(billing?.totalMembers)}</div>
             </div>
             <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
               <div className="text-slate-400 text-sm">Total Flights</div>
-              <div className="text-2xl font-bold">{billing?.totalFlights || 0}</div>
+              <div className="text-2xl font-bold">{formatNumber(billing?.totalFlights)}</div>
             </div>
             <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
               <div className="text-slate-400 text-sm">Total Hobbs</div>
-              <div className="text-2xl font-bold">{Number(billing?.totalHobbs || 0).toFixed(1)}</div>
+              <div className="text-2xl font-bold">{formatNumber(billing?.totalHobbs, 1)}</div>
             </div>
             <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
               <div className="text-slate-400 text-sm">Total Owed</div>
-              <div className="text-2xl font-bold text-green-400">${Number(billing?.totalCost || 0).toFixed(2)}</div>
+              <div className="text-2xl font-bold text-green-400">{formatCurrency(billing?.totalCost)}</div>
             </div>
           </div>
 
