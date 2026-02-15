@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
-export default function LoginPage() {
+function LoginForm() {
   const { data: session, status } = useSession();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -13,7 +13,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Redirect if already logged in
+  // Redirect if already logged in (only on client)
   useEffect(() => {
     if (status === "authenticated") {
       router.push("/dashboard");
@@ -45,6 +45,7 @@ export default function LoginPage() {
     }
   };
 
+  // Show loading while checking session
   if (status === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950">
@@ -53,9 +54,13 @@ export default function LoginPage() {
     );
   }
 
-  // If authenticated, don't show login form
+  // Don't show login form if already authenticated (will redirect)
   if (status === "authenticated") {
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-500"></div>
+      </div>
+    );
   }
 
   return (
@@ -123,4 +128,8 @@ export default function LoginPage() {
       </div>
     </div>
   );
+}
+
+export default function LoginPage() {
+  return <LoginForm />;
 }
