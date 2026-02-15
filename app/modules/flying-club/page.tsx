@@ -2466,12 +2466,14 @@ function AircraftStatus({ groups, isDemoMode }: { groups: Group[]; isDemoMode?: 
   ];
 
   const userGroups = groups?.filter((g: any) => g.role === 'ADMIN') || [];
-  const selectedGroup = userGroups.find((g: any) => g.id === selectedGroupId);
+  // In demo mode, user is admin of all groups
+  const adminGroups = isDemoMode ? groups : userGroups;
+  const selectedGroup = (adminGroups as any[])?.find((g: any) => g.id === selectedGroupId);
   const aircraftList = selectedGroup?.aircraft || [];
 
   useEffect(() => {
-    if (userGroups.length > 0 && !selectedGroupId) setSelectedGroupId(userGroups[0].id);
-  }, [userGroups]);
+    if (adminGroups.length > 0 && !selectedGroupId) setSelectedGroupId(adminGroups[0].id);
+  }, [adminGroups]);
 
   useEffect(() => {
     if (selectedGroupId && aircraftList.length > 0 && !selectedAircraftId) setSelectedAircraftId(aircraftList[0].id);
