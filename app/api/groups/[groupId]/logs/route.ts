@@ -118,7 +118,6 @@ export async function POST(request: Request, { params }: RouteParams) {
         data: {
           aircraftId,
           userId: user!.id,
-          groupId: groupId,
           description: maintenance.description,
           notes: maintenance.notes || null,
           status: 'NEEDED',
