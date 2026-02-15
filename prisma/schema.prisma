@@ -184,8 +184,7 @@ model Maintenance {
   id           String   @id @default(uuid())
   aircraftId   String
   userId       String
-  groupId      String?
-  description  String   @db.NVarChar(500)
+  description  String?  @db.NVarChar(Max)
   notes        String?  @db.NVarChar(Max)
   status       String   @default("NEEDED") @db.NVarChar(20)
   isGrounded   Boolean  @default(false)
