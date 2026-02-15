@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 
 // Types
@@ -23,9 +23,9 @@ interface FuelPrice {
 }
 
 interface AircraftProfile {
-  fuelCapacity: number; // gallons
-  fuelBurnRate: number; // GPH
-  cruiseSpeed: number; // KTS
+  fuelCapacity: number;
+  fuelBurnRate: number;
+  cruiseSpeed: number;
   fuelType: '100LL' | 'JET-A' | 'MOGAS';
 }
 
@@ -36,7 +36,7 @@ interface RoutePoint {
   distanceFromPrevious: number;
 }
 
-// Demo fuel prices (will connect to API later)
+// Demo fuel prices
 const DEMO_FUEL_PRICES: FuelPrice[] = [
   { icao: 'KORD', price100ll: 5.89, priceJetA: 4.99, priceMogas: null, lastUpdated: '2026-02-15' },
   { icao: 'KLAX', price100ll: 6.49, priceJetA: 5.59, priceMogas: null, lastUpdated: '2026-02-15' },
@@ -55,7 +55,7 @@ const DEMO_FUEL_PRICES: FuelPrice[] = [
   { icao: 'KDCA', price100ll: 6.29, priceJetA: 5.39, priceMogas: null, lastUpdated: '2026-02-15' },
 ];
 
-// Demo airports for search
+// Demo airports
 const DEMO_AIRPORTS: Airport[] = [
   { icao: 'KORD', iata: 'ORD', name: "Chicago O'Hare International", city: 'Chicago', country: 'United States', latitude: 41.9742, longitude: -87.9073 },
   { icao: 'KLAX', iata: 'LAX', name: 'Los Angeles International', city: 'Los Angeles', country: 'United States', latitude: 33.9425, longitude: -118.4081 },
@@ -72,86 +72,56 @@ const DEMO_AIRPORTS: Airport[] = [
   { icao: 'KBOS', iata: 'BOS', name: 'Boston Logan International', city: 'Boston', country: 'United States', latitude: 42.3656, longitude: -71.0096 },
   { icao: 'KMSP', iata: 'MSP', name: 'Minneapolis-St Paul International', city: 'Minneapolis', country: 'United States', latitude: 44.8820, longitude: -93.2218 },
   { icao: 'KDCA', iata: 'DCA', name: 'Ronald Reagan Washington National', city: 'Washington', country: 'United States', latitude: 38.8512, longitude: -77.0402 },
-  { icao: 'KSNA', iata: 'SNA', name: 'John Wayne Airport', city: 'Santa Ana', country: 'United States', latitude: 33.6762, longitude: -117.8682 },
-  { icao: 'KTUS', iata: 'TUS', name: 'Tucson International', city: 'Tucson', country: 'United States', latitude: 32.1143, longitude: -110.9381 },
-  { icao: 'KABQ', iata: 'ABQ', name: 'Albuquerque International Sunport', city: 'Albuquerque', country: 'United States', latitude: 35.0402, longitude: -106.6092 },
-  { icao: 'KSAN', iata: 'SAN', name: 'San Diego International', city: 'San Diego', country: 'United States', latitude: 32.7336, longitude: -117.1897 },
-  { icao: 'KPBI', iata: 'PBI', name: 'Palm Beach International', city: 'West Palm Beach', country: 'United States', latitude: 26.6832, longitude: -80.0959 },
-  { icao: 'KORD', iata: 'ORD', name: "Chicago O'Hare International", city: 'Chicago', country: 'United States', latitude: 41.9742, longitude: -87.9073 },
   { icao: 'KCLT', iata: 'CLT', name: 'Charlotte Douglas International', city: 'Charlotte', country: 'United States', latitude: 35.2144, longitude: -80.9473 },
   { icao: 'KSTL', iata: 'STL', name: 'St. Louis Lambert International', city: 'St. Louis', country: 'United States', latitude: 38.7499, longitude: -90.3742 },
-  { icao: 'KPHL', iata: 'PHL', name: 'Philadelphia International', city: 'Philadelphia', country: 'United States', latitude: 39.8744, longitude: -75.2424 },
-  { icao: 'KSLC', iata: 'SLC', name: 'Salt Lake City International', city: 'Salt Lake City', country: 'United States', latitude: 40.7899, longitude: -111.9791 },
-  { icao: 'KIND', iata: 'IND', name: 'Indianapolis International', city: 'Indianapolis', country: 'United States', latitude: 39.7173, longitude: -86.2944 },
-  { icao: 'KCVG', iata: 'CVG', name: 'Cincinnati/Northern Kentucky International', city: 'Cincinnati', country: 'United States', latitude: 39.0533, longitude: -84.6630 },
-  { icao: 'KCMH', iata: 'CMH', name: 'John Glenn Columbus International', city: 'Columbus', country: 'United States', latitude: 39.9980, longitude: -82.8919 },
   { icao: 'KPDX', iata: 'PDX', name: 'Portland International', city: 'Portland', country: 'United States', latitude: 45.5898, longitude: -122.5951 },
-  { icao: 'KSMF', iata: 'SMF', name: 'Sacramento International', city: 'Sacramento', country: 'United States', latitude: 38.6954, longitude: -121.5908 },
   { icao: 'KRDU', iata: 'RDU', name: 'Raleigh-Durham International', city: 'Raleigh', country: 'United States', latitude: 35.8801, longitude: -78.7880 },
+  { icao: 'KSMF', iata: 'SMF', name: 'Sacramento International', city: 'Sacramento', country: 'United States', latitude: 38.6954, longitude: -121.5908 },
+  { icao: 'KIND', iata: 'IND', name: 'Indianapolis International', city: 'Indianapolis', country: 'United States', latitude: 39.7173, longitude: -86.2944 },
+  { icao: 'KCMH', iata: 'CMH', name: 'John Glenn Columbus International', city: 'Columbus', country: 'United States', latitude: 39.9980, longitude: -82.8919 },
   { icao: 'KOMA', iata: 'OMA', name: 'Eppley Airfield', city: 'Omaha', country: 'United States', latitude: 41.3032, longitude: -95.8941 },
   { icao: 'KMCI', iata: 'MCI', name: 'Kansas City International', city: 'Kansas City', country: 'United States', latitude: 39.2976, longitude: -94.7139 },
   { icao: 'KMSY', iata: 'MSY', name: 'Louis Armstrong New Orleans International', city: 'New Orleans', country: 'United States', latitude: 29.9934, longitude: -90.2580 },
-  { icao: 'KBDL', iata: 'BDL', name: 'Bradley International', city: 'Windsor Locks', country: 'United States', latitude: 41.9389, longitude: -72.6832 },
-  { icao: 'KSWF', iata: 'SWF', name: 'Stewart International', city: 'Newburgh', country: 'United States', latitude: 41.5042, longitude: -74.1049 },
-  { icao: 'KMAF', iata: 'MAF', name: 'Midland International Air & Space Port', city: 'Midland', country: 'United States', latitude: 31.9425, longitude: -102.2019 },
+  { icao: 'KSLC', iata: 'SLC', name: 'Salt Lake City International', city: 'Salt Lake City', country: 'United States', latitude: 40.7899, longitude: -111.9791 },
   { icao: 'KABQ', iata: 'ABQ', name: 'Albuquerque International Sunport', city: 'Albuquerque', country: 'United States', latitude: 35.0402, longitude: -106.6092 },
-  { icao: 'KTUL', iata: 'TUL', name: 'Tulsa International', city: 'Tulsa', country: 'United States', latitude: 36.1989, longitude: -95.8881 },
-  { icao: 'KOKC', iata: 'OKC', name: 'Will Rogers World Airport', city: 'Oklahoma City', country: 'United States', latitude: 35.4264, longitude: -97.6008 },
-  { icao: 'KELP', iata: 'ELP', name: 'El Paso International', city: 'El Paso', country: 'United States', latitude: 31.8072, longitude: -106.3773 },
-  { icao: 'KRIC', iata: 'RIC', name: 'Richmond International', city: 'Richmond', country: 'United States', latitude: 37.5052, longitude: -77.3197 },
-  { icao: 'KBNA', iata: 'BNA', name: 'Nashville International', city: 'Nashville', country: 'United States', latitude: 36.1263, longitude: -86.6774 },
-  { icao: 'KJAX', iata: 'JAX', name: 'Jacksonville International', city: 'Jacksonville', country: 'United States', latitude: 30.4941, longitude: -81.6879 },
-  { icao: 'KCMI', iata: 'CMH', name: 'University of Illinois Willard', city: 'Champaign', country: 'United States', latitude: 40.0392, longitude: -88.2780 },
-  { icao: 'KBMI', iata: 'BMI', name: 'Central Illinois Regional', city: 'Bloomington', country: 'United States', latitude: 40.4779, longitude: -88.9159 },
-  { icao: 'KSPI', iata: 'SPI', name: 'Abraham Lincoln Capital', city: 'Springfield', country: 'United States', latitude: 39.8441, longitude: -89.6779 },
-  { icao: 'KLAF', iata: 'LAF', name: 'Purdue University', city: 'Lafayette', country: 'United States', latitude: 40.4123, longitude: -86.9368 },
-  { icao: 'KEWR', iata: 'EWR', name: 'Newark Liberty International', city: 'Newark', country: 'United States', latitude: 40.6895, longitude: -74.1745 },
-  { icao: 'KLGA', iata: 'LGA', name: 'LaGuardia International', city: 'New York', country: 'United States', latitude: 40.7769, longitude: -73.8740 },
-  { icao: 'KTTN', iata: 'TTN', name: 'Trenton-Mercer', city: 'Trenton', country: 'United States', latitude: 40.2766, longitude: -74.8135 },
-  { icao: 'KHPN', iata: 'HPN', name: 'Westchester County', city: 'White Plains', country: 'United States', latitude: 41.0670, longitude: -73.7076 },
-  { icao: 'KTEB', iata: 'TEB', name: 'Teterboro', city: 'Teterboro', country: 'United States', latitude: 40.8503, longitude: -74.0608 },
-  { icao: 'KDCA', iata: 'DCA', name: 'Ronald Reagan Washington National', city: 'Washington', country: 'United States', latitude: 38.8512, longitude: -77.0402 },
-  { icao: 'KIAD', iata: 'IAD', name: 'Washington Dulles International', city: 'Washington', country: 'United States', latitude: 38.9531, longitude: -77.4565 },
-  { icao: 'KBWI', iata: 'BWI', name: 'Baltimore/Washington International', city: 'Baltimore', country: 'United States', latitude: 39.1774, longitude: -76.6684 },
+  { icao: 'KSAN', iata: 'SAN', name: 'San Diego International', city: 'San Diego', country: 'United States', latitude: 32.7336, longitude: -117.1897 },
+  { icao: 'KTUS', iata: 'TUS', name: 'Tucson International', city: 'Tucson', country: 'United States', latitude: 32.1143, longitude: -110.9381 },
+  { icao: 'KPBI', iata: 'PBI', name: 'Palm Beach International', city: 'West Palm Beach', country: 'United States', latitude: 26.6832, longitude: -80.0959 },
 ];
 
-// Calculate distance between two coordinates (Haversine formula)
+// Calculate distance (NM)
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 3440.065; // Earth radius in nautical miles
+  const R = 3440.065;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
     Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c; // Returns distance in NM
+  return R * c;
 }
 
-// Get fuel price for an airport
 function getFuelPrice(icao: string): FuelPrice | undefined {
   return DEMO_FUEL_PRICES.find(f => f.icao === icao);
 }
 
-// Calculate fuel needed
 function calculateFuelNeeded(distanceNM: number, burnRateGPH: number, cruiseSpeedKTS: number, reservesPercent: number = 0.25): number {
   const flightHours = distanceNM / cruiseSpeedKTS;
   const fuelNeeded = flightHours * burnRateGPH;
-  const reserves = fuelNeeded * reservesPercent;
-  return fuelNeeded + reserves;
+  return fuelNeeded + (fuelNeeded * reservesPercent);
 }
 
 export default function FuelSaverPage() {
-  // State
   const [aircraft, setAircraft] = useState<AircraftProfile>({
-    fuelCapacity: 56, // Default for C172
-    fuelBurnRate: 8.5, // C172 GPH
-    cruiseSpeed: 120, // C172 cruise KTS
+    fuelCapacity: 56,
+    fuelBurnRate: 8.5,
+    cruiseSpeed: 120,
     fuelType: '100LL',
   });
   
   const [departure, setDeparture] = useState<Airport | null>(null);
   const [destination, setDestination] = useState<Airport | null>(null);
-  const [departureFuel, setDepartureFuel] = useState<number>(100); // Percentage
+  const [departureFuel, setDepartureFuel] = useState<number>(100);
   const [searchFrom, setSearchFrom] = useState('');
   const [searchTo, setSearchTo] = useState('');
   const [fromResults, setFromResults] = useState<Airport[]>([]);
@@ -163,12 +133,7 @@ export default function FuelSaverPage() {
   const [totalFuelNeeded, setTotalFuelNeeded] = useState<number>(0);
   const [fuelStops, setFuelStops] = useState<RoutePoint[]>([]);
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
-  const [mapLoaded, setMapLoaded] = useState(false);
-  
-  const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
 
-  // Search airports
   const searchAirports = (query: string): Airport[] => {
     if (!query || query.length < 2) return [];
     const q = query.toUpperCase();
@@ -180,28 +145,10 @@ export default function FuelSaverPage() {
     ).slice(0, 8);
   };
 
-  // Handle search input
-  useEffect(() => {
-    if (searchFrom.length >= 2) {
-      setFromResults(searchAirports(searchFrom));
-      setShowFromResults(true);
-    } else {
-      setFromResults([]);
-      setShowFromResults(false);
-    }
-  }, [searchFrom]);
+  // Memoized search results
+  const fromResultsMemo = useMemo(() => searchFrom.length >= 2 ? searchAirports(searchFrom) : [], [searchFrom]);
+  const toResultsMemo = useMemo(() => searchTo.length >= 2 ? searchAirports(searchTo) : [], [searchTo]);
 
-  useEffect(() => {
-    if (searchTo.length >= 2) {
-      setToResults(searchAirports(searchTo));
-      setShowToResults(true);
-    } else {
-      setToResults([]);
-      setShowToResults(false);
-    }
-  }, [searchTo]);
-
-  // Calculate route
   const calculateRoute = () => {
     if (!departure || !destination) return;
 
@@ -218,10 +165,8 @@ export default function FuelSaverPage() {
     const fuelCapacityGal = aircraft.fuelCapacity;
     const fuelAtStart = (departureFuel / 100) * fuelCapacityGal;
     
-    // Determine if we need fuel stops
     const stops: RoutePoint[] = [];
     
-    // Find airports along route
     const airportsAlongRoute = DEMO_AIRPORTS.filter(a => {
       if (a.icao === departure.icao || a.icao === destination.icao) return false;
       const distFromRoute = calculateDistance(
@@ -236,7 +181,6 @@ export default function FuelSaverPage() {
       return distA - distB;
     });
 
-    // Add departure
     stops.push({
       airport: departure,
       fuelNeeded: 0,
@@ -244,7 +188,6 @@ export default function FuelSaverPage() {
       distanceFromPrevious: 0,
     });
 
-    // Check direct or need stops
     if (fuelAtStart >= fuelNeeded) {
       stops.push({
         airport: destination,
@@ -275,7 +218,6 @@ export default function FuelSaverPage() {
         }
       }
       
-      // Add destination
       const lastStop = stops[stops.length - 1];
       const finalDist = calculateDistance(lastStop.airport.latitude, lastStop.airport.longitude, destination.latitude, destination.longitude);
       const finalFuel = calculateFuelNeeded(finalDist, aircraft.fuelBurnRate, aircraft.cruiseSpeed);
@@ -290,121 +232,55 @@ export default function FuelSaverPage() {
     setFuelStops(stops.slice(1, -1));
     setRoute(stops);
     
-    // Calculate estimated cost
     const avgPrice = DEMO_FUEL_PRICES.length > 0 
       ? DEMO_FUEL_PRICES.reduce((sum, f) => sum + (f.price100ll || 0), 0) / DEMO_FUEL_PRICES.length
       : 5.50;
     setEstimatedCost(fuelNeeded * avgPrice);
   };
 
-  // Draw map when route changes
-  useEffect(() => {
-    if (route.length >= 2) {
-      drawRouteOnMap(route);
-    }
+  // SVG map dimensions
+  const svgWidth = 600;
+  const svgHeight = 400;
+  const padding = 50;
+
+  // Calculate SVG path
+  const mapBounds = useMemo(() => {
+    if (route.length < 2) return null;
+    const lats = route.map(s => s.airport.latitude);
+    const lons = route.map(s => s.airport.longitude);
+    return {
+      minLat: Math.min(...lats) - 3,
+      maxLat: Math.max(...lats) + 3,
+      minLon: Math.min(...lons) - 3,
+      maxLon: Math.max(...lons) + 3,
+    };
   }, [route]);
 
-  // Draw route on map using SVG (more React-friendly)
-  const drawRouteOnMap = (stops: RoutePoint[]) => {
-    if (!mapContainerRef.current || stops.length < 2) return;
-
-    const container = mapContainerRef.current;
-    container.innerHTML = '';
-
-    // Get container dimensions
-    const width = container.clientWidth || 600;
-    const height = 400;
-    const padding = 50;
-
-    // Find bounds
-    const lats = stops.map(s => s.airport.latitude);
-    const lons = stops.map(s => s.airport.longitude);
-    const minLat = Math.min(...lats) - 3;
-    const maxLat = Math.max(...lats) + 3;
-    const minLon = Math.min(...lons) - 3;
-    const maxLon = Math.max(...lons) + 3;
-
-    const scaleX = (lon: number) => padding + ((lon - minLon) / (maxLon - minLon)) * (width - padding * 2);
-    const scaleY = (lat: number) => padding + ((maxLat - lat) / (maxLat - minLat)) * (height - padding * 2);
-
-    // Create SVG
-    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    svg.setAttribute('width', '100%');
-    svg.setAttribute('height', '400');
-    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
-    svg.style.background = '#1e293b';
-    svg.style.borderRadius = '12px';
-
-    // Draw route line
-    const routePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-    let pathD = '';
-    stops.forEach((stop, i) => {
-      const x = scaleX(stop.airport.longitude);
-      const y = scaleY(stop.airport.latitude);
-      pathD += `${i === 0 ? 'M' : 'L'} ${x} ${y} `;
-    });
-    routePath.setAttribute('d', pathD);
-    routePath.setAttribute('stroke', '#38bdf8');
-    routePath.setAttribute('stroke-width', '2');
-    routePath.setAttribute('stroke-dasharray', '5,5');
-    routePath.setAttribute('fill', 'none');
-    svg.appendChild(routePath);
-
-    // Draw airports
-    stops.forEach((stop, i) => {
-      const x = scaleX(stop.airport.longitude);
-      const y = scaleY(stop.airport.latitude);
-      const color = i === 0 ? '#22c55e' : i === stops.length - 1 ? '#ef4444' : '#f59e0b';
-
-      // Circle
-      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-      circle.setAttribute('cx', String(x));
-      circle.setAttribute('cy', String(y));
-      circle.setAttribute('r', '8');
-      circle.setAttribute('fill', color);
-      svg.appendChild(circle);
-
-      // Label
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', String(x));
-      text.setAttribute('y', String(y - 15));
-      text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('fill', 'white');
-      text.setAttribute('font-size', '12');
-      text.setAttribute('font-family', 'sans-serif');
-      text.textContent = stop.airport.icao;
-      svg.appendChild(text);
-
-      // Fuel price
-      const fuelPrice = getFuelPrice(stop.airport.icao);
-      if (fuelPrice && fuelPrice.price100ll) {
-        const priceText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        priceText.setAttribute('x', String(x));
-        priceText.setAttribute('y', String(y + 25));
-        priceText.setAttribute('text-anchor', 'middle');
-        priceText.setAttribute('fill', '#94a3b8');
-        priceText.setAttribute('font-size', '10');
-        priceText.setAttribute('font-family', 'sans-serif');
-        priceText.textContent = `$${fuelPrice.price100ll.toFixed(2)}/gal`;
-        svg.appendChild(priceText);
-      }
-    });
-
-    container.appendChild(svg);
-    setMapLoaded(true);
+  const scaleX = (lon: number) => {
+    if (!mapBounds) return svgWidth / 2;
+    return padding + ((lon - mapBounds.minLon) / (mapBounds.maxLon - mapBounds.minLon)) * (svgWidth - padding * 2);
   };
+
+  const scaleY = (lat: number) => {
+    if (!mapBounds) return svgHeight / 2;
+    return padding + ((mapBounds.maxLat - lat) / (mapBounds.maxLat - mapBounds.minLat)) * (svgHeight - padding * 2);
+  };
+
+  const pathD = route.map((stop, i) => {
+    const x = scaleX(stop.airport.longitude);
+    const y = scaleY(stop.airport.latitude);
+    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+  }).join(' ');
 
   return (
     <div className="min-h-screen bg-slate-900 text-white p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-sky-400">Fuel Saver</h1>
           <p className="text-slate-400">Plan your route, find the best fuel prices, and save money</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Inputs */}
           <div className="lg:col-span-1 space-y-6">
             {/* Aircraft Profile */}
             <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
@@ -457,20 +333,19 @@ export default function FuelSaverPage() {
             <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
               <h2 className="text-lg font-semibold mb-4">🗺️ Flight Plan</h2>
               <div className="space-y-4">
-                {/* Departure */}
                 <div className="relative">
                   <label className="block text-sm text-slate-400 mb-1">From</label>
                   <input
                     type="text"
-                    placeholder="Airport code (e.g., KORD)"
+                    placeholder="Airport code"
                     value={searchFrom}
                     onChange={(e) => setSearchFrom(e.target.value)}
                     onFocus={() => setShowFromResults(true)}
                     className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white uppercase"
                   />
-                  {showFromResults && fromResults.length > 0 && (
+                  {showFromResults && fromResultsMemo.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {fromResults.map((airport) => (
+                      {fromResultsMemo.map((airport) => (
                         <button
                           key={airport.icao}
                           onClick={() => {
@@ -488,20 +363,19 @@ export default function FuelSaverPage() {
                   )}
                 </div>
                 
-                {/* Destination */}
                 <div className="relative">
                   <label className="block text-sm text-slate-400 mb-1">To</label>
                   <input
                     type="text"
-                    placeholder="Airport code (e.g., KLAX)"
+                    placeholder="Airport code"
                     value={searchTo}
                     onChange={(e) => setSearchTo(e.target.value)}
                     onFocus={() => setShowToResults(true)}
                     className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white uppercase"
                   />
-                  {showToResults && toResults.length > 0 && (
+                  {showToResults && toResultsMemo.length > 0 && (
                     <div className="absolute z-10 w-full mt-1 bg-slate-700 border border-slate-600 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {toResults.map((airport) => (
+                      {toResultsMemo.map((airport) => (
                         <button
                           key={airport.icao}
                           onClick={() => {
@@ -519,9 +393,8 @@ export default function FuelSaverPage() {
                   )}
                 </div>
 
-                {/* Fuel at start */}
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Fuel at Departure (% of tank)</label>
+                  <label className="block text-sm text-slate-400 mb-1">Fuel at Departure (%)</label>
                   <input
                     type="range"
                     min="0"
@@ -533,7 +406,6 @@ export default function FuelSaverPage() {
                   <div className="text-center text-sky-400 font-medium">{departureFuel}%</div>
                 </div>
 
-                {/* Calculate Button */}
                 <button
                   onClick={calculateRoute}
                   disabled={!departure || !destination}
@@ -545,21 +417,45 @@ export default function FuelSaverPage() {
             </div>
           </div>
 
-          {/* Right Column - Results */}
           <div className="lg:col-span-2 space-y-6">
             {/* Map */}
             <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
               <h2 className="text-lg font-semibold mb-4">🗺️ Route Map</h2>
-              <div 
-                ref={mapContainerRef} 
-                className="w-full h-64 bg-slate-900 rounded-xl flex items-center justify-center"
-              >
-                {!mapLoaded && (
-                  <p className="text-slate-500">
-                    {departure && destination 
-                      ? 'Enter airports and click Calculate to see route'
-                      : 'Enter departure and destination airports'}
-                  </p>
+              <div className="w-full h-64 bg-slate-900 rounded-xl overflow-hidden">
+                {route.length >= 2 && mapBounds ? (
+                  <svg width="100%" height="100%" viewBox={`0 0 ${svgWidth} ${svgHeight}`} className="w-full h-full">
+                    {/* Background */}
+                    <rect width={svgWidth} height={svgHeight} fill="#1e293b" />
+                    
+                    {/* Route line */}
+                    <path d={pathD} stroke="#38bdf8" strokeWidth="2" strokeDasharray="5,5" fill="none" />
+                    
+                    {/* Airports */}
+                    {route.map((stop, i) => {
+                      const x = scaleX(stop.airport.longitude);
+                      const y = scaleY(stop.airport.latitude);
+                      const color = i === 0 ? '#22c55e' : i === route.length - 1 ? '#ef4444' : '#f59e0b';
+                      const fuelPrice = getFuelPrice(stop.airport.icao);
+                      
+                      return (
+                        <g key={stop.airport.icao + i}>
+                          <circle cx={x} cy={y} r="8" fill={color} />
+                          <text x={x} y={y - 15} textAnchor="middle" fill="white" fontSize="12" fontFamily="sans-serif">
+                            {stop.airport.icao}
+                          </text>
+                          {fuelPrice?.price100ll && (
+                            <text x={x} y={y + 25} textAnchor="middle" fill="#94a3b8" fontSize="10" fontFamily="sans-serif">
+                              ${fuelPrice.price100ll.toFixed(2)}/gal
+                            </text>
+                          )}
+                        </g>
+                      );
+                    })}
+                  </svg>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-slate-500">
+                    {departure && destination ? 'Click Calculate to see route' : 'Enter departure and destination'}
+                  </div>
                 )}
               </div>
             </div>
@@ -588,7 +484,6 @@ export default function FuelSaverPage() {
                   </div>
                 </div>
 
-                {/* Fuel Stops */}
                 {fuelStops.length > 0 && (
                   <div>
                     <h3 className="font-medium mb-3">⛽ Recommended Fuel Stops</h3>
@@ -605,7 +500,7 @@ export default function FuelSaverPage() {
                               {fuelPrice?.price100ll ? (
                                 <>
                                   <div className="text-emerald-400 font-medium">${fuelPrice.price100ll.toFixed(2)}/gal</div>
-                                  <div className="text-xs text-slate-500">Last updated: {fuelPrice.lastUpdated}</div>
+                                  <div className="text-xs text-slate-500">{fuelPrice.lastUpdated}</div>
                                 </>
                               ) : (
                                 <div className="text-slate-500">Price N/A</div>
@@ -618,16 +513,14 @@ export default function FuelSaverPage() {
                   </div>
                 )}
 
-                {fuelStops.length === 0 && route.length > 0 && (
+                {fuelStops.length === 0 && (
                   <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-lg p-4 text-center">
                     <span className="text-emerald-400 font-medium">✅ Direct flight possible!</span>
-                    <p className="text-sm text-slate-400 mt-1">You have enough fuel to make the trip without stopping.</p>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Demo Notice */}
             <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
               <p className="text-amber-200 text-sm">
                 <span className="font-medium">Demo Mode:</span> This is using placeholder data. 
