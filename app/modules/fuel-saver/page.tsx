@@ -933,130 +933,130 @@ export default function FuelSaverPage() {
   return (
     <div className="min-h-screen bg-slate-900 text-white flex flex-col">
       {/* Header */}
-      <div className="p-3 lg:p-4 bg-slate-800 border-b border-slate-700 flex-shrink-0">
-        <div className="flex items-center justify-between mb-2">
+      <div className="p-2 lg:p-3 bg-slate-800 border-b border-slate-700 flex-shrink-0">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl lg:text-3xl font-bold">Flight Planner & Fuel Saver</h1>
-            <p className="text-slate-400 text-sm">Plan your route, find fuel stops, and save your flight plan</p>
+            <h1 className="text-lg lg:text-xl font-bold">Flight Planner & Fuel Saver</h1>
+            <p className="text-slate-400 text-xs">Plan route, find fuel stops</p>
           </div>
           <button
             onClick={() => setShowPanel(!showPanel)}
-            className="bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-white"
+            className="bg-slate-700 hover:bg-slate-600 p-1.5 rounded-lg text-white"
           >
             {showPanel ? '✕' : '☰'}
           </button>
         </div>
         {/* Legend */}
-        <div className="flex flex-wrap gap-3 text-xs">
-          <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-red-500"></span> Large</div>
-          <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-orange-500"></span> Medium</div>
-          <div className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-green-500"></span> Small</div>
+        <div className="flex flex-wrap gap-2 text-xs mt-1">
+          <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Large</div>
+          <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Medium</div>
+          <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Small</div>
         </div>
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left Panel - Flight Plan Form */}
         {showPanel && (
-          <div className="w-full lg:w-80 lg:h-full bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0">
+          <div className="w-full lg:w-72 bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-2 space-y-2 flex-shrink-0" style={{ maxHeight: '55vh' }}>
             {/* Flight Plan Details */}
             <div>
-              <h2 className="text-lg font-semibold mb-2">Flight Plan Details</h2>
-              <div className="space-y-3">
+              <h2 className="text-base font-semibold mb-1.5">Flight Plan Details</h2>
+              <div className="space-y-2">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Plan Name</label>
+                  <label className="block text-xs text-slate-400 mb-0.5">Plan Name</label>
                   <input
                     type="text"
                     value={flightPlanName}
                     onChange={(e) => setFlightPlanName(e.target.value)}
                     placeholder="My Cross Country"
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Callsign</label>
+                    <label className="block text-xs text-slate-400 mb-0.5">Callsign</label>
                     <input
                       type="text"
                       value={callsign}
                       onChange={(e) => setCallsign(e.target.value)}
                       placeholder="N12345"
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Pilot Name</label>
+                    <label className="block text-xs text-slate-400 mb-0.5">Pilot Name</label>
                     <input
                       type="text"
                       value={pilotName}
                       onChange={(e) => setPilotName(e.target.value)}
                       placeholder="John Doe"
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Aircraft</label>
+                    <label className="block text-xs text-slate-400 mb-0.5">Aircraft</label>
                     <select
                       value={selectedAircraft.name}
                       onChange={(e) => {
                         const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
                         if (ac) setSelectedAircraft(ac);
                       }}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
                     >
                       {AIRCRAFT_PROFILES.map(p => (<option key={p.name} value={p.name}>{p.name}</option>))}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Departure Time</label>
+                    <label className="block text-xs text-slate-400 mb-0.5">Departure Time</label>
                     <input
                       type="datetime-local"
                       value={departureTime}
                       onChange={(e) => setDepartureTime(e.target.value)}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Cruising Alt (ft)</label>
+                    <label className="block text-xs text-slate-400 mb-0.5">Cruising Alt (ft)</label>
                     <input
                       type="number"
                       value={cruisingAlt}
                       onChange={(e) => setCruisingAlt(parseInt(e.target.value))}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Souls on Board</label>
+                    <label className="block text-xs text-slate-400 mb-0.5">Souls on Board</label>
                     <input
                       type="number"
                       min="1"
                       value={soulsOnBoard}
                       onChange={(e) => setSoulsOnBoard(parseInt(e.target.value))}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Alternate Airport</label>
+                  <label className="block text-xs text-slate-400 mb-0.5">Alternate Airport</label>
                   <input
                     type="text"
                     value={alternateIcao}
                     onChange={(e) => setAlternateIcao(e.target.value.toUpperCase())}
                     placeholder="KABC"
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white uppercase"
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase text-sm"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Remarks</label>
+                  <label className="block text-xs text-slate-400 mb-0.5">Remarks</label>
                   <textarea
                     value={remarks}
                     onChange={(e) => setRemarks(e.target.value)}
                     placeholder="Flight remarks..."
                     rows={2}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
                   />
                 </div>
               </div>
@@ -1064,19 +1064,19 @@ export default function FuelSaverPage() {
 
             {/* Waypoints */}
             <div>
-              <h2 className="text-lg font-semibold mb-2">Route ({waypoints.length} waypoints)</h2>
+              <h2 className="text-base font-semibold mb-1.5">Route ({waypoints.length} waypoints)</h2>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => handleSearch(e.target.value)}
                 placeholder="Search airport..."
-                className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white uppercase mb-2"
+                className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase mb-2 text-sm"
               />
-              <div className="space-y-1 max-h-32 overflow-y-auto">
+              <div className="space-y-1 max-h-24 overflow-y-auto">
                 {waypoints.map((wp, i) => (
-                  <div key={wp.id} className="flex items-center justify-between bg-slate-700 rounded p-2 text-sm">
+                  <div key={wp.id} className="flex items-center justify-between bg-slate-700 rounded px-2 py-1 text-sm">
                     <span><span className="text-slate-400">{i+1}.</span> <strong>{wp.icao}</strong></span>
-                    <button onClick={() => removeWaypoint(wp.id)} className="text-red-400">✕</button>
+                    <button onClick={() => removeWaypoint(wp.id)} className="text-red-400 text-xs">✕</button>
                   </div>
                 ))}
               </div>
@@ -1084,9 +1084,9 @@ export default function FuelSaverPage() {
 
             {/* Fuel Settings */}
             <div>
-              <h2 className="text-lg font-semibold mb-2">Fuel Settings</h2>
+              <h2 className="text-base font-semibold mb-1.5">Fuel Settings</h2>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Fuel at Departure: {departureFuel}%</label>
+                <label className="block text-xs text-slate-400 mb-0.5">Fuel at Departure: {departureFuel}%</label>
                 <input
                   type="range"
                   min="0"
@@ -1102,14 +1102,14 @@ export default function FuelSaverPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => setShowPlanList(!showPlanList)}
-                className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 rounded-lg"
+                className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-1.5 rounded-lg text-sm"
               >
                 Load Plan {savedPlans.length > 0 && `(${savedPlans.length})`}
               </button>
               <button
                 onClick={saveFlightPlan}
                 disabled={waypoints.length < 2}
-                className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 text-white font-semibold py-2 rounded-lg"
+                className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 text-white font-semibold py-1.5 rounded-lg text-sm"
               >
                 Save Plan
               </button>
@@ -1138,8 +1138,8 @@ export default function FuelSaverPage() {
         {/* Map - Always visible */}
         <div className="flex-1 flex flex-col">
           {/* Toolbar */}
-          <div className="bg-slate-800 p-2 flex gap-2 flex-wrap items-center flex-shrink-0">
-            <label className="bg-sky-500 hover:bg-sky-600 px-3 py-1 rounded text-sm cursor-pointer">
+          <div className="bg-slate-800 p-1.5 flex gap-1.5 flex-wrap items-center flex-shrink-0">
+            <label className="bg-sky-500 hover:bg-sky-600 px-2 py-1 rounded text-xs cursor-pointer">
               Import
               <input type="file" accept=".gpx,.fpl,.json,.csv" onChange={handleFileUpload} className="hidden" />
             </label>
@@ -1147,7 +1147,7 @@ export default function FuelSaverPage() {
               type="text"
               id="fpdbPlanId"
               placeholder="FPDB ID"
-              className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-sm flex-1"
+              className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs flex-1"
               onKeyDown={(e) => { if (e.key === 'Enter') { const input = document.getElementById('fpdbPlanId') as HTMLInputElement; if (input.value) { importFromFPDB(input.value); input.value = ''; } }}}
             />
             <input
@@ -1157,14 +1157,14 @@ export default function FuelSaverPage() {
               onChange={(e) => setShowAllAirports(e.target.checked)}
               className="rounded"
             />
-            <label htmlFor="showAll" className="text-sm">All</label>
+            <label htmlFor="showAll" className="text-xs">All</label>
           </div>
 
           {/* Map Container */}
-          <div className="flex-1 min-h-[300px]">
+          <div className="flex-1 min-h-[200px]">
             {!mapLoaded ? (
               <div className="h-full flex items-center justify-center bg-slate-800">
-                <button onClick={() => setMapLoaded(true)} className="bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 rounded-lg">
+                <button onClick={() => setMapLoaded(true)} className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm">
                   Load Map
                 </button>
               </div>
@@ -1183,17 +1183,17 @@ export default function FuelSaverPage() {
 
           {/* Route Summary */}
           {routeStats && (
-            <div className="bg-slate-800 p-3 flex-shrink-0 overflow-x-auto">
-              <div className="flex gap-4 text-sm">
+            <div className="bg-slate-800 p-2 flex-shrink-0 overflow-x-auto">
+              <div className="flex gap-3 text-xs">
                 <div className="text-center"><div className="text-sky-400 font-bold">{Math.round(routeStats.totalDistance)}</div><div className="text-slate-500">NM</div></div>
                 <div className="text-center"><div className="text-amber-400 font-bold">{routeStats.flightHours}h</div><div className="text-slate-500">Flight</div></div>
                 <div className="text-center"><div className="text-purple-400 font-bold">{routeStats.fuelNeeded}</div><div className="text-slate-500">Gal</div></div>
                 <div className="text-center"><div className="text-emerald-400 font-bold">${routeStats.estimatedCost}</div><div className="text-slate-500">Cost</div></div>
               </div>
               {routeStats.legs.length > 0 && (
-                <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+                <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-1">
                   {routeStats.legs.map((leg, i) => (
-                    <div key={i} className="flex-shrink-0 bg-slate-700 rounded p-2 text-xs">
+                    <div key={i} className="flex-shrink-0 bg-slate-700 rounded px-2 py-1 text-xs">
                       <span className="text-sky-400">{leg.from.icao}</span>→<span className="text-amber-400">{leg.to.icao}</span>
                       <div className="text-slate-400">{Math.round(leg.distance)}NM ${leg.cost.toFixed(0)}</div>
                     </div>
