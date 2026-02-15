@@ -285,8 +285,10 @@ export default function FuelSaverPage() {
     
     // Create canvas for simple route visualization
     const canvas = document.createElement('canvas');
-    canvas.width = mapRef.current!.clientWidth;
-    canvas.height = 400;
+    const canvasWidth = mapRef.current!.clientWidth || 600;
+    const canvasHeight = 400;
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
     canvas.style.width = '100%';
     canvas.style.height = '400px';
     canvas.style.borderRadius = '12px';
@@ -294,12 +296,15 @@ export default function FuelSaverPage() {
     mapRef.current!.appendChild(canvas);
     
     const ctx = canvas.getContext('2d');
-    if (!ctx || stops.length < 2) return;
+    if (!ctx || stops.length < 2 || canvasWidth === 0) {
+      mapRef.current.innerHTML = '<p class="text-slate-500 text-center py-16">Unable to render map</p>';
+      return;
+    }
     
     // Draw simple route line
     const padding = 40;
-    const width = canvas.width - padding * 2;
-    const height = canvas.height - padding * 2;
+    const width = canvasWidth - padding * 2;
+    const height = canvasHeight - padding * 2;
     
     // Find bounds
     const lats = stops.map(s => s.airport.latitude);
