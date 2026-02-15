@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for Leaflet components (no SSR)
@@ -220,35 +220,63 @@ export default function FuelSaverPage() {
     }
   }, [waypoints]);
 
-  // Search airports - searches demo + loaded airports
-  const handleSearch = (query: string) => {
+  // Debounced search ref
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Search airports - searches demo + loaded + cached airports
+  const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
+    
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+    
     if (query.length >= 2) {
-      const q = query.toUpperCase();
-      // Search demo airports
-      const demoResults = DEMO_AIRPORTS.filter(a =>
-        a.icao.includes(q) || a.iata?.includes(q) || 
-        a.name.toUpperCase().includes(q) || a.city?.toUpperCase().includes(q)
-      );
-      // Also search loaded airports from map
-      const mapResults = airports.filter(a =>
-        a.icao.toUpperCase().includes(q) || a.iata?.toUpperCase().includes(q) || 
-        a.name.toUpperCase().includes(q) || a.city?.toUpperCase().includes(q)
-      );
-      // Combine and dedupe
-      const combined = [...demoResults];
-      for (const a of mapResults) {
-        if (!combined.find(d => d.icao === a.icao)) {
-          combined.push(a);
+      // Debounce search by 150ms
+      searchTimeoutRef.current = setTimeout(() => {
+        const q = query.toUpperCase();
+        // Search demo airports
+        const demoResults = DEMO_AIRPORTS.filter(a =>
+          a.icao.includes(q) || a.iata?.includes(q) || 
+          a.name.toUpperCase().includes(q) || a.city?.toUpperCase().includes(q)
+        );
+        // Search current airports from map
+        const mapResults = airports.filter(a =>
+          a.icao.toUpperCase().includes(q) || a.iata?.toUpperCase().includes(q) || 
+          a.name.toUpperCase().includes(q) || a.city?.toUpperCase().includes(q)
+        );
+        // Search cached airports (accumulated from panning)
+        const cachedResults = cachedAirports.filter(a =>
+          a.icao.toUpperCase().includes(q) || a.iata?.toUpperCase().includes(q) || 
+          a.name.toUpperCase().includes(q) || a.city?.toUpperCase().includes(q)
+        );
+        // Combine and dedupe
+        const combined = [...demoResults];
+        const seen = new Set(combined.map(a => a.icao));
+        for (const a of [...mapResults, ...cachedResults]) {
+          if (!seen.has(a.icao)) {
+            seen.add(a.icao);
+            combined.push(a);
+          }
         }
-      }
-      setSearchResults(combined.slice(0, 10));
-      setShowSearchResults(true);
+        setSearchResults(combined.slice(0, 10));
+        setShowSearchResults(true);
+      }, 150);
     } else {
       setSearchResults([]);
       setShowSearchResults(false);
     }
-  };
+  }, [airports, cachedAirports]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Add waypoint
   const addWaypoint = (airport: Airport, index?: number) => {
@@ -838,9 +866,9 @@ export default function FuelSaverPage() {
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Left Panel - Flight Plan Form */}
+        {/* Left Panel - Flight Plan Form - full height on desktop */}
         {showPanel && (
-          <div className="w-full lg:w-96 bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0 lg:h-full lg:max-h-none" style={{ maxHeight: '40vh' }}>
+          <div className="w-full lg:w-96 lg:min-h-[calc(100vh-180px)] lg:h-[calc(100vh-180px)] bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0" style={{ maxHeight: '40vh' }}>
             {/* Flight Plan Details */}
             <div>
               <h2 className="text-lg font-semibold mb-2">Flight Plan</h2>
