@@ -165,7 +165,7 @@ export default function FuelSaverPage() {
   const [estimatedCost, setEstimatedCost] = useState<number>(0);
   const [mapLoaded, setMapLoaded] = useState(false);
   
-  const mapRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
 
   // Search airports
@@ -312,88 +312,93 @@ export default function FuelSaverPage() {
     setTimeout(() => drawRouteOnMap(stops), 100);
   };
 
-  // Draw route on map (simplified - will use Leaflet later)
+  // Draw route on map using SVG (more React-friendly)
   const drawRouteOnMap = (stops: RoutePoint[]) => {
-    if (!mapRef.current) return;
-    
-    // Clear previous
-    mapRef.current.innerHTML = '';
-    
-    // Create canvas for simple route visualization
-    const canvas = document.createElement('canvas');
-    const canvasWidth = mapRef.current!.clientWidth || 600;
-    const canvasHeight = 400;
-    canvas.width = canvasWidth;
-    canvas.height = canvasHeight;
-    canvas.style.width = '100%';
-    canvas.style.height = '400px';
-    canvas.style.borderRadius = '12px';
-    canvas.style.background = '#1e293b';
-    mapRef.current!.appendChild(canvas);
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx || stops.length < 2 || canvasWidth === 0) {
-      mapRef.current.innerHTML = '<p class="text-slate-500 text-center py-16">Unable to render map</p>';
-      return;
-    }
-    
-    // Draw simple route line
-    const padding = 40;
-    const width = canvasWidth - padding * 2;
-    const height = canvasHeight - padding * 2;
-    
+    if (!mapContainerRef.current || stops.length < 2) return;
+
+    const container = mapContainerRef.current;
+    container.innerHTML = '';
+
+    // Get container dimensions
+    const width = container.clientWidth || 600;
+    const height = 400;
+    const padding = 50;
+
     // Find bounds
     const lats = stops.map(s => s.airport.latitude);
     const lons = stops.map(s => s.airport.longitude);
-    const minLat = Math.min(...lats) - 2;
-    const maxLat = Math.max(...lats) + 2;
-    const minLon = Math.min(...lons) - 2;
-    const maxLon = Math.max(...lons) + 2;
-    
-    const scaleX = (lon: number) => padding + ((lon - minLon) / (maxLon - minLon)) * width;
-    const scaleY = (lat: number) => padding + ((maxLat - lat) / (maxLat - minLat)) * height;
-    
-    // Draw route
-    ctx.beginPath();
-    ctx.strokeStyle = '#38bdf8';
-    ctx.lineWidth = 3;
-    ctx.setLineDash([5, 5]);
-    
+    const minLat = Math.min(...lats) - 3;
+    const maxLat = Math.max(...lats) + 3;
+    const minLon = Math.min(...lons) - 3;
+    const maxLon = Math.max(...lons) + 3;
+
+    const scaleX = (lon: number) => padding + ((lon - minLon) / (maxLon - minLon)) * (width - padding * 2);
+    const scaleY = (lat: number) => padding + ((maxLat - lat) / (maxLat - minLat)) * (height - padding * 2);
+
+    // Create SVG
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '400');
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+    svg.style.background = '#1e293b';
+    svg.style.borderRadius = '12px';
+
+    // Draw route line
+    const routePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    let pathD = '';
     stops.forEach((stop, i) => {
       const x = scaleX(stop.airport.longitude);
       const y = scaleY(stop.airport.latitude);
-      if (i === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
+      pathD += `${i === 0 ? 'M' : 'L'} ${x} ${y} `;
     });
-    ctx.stroke();
-    ctx.setLineDash([]);
-    
+    routePath.setAttribute('d', pathD);
+    routePath.setAttribute('stroke', '#38bdf8');
+    routePath.setAttribute('stroke-width', '2');
+    routePath.setAttribute('stroke-dasharray', '5,5');
+    routePath.setAttribute('fill', 'none');
+    svg.appendChild(routePath);
+
     // Draw airports
     stops.forEach((stop, i) => {
       const x = scaleX(stop.airport.longitude);
       const y = scaleY(stop.airport.latitude);
-      
-      // Dot
-      ctx.beginPath();
-      ctx.arc(x, y, 8, 0, Math.PI * 2);
-      ctx.fillStyle = i === 0 ? '#22c55e' : i === stops.length - 1 ? '#ef4444' : '#f59e0b';
-      ctx.fill();
-      
+      const color = i === 0 ? '#22c55e' : i === stops.length - 1 ? '#ef4444' : '#f59e0b';
+
+      // Circle
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', String(x));
+      circle.setAttribute('cy', String(y));
+      circle.setAttribute('r', '8');
+      circle.setAttribute('fill', color);
+      svg.appendChild(circle);
+
       // Label
-      ctx.fillStyle = '#fff';
-      ctx.font = '12px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(stop.airport.icao, x, y - 15);
-      
-      // Fuel price if available
+      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      text.setAttribute('x', String(x));
+      text.setAttribute('y', String(y - 15));
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('fill', 'white');
+      text.setAttribute('font-size', '12');
+      text.setAttribute('font-family', 'sans-serif');
+      text.textContent = stop.airport.icao;
+      svg.appendChild(text);
+
+      // Fuel price
       const fuelPrice = getFuelPrice(stop.airport.icao);
       if (fuelPrice && fuelPrice.price100ll) {
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = '10px sans-serif';
-        ctx.fillText(`$${fuelPrice.price100ll.toFixed(2)}/gal`, x, y + 25);
+        const priceText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        priceText.setAttribute('x', String(x));
+        priceText.setAttribute('y', String(y + 25));
+        priceText.setAttribute('text-anchor', 'middle');
+        priceText.setAttribute('fill', '#94a3b8');
+        priceText.setAttribute('font-size', '10');
+        priceText.setAttribute('font-family', 'sans-serif');
+        priceText.textContent = `$${fuelPrice.price100ll.toFixed(2)}/gal`;
+        svg.appendChild(priceText);
       }
     });
-    
+
+    container.appendChild(svg);
     setMapLoaded(true);
   };
 
@@ -554,7 +559,7 @@ export default function FuelSaverPage() {
             <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
               <h2 className="text-lg font-semibold mb-4">🗺️ Route Map</h2>
               <div 
-                ref={mapRef} 
+                ref={mapContainerRef} 
                 className="w-full h-64 bg-slate-900 rounded-xl flex items-center justify-center"
               >
                 {!mapLoaded && (
