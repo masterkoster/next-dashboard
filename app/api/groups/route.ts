@@ -148,6 +148,7 @@ export async function GET() {
           model: a.model,
           status: a.status,
           hourlyRate: a.hourlyRate ? Number(a.hourlyRate) : null,
+          aircraftNotes: a.aircraftNotes,
         });
       });
     }
