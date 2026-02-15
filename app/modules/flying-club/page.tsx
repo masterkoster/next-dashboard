@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { demoGroups, demoBookings, demoMaintenance } from './demoData';
+import { demoGroups, demoBookings, demoMaintenance, demoFlightLogs } from './demoData';
 
 interface Group {
   id: string;
@@ -514,7 +514,7 @@ export default function FlyingClubPage() {
         )}
 
         {activeTab === 'flights' && (
-          <FlightsList groups={groups} isDemoMode={isDemoMode} demoLogs={isDemoMode ? demoFlightLogs : undefined} />
+          <FlightsList groups={groups} isDemoMode={isDemoMode} demoLogs={isDemoMode ? demoFlightLogs : undefined} demoParam={demoParam} />
         )}
 
         {activeTab === 'maintenance' && (
@@ -726,7 +726,7 @@ function AircraftList({ groups }: { groups: Group[] }) {
   );
 }
 
-function FlightsList({ groups, isDemoMode, demoLogs }: { groups: Group[]; isDemoMode?: boolean; demoLogs?: any[] }) {
+function FlightsList({ groups, isDemoMode, demoLogs, demoParam }: { groups: Group[]; isDemoMode?: boolean; demoLogs?: any[]; demoParam?: string }) {
   const router = useRouter();
   const [allLogs, setAllLogs] = useState<{ log: any; groupName: string }[]>([]);
   const [loading, setLoading] = useState(true);
