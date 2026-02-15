@@ -2473,24 +2473,31 @@ function AircraftStatus({ groups, isDemoMode }: { groups: Group[]; isDemoMode?: 
 
   useEffect(() => {
     if (adminGroups.length > 0 && !selectedGroupId) setSelectedGroupId(adminGroups[0].id);
-  }, [adminGroups]);
+  }, [adminGroups, groups]);
 
   useEffect(() => {
     if (selectedGroupId && aircraftList.length > 0 && !selectedAircraftId) setSelectedAircraftId(aircraftList[0].id);
-  }, [selectedGroupId, aircraftList]);
+  }, [selectedGroupId, aircraftList, selectedAircraftId]);
 
   useEffect(() => {
     if (selectedAircraftId) {
       const aircraft = aircraftList.find((a: any) => a.id === selectedAircraftId);
-      const parsed = aircraft?.aircraftNotes ? JSON.parse(aircraft.aircraftNotes) : {};
-      setStatusData({
-        ...parsed,
-        aircraftStatus: aircraft?.status || parsed.aircraftStatus || 'Available'
-      });
+      if (aircraft) {
+        let parsed: any = {};
+        try {
+          parsed = aircraft.aircraftNotes ? JSON.parse(aircraft.aircraftNotes) : {};
+        } catch (e) {
+          console.error('Error parsing aircraftNotes:', e);
+        }
+        setStatusData({
+          ...parsed,
+          aircraftStatus: aircraft.status || parsed.aircraftStatus || 'Available'
+        });
+      }
     }
     setLoading(false);
     setIsEditing(false);
-  }, [selectedAircraftId, aircraftList]);
+  }, [selectedAircraftId, aircraftList, adminGroups]);
 
   const handleSave = async () => {
     setSaving(true);
