@@ -936,8 +936,8 @@ export default function FuelSaverPage() {
       <div className="p-3 lg:p-4 bg-slate-800 border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center justify-between mb-2">
           <div>
-            <h1 className="text-xl lg:text-3xl font-bold">Flight Planner</h1>
-            <p className="text-slate-400 text-sm">Plan route, find fuel stops</p>
+            <h1 className="text-xl lg:text-3xl font-bold">Flight Planner & Fuel Saver</h1>
+            <p className="text-slate-400 text-sm">Plan your route, find fuel stops, and save your flight plan</p>
           </div>
           <button
             onClick={() => setShowPanel(!showPanel)}
@@ -955,9 +955,9 @@ export default function FuelSaverPage() {
       </div>
 
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Left Panel - Flight Plan Form - full height on desktop */}
+        {/* Left Panel - Flight Plan Form */}
         {showPanel && (
-          <div className="w-full lg:w-96 lg:min-h-[calc(100vh-180px)] lg:h-[calc(100vh-180px)] bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0" style={{ maxHeight: '40vh' }}>
+          <div className="w-full lg:w-80 bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0" style={{ maxHeight: '40vh' }}>
             {/* Flight Plan Details */}
             <div>
               <h2 className="text-lg font-semibold mb-2">Flight Plan</h2>
@@ -1000,7 +1000,7 @@ export default function FuelSaverPage() {
 
             {/* Waypoints */}
             <div>
-              <h2 className="text-lg font-semibold mb-2">Route ({waypoints.length})</h2>
+              <h2 className="text-lg font-semibold mb-2">Route ({waypoints.length} waypoints)</h2>
               <input
                 type="text"
                 value={searchQuery}
@@ -1015,6 +1015,22 @@ export default function FuelSaverPage() {
                     <button onClick={() => removeWaypoint(wp.id)} className="text-red-400">✕</button>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            {/* Fuel Settings */}
+            <div>
+              <h2 className="text-lg font-semibold mb-2">Fuel Settings</h2>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">Fuel at Departure: {departureFuel}%</label>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={departureFuel}
+                  onChange={(e) => setDepartureFuel(parseInt(e.target.value))}
+                  className="w-full"
+                />
               </div>
             </div>
 
