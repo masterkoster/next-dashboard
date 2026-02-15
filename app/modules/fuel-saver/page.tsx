@@ -957,7 +957,7 @@ export default function FuelSaverPage() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left Panel - Flight Plan Form */}
         {showPanel && (
-          <div className="w-full lg:w-80 bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0" style={{ maxHeight: '40vh' }}>
+          <div className="w-full lg:w-80 lg:h-full bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-3 space-y-3 flex-shrink-0">
             {/* Flight Plan Details */}
             <div>
               <h2 className="text-lg font-semibold mb-2">Flight Plan Details</h2>
