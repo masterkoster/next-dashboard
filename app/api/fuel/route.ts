@@ -57,3 +57,32 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch fuel data' }, { status: 500 });
   }
 }
+
+// POST - Cache a fuel price
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { icao, price100ll, source } = body;
+    
+    if (!icao || !price100ll) {
+      return NextResponse.json({ error: 'icao and price100ll required' }, { status: 400 });
+    }
+    
+    const db = await getDb();
+    
+    // Upsert fuel price into cache
+    await db.run(`
+      INSERT OR REPLACE INTO airport_cache (icao, data_type, price, source_site, last_updated)
+      VALUES (?, 'fuel', ?, ?, datetime('now'))
+    `, icao.toUpperCase(), price100ll, source || 'manual');
+    
+    return NextResponse.json({
+      success: true,
+      icao: icao.toUpperCase(),
+      price100ll
+    });
+  } catch (error) {
+    console.error('Error caching fuel data:', error);
+    return NextResponse.json({ error: 'Failed to cache fuel data' }, { status: 500 });
+  }
+}

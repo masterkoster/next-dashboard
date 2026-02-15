@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
-import Link from 'next/link';
+import { useState, useMemo, useEffect } from 'react';
 import useSWR from 'swr';
 
 // Types
@@ -112,6 +111,19 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 // Cache for fuel prices
 const fuelPriceCache: Record<string, FuelPrice> = {};
 
+// Cache a fuel price to the backend
+async function cacheFuelPrice(icao: string, price: number, source: string = 'manual') {
+  try {
+    await fetch('/api/fuel', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ icao, price100ll: price, source })
+    });
+  } catch (e) {
+    console.error('Error caching fuel price:', e);
+  }
+}
+
 async function getFuelPriceFromAPI(icao: string): Promise<FuelPrice | undefined> {
   // Check cache first
   if (fuelPriceCache[icao]) {
@@ -121,6 +133,9 @@ async function getFuelPriceFromAPI(icao: string): Promise<FuelPrice | undefined>
   // Check demo prices as fallback
   const demoPrice = DEMO_FUEL_PRICES.find(f => f.icao === icao);
   if (demoPrice) {
+    // Cache the demo price to backend for future use
+    cacheFuelPrice(icao, demoPrice.price100ll!, 'demo');
+    fuelPriceCache[icao] = demoPrice;
     return demoPrice;
   }
   
@@ -593,15 +608,6 @@ export default function FuelSaverPage() {
                     <span className="text-emerald-400 font-medium">✅ Direct flight possible!</span>
                   </div>
                 )}
-              </div>
-            )}
-
-            <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-4">
-              <p className="text-amber-200 text-sm">
-                <span className="font-medium">Demo Mode:</span> This is using placeholder data. 
-                We're working on connecting real fuel price APIs. 
-                <Link href="/signup" className="underline ml-1">Sign up</Link> to help prioritize features.
-              </p>
             </div>
           </div>
         </div>
