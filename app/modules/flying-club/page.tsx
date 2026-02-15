@@ -2501,6 +2501,17 @@ function AircraftStatus({ groups, isDemoMode }: { groups: Group[]; isDemoMode?: 
 
   const handleSave = async () => {
     setSaving(true);
+    
+    // In demo mode, just save locally in memory
+    if (isDemoMode) {
+      setMessage('Status saved (demo mode)!');
+      setTimeout(() => setMessage(''), 3000);
+      setIsEditing(false);
+      setSaving(false);
+      return;
+    }
+    
+    // Normal mode - save to server
     try {
       const aircraftStatus = statusData.aircraftStatus || 'Available';
       
