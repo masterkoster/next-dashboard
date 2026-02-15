@@ -15,6 +15,7 @@ interface Group {
   wetRate: number | null;
   hourlyRate?: number | null;
   aircraft?: Aircraft[];
+  members?: any[];
   role?: string;
   // Visibility settings
   showBookings?: boolean;
@@ -523,7 +524,7 @@ export default function FlyingClubPage() {
         )}
 
         {activeTab === 'status' && (
-          <AircraftStatus groups={groups} />
+          <AircraftStatus groups={groups} isDemoMode={isDemoMode} />
         )}
 
         {activeTab === 'billing' && (
@@ -531,7 +532,7 @@ export default function FlyingClubPage() {
         )}
 
         {activeTab === 'members' && (
-          <MembersList groups={groups} />
+          <MembersList groups={groups} isDemoMode={isDemoMode} demoGroups={isDemoMode ? demoGroups : undefined} />
         )}
 
         {activeTab === 'partners' && (
@@ -914,7 +915,7 @@ function FlightsList({ groups, isDemoMode, demoLogs, demoParam }: { groups: Grou
   );
 }
 
-function MembersList({ groups }: { groups: Group[] }) {
+function MembersList({ groups, isDemoMode, demoGroups }: { groups: Group[]; isDemoMode?: boolean; demoGroups?: any[] }) {
   const router = useRouter();
   const [allMembers, setAllMembers] = useState<{ member: any; groupName: string }[]>([]);
   const [pendingInvites, setPendingInvites] = useState<any[]>([]);
@@ -929,6 +930,23 @@ function MembersList({ groups }: { groups: Group[] }) {
         setLoading(false);
         return;
       }
+      
+      // Use demo data if in demo mode
+      if (isDemoMode && demoGroups) {
+        const data: { member: any; groupName: string }[] = [];
+        for (const group of groups) {
+          if (group.members && Array.isArray(group.members)) {
+            group.members.forEach((m: any) => {
+              data.push({ member: m, groupName: group.name });
+            });
+          }
+        }
+        setAllMembers(data);
+        setPendingInvites([]);
+        setLoading(false);
+        return;
+      }
+      
       const data: { member: any; groupName: string }[] = [];
       
       // Load members for each group the user belongs to
@@ -2392,7 +2410,7 @@ function NoGroupsPage() {
   );
 }
 
-function AircraftStatus({ groups }: { groups: Group[] }) {
+function AircraftStatus({ groups, isDemoMode }: { groups: Group[]; isDemoMode?: boolean }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [selectedGroupId, setSelectedGroupId] = useState('');

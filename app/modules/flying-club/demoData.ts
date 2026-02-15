@@ -63,6 +63,7 @@ export interface DemoBooking {
   purpose: string;
   createdAt: string;
   groupName: string;
+  hobbsTime?: number;
   aircraft: {
     id: string;
     nNumber: string;
@@ -305,6 +306,7 @@ export const demoBookings: DemoBooking[] = [
     purpose: 'Local practice flight - maneuvers and landings',
     createdAt: lastWeek.toISOString(),
     groupName: 'Sky High Flying Club',
+    hobbsTime: 2.0,
     aircraft: {
       id: 'demo-aircraft-1',
       nNumber: 'N172SP',
@@ -325,6 +327,7 @@ export const demoBookings: DemoBooking[] = [
     purpose: 'Cross-country to KCRQ',
     createdAt: lastWeek.toISOString(),
     groupName: 'Sky High Flying Club',
+    hobbsTime: 3.1,
     aircraft: {
       id: 'demo-aircraft-1',
       nNumber: 'N172SP',
@@ -345,6 +348,7 @@ export const demoBookings: DemoBooking[] = [
     purpose: 'Weekend local flight',
     createdAt: today.toISOString(),
     groupName: 'Sky High Flying Club',
+    hobbsTime: 2.0,
     aircraft: {
       id: 'demo-aircraft-1',
       nNumber: 'N172SP',
@@ -365,6 +369,7 @@ export const demoBookings: DemoBooking[] = [
     purpose: 'Cross-country to KBFL and back',
     createdAt: today.toISOString(),
     groupName: 'Sky High Flying Club',
+    hobbsTime: 4.0,
     aircraft: {
       id: 'demo-aircraft-2',
       nNumber: 'N9876P',
@@ -385,6 +390,7 @@ export const demoBookings: DemoBooking[] = [
     purpose: 'Weekend group flight to the coast',
     createdAt: twoDaysAgo.toISOString(),
     groupName: 'Weekend Warriors',
+    hobbsTime: 3.0,
     aircraft: {
       id: 'demo-aircraft-3',
       nNumber: 'N345AB',
