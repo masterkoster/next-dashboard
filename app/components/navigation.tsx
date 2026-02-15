@@ -28,6 +28,17 @@ export default function Navigation() {
   const [showInviteDropdown, setShowInviteDropdown] = useState(false);
   const [pendingInvites, setPendingInvites] = useState<Invite[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in
+    fetch('/api/auth/session')
+      .then(res => res.json())
+      .then(data => {
+        setIsLoggedIn(!!data?.user);
+      })
+      .catch(() => setIsLoggedIn(false));
+  }, []);
 
   useEffect(() => {
     const fetchInvites = async () => {
@@ -163,39 +174,48 @@ export default function Navigation() {
             </button>
           </div>
 
-          {/* Profile Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => { setShowDropdown(!showDropdown); setShowInviteDropdown(false); }}
-              className="flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 transition-colors"
+          {/* Login/Logout - Show Login when not logged in, Profile dropdown when logged in */}
+          {isLoggedIn ? (
+            <div className="relative">
+              <button
+                onClick={() => { setShowDropdown(!showDropdown); setShowInviteDropdown(false); }}
+                className="flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 transition-colors"
+              >
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span className="hidden sm:inline">Profile</span>
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {showDropdown && (
+                <div className="absolute right-0 mt-2 w-40 rounded-lg bg-slate-800 border border-slate-700 shadow-lg overflow-hidden z-50">
+                  <Link
+                    href="/profile"
+                    className="block px-4 py-2 text-sm text-slate-200 hover:bg-slate-700"
+                    onClick={() => setShowDropdown(false)}
+                  >
+                    My Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 transition-colors"
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-              <span className="hidden sm:inline">Profile</span>
-              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            
-            {showDropdown && (
-              <div className="absolute right-0 mt-2 w-40 rounded-lg bg-slate-800 border border-slate-700 shadow-lg overflow-hidden z-50">
-                <Link
-                  href="/profile"
-                  className="block px-4 py-2 text-sm text-slate-200 hover:bg-slate-700"
-                  onClick={() => setShowDropdown(false)}
-                >
-                  My Profile
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700"
-                >
-                  Logout
-                </button>
-              </div>
-            )}
-          </div>
+              Login
+            </Link>
+          )}
         </div>
       </div>
 

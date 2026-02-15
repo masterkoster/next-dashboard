@@ -108,28 +108,64 @@ export default function FlyingClubPage() {
 
   // Check for demo mode on mount
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('demo') === 'true') {
-      setIsDemoMode(true);
-      setShowDemoPopup(true);
-      setGroups(demoGroups as any);
-      setBookings(demoBookings as any);
-      
-      const groundedMaintenance = demoMaintenance.filter((m: any) => 
-        m.isGrounded && (m.status === 'NEEDED' || m.status === 'IN_PROGRESS')
-      );
-      
-      const maintenanceWithGroup = groundedMaintenance.map((m: any) => {
-        const group = demoGroups.find((g: any) => g.aircraft?.some((a: any) => a.id === m.aircraftId));
-        return {
-          ...m,
-          groupName: group?.name || 'Unknown Group'
-        };
+    // First check if user is logged in - if so, don't use demo mode
+    fetch('/api/auth/session')
+      .then(res => res.json())
+      .then(data => {
+        if (data?.user) {
+          // User is logged in, don't use demo mode
+          return;
+        }
+        
+        // User is not logged in, check for demo mode
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('demo') === 'true') {
+          setIsDemoMode(true);
+          setShowDemoPopup(true);
+          setGroups(demoGroups as any);
+          setBookings(demoBookings as any);
+          
+          const groundedMaintenance = demoMaintenance.filter((m: any) => 
+            m.isGrounded && (m.status === 'NEEDED' || m.status === 'IN_PROGRESS')
+          );
+          
+          const maintenanceWithGroup = groundedMaintenance.map((m: any) => {
+            const group = demoGroups.find((g: any) => g.aircraft?.some((a: any) => a.id === m.aircraftId));
+            return {
+              ...m,
+              groupName: group?.name || 'Unknown Group'
+            };
+          });
+          
+          setMaintenanceBlocks(maintenanceWithGroup);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        // On error, check for demo mode anyway
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('demo') === 'true') {
+          setIsDemoMode(true);
+          setShowDemoPopup(true);
+          setGroups(demoGroups as any);
+          setBookings(demoBookings as any);
+          
+          const groundedMaintenance = demoMaintenance.filter((m: any) => 
+            m.isGrounded && (m.status === 'NEEDED' || m.status === 'IN_PROGRESS')
+          );
+          
+          const maintenanceWithGroup = groundedMaintenance.map((m: any) => {
+            const group = demoGroups.find((g: any) => g.aircraft?.some((a: any) => a.id === m.aircraftId));
+            return {
+              ...m,
+              groupName: group?.name || 'Unknown Group'
+            };
+          });
+          
+          setMaintenanceBlocks(maintenanceWithGroup);
+          setLoading(false);
+        }
       });
-      
-      setMaintenanceBlocks(maintenanceWithGroup);
-      setLoading(false);
-    }
   }, []);
 
   const loadData = useCallback(async () => {
