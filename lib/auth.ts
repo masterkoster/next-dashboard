@@ -15,6 +15,7 @@ if (process.env.NODE_ENV !== "production") {
 
 // Auth secret - use env or fallback
 const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret-change-in-production-12345"
+const siteUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "https://next-dashboard-davids-projects.vercel.app"
 
 export const authOptions: any = {
   providers: [
@@ -78,6 +79,7 @@ export const authOptions: any = {
     })
   ],
   secret: authSecret,
+  url: siteUrl,
   session: { 
     strategy: "jwt" as const,
     maxAge: 30 * 24 * 60 * 60, // 30 days

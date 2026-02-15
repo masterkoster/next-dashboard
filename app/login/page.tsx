@@ -17,6 +17,8 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
 
+    console.log("Logging in with:", email);
+    
     const result = await signIn("credentials", {
       email,
       password,
@@ -24,6 +26,7 @@ export default function LoginPage() {
     });
 
     setLoading(false);
+    console.log("SignIn result:", result);
 
     if (result?.error) {
       setError("Invalid email or password");
