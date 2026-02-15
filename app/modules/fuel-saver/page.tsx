@@ -23,6 +23,8 @@ interface Waypoint {
   id: string;
   icao: string;
   name: string;
+  city?: string;
+  state?: string;
   latitude: number;
   longitude: number;
   altitude?: number;
@@ -239,6 +241,8 @@ export default function FuelSaverPage() {
       id: crypto.randomUUID(),
       icao: airport.icao,
       name: airport.name,
+      city: airport.city,
+      state: (airport as any).state,
       latitude: airport.latitude,
       longitude: airport.longitude,
       sequence: index ?? waypoints.length
@@ -333,6 +337,7 @@ export default function FuelSaverPage() {
               id: crypto.randomUUID(),
               icao: airport.icao,
               name: airport.name,
+              city: airport.city,
               latitude: airport.latitude,
               longitude: airport.longitude,
               sequence: seq++
@@ -373,6 +378,7 @@ export default function FuelSaverPage() {
             id: crypto.randomUUID(),
             icao: airport?.icao || icao?.substring(0, 4) || 'WAYPT',
             name: airport?.name || icao || 'Waypoint',
+            city: airport?.city,
             latitude: airport?.latitude || lat,
             longitude: airport?.longitude || lon,
             sequence: newWaypoints.length
@@ -426,6 +432,7 @@ export default function FuelSaverPage() {
             id: crypto.randomUUID(),
             icao: airport?.icao || icao || `WPT${newWaypoints.length}`,
             name: airport?.name || icao || 'Waypoint',
+            city: airport?.city,
             latitude: airport?.latitude || lat,
             longitude: airport?.longitude || lon,
             sequence: newWaypoints.length
@@ -473,6 +480,7 @@ export default function FuelSaverPage() {
             id: crypto.randomUUID(),
             icao: airport?.icao || waypointId?.substring(0, 4) || 'WAYPT',
             name: airport?.name || waypointId || 'Waypoint',
+            city: airport?.city,
             latitude: airport?.latitude || lat,
             longitude: airport?.longitude || lon,
             sequence: newWaypoints.length
@@ -520,6 +528,7 @@ export default function FuelSaverPage() {
           id: crypto.randomUUID(),
           icao: airport.icao,
           name: airport.name,
+          city: airport.city,
           latitude: airport.latitude,
           longitude: airport.longitude,
           sequence: newWaypoints.length
@@ -560,6 +569,7 @@ export default function FuelSaverPage() {
           id: crypto.randomUUID(),
           icao: airport?.icao || waypointName.substring(0, 4),
           name: airport?.name || waypointName,
+          city: airport?.city,
           latitude: airport?.latitude || lat,
           longitude: airport?.longitude || lon,
           sequence: newWaypoints.length
@@ -601,6 +611,7 @@ export default function FuelSaverPage() {
                 id: crypto.randomUUID(),
                 icao: airport.icao,
                 name: airport.name,
+                city: airport.city,
                 latitude: airport.latitude,
                 longitude: airport.longitude,
                 sequence: newWaypoints.length
@@ -790,13 +801,13 @@ export default function FuelSaverPage() {
           <p className="text-slate-400">Plan your route, find fuel stops, and save your flight plan</p>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 p-4 pt-0">
+        <div className="flex flex-col lg:flex-row gap-2 p-2 lg:p-4 pt-0">
           {/* Left Panel - Flight Plan Form */}
           <div className={`flex-shrink-0 transition-all duration-300 ${showPanel ? 'w-full lg:w-80' : 'w-0 lg:w-12'} overflow-hidden`}>
             {showPanel && (
-              <div className="space-y-4 overflow-y-auto pr-2" style={{ maxHeight: 'calc(100vh - 100px)' }}>
+              <div className="space-y-2 lg:space-y-4 overflow-y-auto pr-2 pb-20" style={{ maxHeight: 'calc(100vh - 120px)' }}>
             {/* Flight Plan Details */}
-            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+            <div className="bg-slate-800 rounded-xl p-3 lg:p-4 border border-slate-700">
               <h2 className="text-lg font-semibold mb-3">Flight Plan Details</h2>
               <div className="space-y-3">
                 <div>
@@ -907,7 +918,7 @@ export default function FuelSaverPage() {
             </div>
             
             {/* Waypoints List */}
-            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+            <div className="bg-slate-800 rounded-xl p-3 lg:p-4 border border-slate-700">
               <h2 className="text-lg font-semibold mb-3">Route ({waypoints.length} waypoints)</h2>
               
               {/* Add Waypoint Search */}
@@ -987,7 +998,7 @@ export default function FuelSaverPage() {
             </div>
             
             {/* Fuel Settings */}
-            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700">
+            <div className="bg-slate-800 rounded-xl p-3 lg:p-4 border border-slate-700">
               <h2 className="text-lg font-semibold mb-3">Fuel Settings</h2>
               <div>
                 <label className="block text-sm text-slate-400 mb-1">Fuel at Departure: {departureFuel}%</label>
@@ -1015,9 +1026,9 @@ export default function FuelSaverPage() {
           </div>
           
           {/* Right Panel - Map */}
-          <div className="flex-1 min-h-[500px] lg:min-h-0 flex flex-col">
+          <div className="flex-1 min-h-[400px] lg:min-h-0 flex flex-col">
             {/* Toggle button and import in toolbar */}
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <button
                 onClick={() => setShowPanel(!showPanel)}
                 className="bg-slate-700 hover:bg-slate-600 p-2 rounded-lg text-white"
@@ -1139,10 +1150,19 @@ export default function FuelSaverPage() {
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {routeStats.legs.map((leg, i) => (
                         <div key={i} className="flex items-center justify-between bg-slate-700 rounded-lg p-2 text-sm">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sky-400 font-bold">{leg.from.icao}</span>
-                            <span className="text-slate-500">→</span>
-                            <span className="text-amber-400 font-bold">{leg.to.icao}</span>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sky-400 font-bold">{leg.from.icao}</span>
+                              <span className="text-slate-500 text-xs">
+                                {leg.from.city || leg.from.name.substring(0, 15)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-amber-400 font-bold">{leg.to.icao}</span>
+                              <span className="text-slate-500 text-xs">
+                                {leg.to.city || leg.to.name.substring(0, 15)}
+                              </span>
+                            </div>
                           </div>
                           <div className="flex items-center gap-4 text-right">
                             <div>

@@ -100,7 +100,11 @@ function AirportPopup({ airport, onAddToRoute }: { airport: Airport; onAddToRout
       <strong className="text-lg">{airport.icao}</strong>
       {airport.iata && <span className="ml-2 text-slate-500">({airport.iata})</span>}
       <div className="font-medium">{airport.name}</div>
-      <div className="text-sm text-slate-600">{airport.city}</div>
+      {details?.city && (
+        <div className="text-sm text-slate-600">
+          {details.city}{details.state && `, ${details.state}`}
+        </div>
+      )}
       
       {details && (
         <>
