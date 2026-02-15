@@ -38,12 +38,15 @@ export async function GET(request: Request, { params }: RouteParams) {
       take: 100,
     });
 
-    // Get maintenance for this group
-    const maintenance = await prisma.maintenance.findMany({
-      where: { groupId },
-      orderBy: { reportedDate: 'desc' },
-      take: 20,
-    });
+    // Get maintenance for this group via aircraft
+    const maintenance = await prisma.$queryRawUnsafe(`
+      SELECT m.* 
+      FROM Maintenance m
+      JOIN ClubAircraft a ON m.aircraftId = a.id
+      WHERE a.groupId = ?
+      ORDER BY m.reportedDate DESC
+      FETCH FIRST 20 ROWS ONLY
+    `, groupId) as any[];
 
     return NextResponse.json({ logs: logs || [], maintenance });
   } catch (error) {
