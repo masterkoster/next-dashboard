@@ -112,6 +112,27 @@ export default function LandingPage() {
             </ul>
           </Link>
 
+          {/* Fuel Saver - Demo */}
+          <Link href="/modules/fuel-saver" className="group block rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-lg hover:border-amber-500/50 transition">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-3xl">⛽</span>
+              <span className="text-xs font-medium px-2 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                DEMO
+              </span>
+            </div>
+            <h3 className="text-lg font-semibold text-white">Fuel Saver</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              Never overpay for fuel. Find the cheapest prices along your route, 
+              track fuel burns, and optimize your flights for economy.
+            </p>
+            <ul className="mt-3 space-y-1 text-xs text-slate-500">
+              <li>○ Route fuel planning</li>
+              <li>○ Fuel price comparison</li>
+              <li>○ Cost estimation</li>
+              <li>○ Fuel stop suggestions</li>
+            </ul>
+          </Link>
+
         </div>
       </div>
 
@@ -142,27 +163,6 @@ export default function LandingPage() {
               <li>○ Price analytics</li>
               <li>○ Market trends</li>
               <li>○ Save searches</li>
-            </ul>
-          </div>
-
-          {/* Fuel Saver */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg opacity-60">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-3xl">⛽</span>
-              <span className="text-xs font-medium px-2 py-1 rounded-full bg-slate-700 text-slate-400 border border-slate-600">
-                PLANNED
-              </span>
-            </div>
-            <h3 className="text-lg font-semibold text-white">Fuel Saver</h3>
-            <p className="mt-2 text-sm text-slate-400">
-              Never overpay for fuel. Find the cheapest prices along your route, 
-              track fuel burns, and optimize your flights for economy.
-            </p>
-            <ul className="mt-3 space-y-1 text-xs text-slate-600">
-              <li>○ Fuel price lookup</li>
-              <li>○ Route optimization</li>
-              <li>○ Fuel burn tracking</li>
-              <li>○ Historical analytics</li>
             </ul>
           </div>
 
