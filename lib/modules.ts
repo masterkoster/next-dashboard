@@ -24,4 +24,10 @@ export const moduleCatalog: ModuleDefinition[] = [
     href: "/modules/tailhistory",
     description: "3D timeline of aircraft history",
   },
+  {
+    id: "fuel-saver",
+    label: "Fuel Saver",
+    href: "/modules/fuel-saver",
+    description: "Find cheapest fuel along your route",
+  },
 ];

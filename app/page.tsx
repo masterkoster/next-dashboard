@@ -18,7 +18,7 @@ export default function LandingPage() {
       {/* Modules Grid - Accessible without login */}
       <div className="mx-auto max-w-6xl px-6 pb-20">
         <h2 className="mb-6 text-xl font-semibold text-white">Try Our Tools</h2>
-        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto">
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
           
           {/* Plane Carfax */}
           <Link
@@ -56,6 +56,30 @@ export default function LandingPage() {
             <h3 className="text-lg font-semibold text-white">Plane Search</h3>
             <p className="mt-2 text-sm text-slate-400">
               Search and filter aircraft by manufacturer, model, year, and more.
+            </p>
+            <div className="mt-4 flex items-center gap-2 text-sm font-medium text-slate-500">
+              Coming soon →
+            </div>
+          </div>
+
+          {/* Fuel Saver - Coming Soon */}
+          <div className="group rounded-2xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg opacity-60">
+            <div className="text-3xl mb-3">⛽</div>
+            <h3 className="text-lg font-semibold text-white">Fuel Saver</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              Find the cheapest fuel prices along your route. Save money on every flight.
+            </p>
+            <div className="mt-4 flex items-center gap-2 text-sm font-medium text-slate-500">
+              Coming soon →
+            </div>
+          </div>
+
+          {/* TailHistory - Coming Soon */}
+          <div className="group rounded-2xl border border-slate-800 bg-slate-900/40 p-6 shadow-lg opacity-60">
+            <div className="text-3xl mb-3">📜</div>
+            <h3 className="text-lg font-semibold text-white">TailHistory</h3>
+            <p className="mt-2 text-sm text-slate-400">
+              3D timeline view of aircraft registration history and ownership changes.
             </p>
             <div className="mt-4 flex items-center gap-2 text-sm font-medium text-slate-500">
               Coming soon →

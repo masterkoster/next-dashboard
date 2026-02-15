@@ -59,6 +59,7 @@ export default function GroupDetailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const isDemoMode = searchParams.get('demo') === 'true';
+  const demoParam = isDemoMode ? '?demo=true' : '';
   const [group, setGroup] = useState<Group | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -135,7 +136,7 @@ export default function GroupDetailPage() {
           <h1 className="text-2xl font-bold text-red-400 mb-4">Error</h1>
           <p className="text-slate-400">{error || 'Group not found'}</p>
           <button
-            onClick={() => router.push('/modules/flying-club')}
+            onClick={() => router.push(`/modules/flying-club${demoParam ? demoParam : ''}`)}
             className="mt-6 text-sky-400 hover:underline"
           >
             ← Back to Flying Club
@@ -149,7 +150,7 @@ export default function GroupDetailPage() {
     <div className="min-h-screen bg-slate-900 text-white p-8">
       <div className="max-w-6xl mx-auto">
         <button
-          onClick={() => router.push('/modules/flying-club')}
+          onClick={() => router.push(`/modules/flying-club${demoParam ? demoParam : ''}`)}
           className="text-slate-400 hover:text-white mb-6 flex items-center gap-2"
         >
           ← Back to Groups
