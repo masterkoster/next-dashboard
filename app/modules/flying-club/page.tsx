@@ -488,7 +488,7 @@ function BookingsList({ bookings, groups }: { bookings: Booking[]; groups: Group
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Bookings</h2>
-        <Link href="/modules/flying-club/groups/new" className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium">
+        <Link href="/modules/flying-club/groups" className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium">
           + New Booking
         </Link>
       </div>
@@ -601,7 +601,7 @@ function AircraftList({ groups }: { groups: Group[] }) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold">Aircraft</h2>
-        <Link href="/modules/flying-club/groups/new" className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium">
+        <Link href="/modules/flying-club/groups" className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium">
           + Add Aircraft
         </Link>
       </div>
