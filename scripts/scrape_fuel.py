@@ -150,7 +150,7 @@ def scrape_airnav(icao: str) -> dict:
         result["success"] = True
         
     except Exception as e:
-        print(f"   ⚠ AirNav error for {icao}: {str(e)[:50]}")
+        print(f"   WARNING AirNav error for {icao}: {str(e)[:50]}")
     finally:
         try:
             driver.quit()
@@ -197,7 +197,7 @@ def scrape_airnav_fuel_prices(soup: BeautifulSoup) -> dict:
                 break
                 
     except Exception as e:
-        print(f"   ⚠ Error parsing fuel: {e}")
+        print(f"   WARNING Error parsing fuel: {e}")
     
     return result
 
@@ -225,7 +225,7 @@ def scrape_airnav_landing_fees(soup: BeautifulSoup) -> dict:
                 break
                 
     except Exception as e:
-        print(f"   ⚠ Error parsing fees: {e}")
+        print(f"   WARNING Error parsing fees: {e}")
     
     return result
 
@@ -258,7 +258,7 @@ def scrape_globalair(icao: str) -> dict:
         result["success"] = True
         
     except Exception as e:
-        print(f"   ⚠ GlobalAir error for {icao}: {str(e)[:50]}")
+        print(f"   WARNING GlobalAir error for {icao}: {str(e)[:50]}")
     finally:
         try:
             driver.quit()
@@ -286,7 +286,7 @@ def scrape_globalair_fuel_prices(soup: BeautifulSoup) -> dict:
             result["jet_a_price"] = float(jet_match.group(1))
             
     except Exception as e:
-        print(f"   ⚠ Error parsing GlobalAir fuel: {e}")
+        print(f"   WARNING Error parsing GlobalAir fuel: {e}")
     
     return result
 
@@ -299,7 +299,7 @@ def get_airport_data(icao: str) -> dict:
     """
     icao = icao.upper()
     
-    print(f"\n🛫 Getting data for {icao}...")
+    print(f"\nAIRPORT Getting data for {icao}...")
     
     result = {
         "icao": icao,
@@ -320,10 +320,10 @@ def get_airport_data(icao: str) -> dict:
             "age_hours": int(cached_fuel["age_seconds"] / 3600),
             "is_fresh": True
         }
-        print(f"   ✓ Fuel: Using cached (from {cached_fuel['source_site']})")
+        print(f"   OK Fuel: Using cached (from {cached_fuel['source_site']})")
     else:
         # Try AirNav first
-        print(f"   ⟳ Scraping AirNav...")
+        print(f"   FETCH Scraping AirNav...")
         airnav_result = scrape_airnav(icao)
         
         if airnav_result["success"] and (airnav_result["avgas_price"] or airnav_result["jet_a_price"]):
@@ -339,10 +339,10 @@ def get_airport_data(icao: str) -> dict:
                 "age_hours": 0,
                 "is_fresh": True
             }
-            print(f"   ✓ Fuel: Scraped from AirNav (${airnav_result['avgas_price']}/gal)")
+            print(f"   OK Fuel: Scraped from AirNav (${airnav_result['avgas_price']}/gal)")
         else:
             # Fallback to GlobalAir
-            print(f"   ⟳ AirNav failed, trying GlobalAir...")
+            print(f"   FETCH AirNav failed, trying GlobalAir...")
             globalair_result = scrape_globalair(icao)
             
             if globalair_result["success"] and (globalair_result["avgas_price"] or globalair_result["jet_a_price"]):
@@ -357,7 +357,7 @@ def get_airport_data(icao: str) -> dict:
                     "age_hours": 0,
                     "is_fresh": True
                 }
-                print(f"   ✓ Fuel: Scraped from GlobalAir (${globalair_result['avgas_price']}/gal)")
+                print(f"   OK Fuel: Scraped from GlobalAir (${globalair_result['avgas_price']}/gal)")
             else:
                 # Both failed - try to get stale data
                 stale_fuel = get_cached_data(icao, "fuel", float('inf'))  # Get any data
@@ -370,10 +370,10 @@ def get_airport_data(icao: str) -> dict:
                         "is_fresh": False
                     }
                     result["warnings"].append("Using stale fuel data - both scrapers failed")
-                    print(f"   ⚠ Fuel: Using stale data (age: {int(stale_fuel['age_seconds']/3600)}h)")
+                    print(f"   WARNING Fuel: Using stale data (age: {int(stale_fuel['age_seconds']/3600)}h)")
                 else:
                     result["warnings"].append("No fuel data available")
-                    print(f"   ✗ Fuel: No data available")
+                    print(f"   X Fuel: No data available")
     
     # --- FEES DATA (same logic, different TTL) ---
     cached_fees = get_cached_data(icao, "fee", FEE_TTL)
@@ -386,10 +386,10 @@ def get_airport_data(icao: str) -> dict:
             "age_days": int(cached_fees["age_seconds"] / 86400),
             "is_fresh": True
         }
-        print(f"   ✓ Fees: Using cached (from {cached_fees['source_site']})")
+        print(f"   OK Fees: Using cached (from {cached_fees['source_site']})")
     else:
         # Scrape fees from AirNav (primary for fees too)
-        print(f"   ⟳ Scraping fees from AirNav...")
+        print(f"   FETCH Scraping fees from AirNav...")
         airnav_result = scrape_airnav(icao)
         
         if airnav_result["success"] and airnav_result.get("landing_fee"):
@@ -402,10 +402,10 @@ def get_airport_data(icao: str) -> dict:
                 "age_days": 0,
                 "is_fresh": True
             }
-            print(f"   ✓ Fees: Scraped ${airnav_result['landing_fee']} from AirNav")
+            print(f"   OK Fees: Scraped ${airnav_result['landing_fee']} from AirNav")
         else:
             # Try GlobalAir
-            print(f"   ⟳ AirNav fees failed, trying GlobalAir...")
+            print(f"   FETCH AirNav fees failed, trying GlobalAir...")
             globalair_result = scrape_globalair(icao)
             
             if globalair_result["success"] and globalair_result.get("landing_fee"):
@@ -446,7 +446,7 @@ def main():
     icao = sys.argv[1].upper()
     
     print("=" * 50)
-    print("🛢️  Aviation Hub Fuel & Fees Scraper")
+    print("FUEL  Aviation Hub Fuel & Fees Scraper")
     print("=" * 50)
     
     # Initialize cache table
@@ -456,7 +456,7 @@ def main():
     result = get_airport_data(icao)
     
     # Print result
-    print("\n📊 Result:")
+    print("\nSTATS Result:")
     print("-" * 40)
     print(f"ICAO: {result['icao']}")
     
@@ -469,11 +469,11 @@ def main():
         print(f"Landing Fee: ${result['fees'].get('landing_fee', 'N/A')}")
     
     if result['warnings']:
-        print(f"\n⚠️  Warnings:")
+        print(f"\n[WARNS] Warnings:")
         for w in result['warnings']:
             print(f"   - {w}")
     
-    print("\n✅ Done!")
+    print("\n[DONE] Done!")
 
 
 if __name__ == "__main__":

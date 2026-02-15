@@ -33,7 +33,7 @@ VALID_FREQ_TYPES = ['ATIS', 'TOWER', 'GROUND', 'UNICOM', 'CTAF', 'AWOS', 'ASOS']
 
 def setup_database():
     """Create tables and indexes if they don't exist."""
-    print("🔧 Setting up database...")
+    print("[SETUP] Setting up database...")
     
     DB_PATH.parent.mkdir(parents=True, exist_ok=True)
     
@@ -86,12 +86,12 @@ def setup_database():
     conn.commit()
     conn.close()
     
-    print("   ✓ Database tables created")
+    print("   [OK] Database tables created")
 
 
 def create_indexes():
     """Create indexes for fast lookups."""
-    print("🔧 Creating indexes...")
+    print("[INDEX] Creating indexes...")
     
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -110,39 +110,39 @@ def create_indexes():
     conn.commit()
     conn.close()
     
-    print("   ✓ Indexes created")
+    print("   [OK] Indexes created")
 
 
 def download_csv(name: str) -> pd.DataFrame:
     """Download a CSV from OurAirports and return as DataFrame."""
     url = CSV_URLS[name]
-    print(f"📥 Downloading {name}.csv...")
+    print(f"[DOWNLOAD] Downloading {name}.csv...")
     
     response = requests.get(url, timeout=60)
     response.raise_for_status()
     
     df = pd.read_csv(StringIO(response.text), low_memory=False)
-    print(f"   ✓ Downloaded {len(df):,} rows")
+    print(f"[OK] Downloaded {len(df):,} rows")
     
     return df
 
 
 def filter_airports(df: pd.DataFrame) -> pd.DataFrame:
     """Filter airports to valid types and exclude closed ones."""
-    print("🔍 Filtering airports...")
+    print("[FILTER] Filtering airports...")
     
     # Filter by type
     df = df[df['type'].isin(VALID_AIRPORT_TYPES)].copy()
     
-    # Exclude closed airports
-    df = df[df['is_closed'] != '1'].copy()
+    # Note: OurAirports CSV no longer has is_closed column
+    # Closed airports are marked by type='closed'
     
     # Rename ident to icao for clarity
     df = df.rename(columns={'ident': 'icao'})
     
     # Select relevant columns
     cols = ['icao', 'iata_code', 'name', 'type', 'latitude_deg', 'longitude_deg', 
-            'elevation_ft', 'municipality', 'iso_region', 'iso_country', 'is_closed']
+            'elevation_ft', 'municipality', 'iso_region', 'iso_country']
     df = df[[c for c in cols if c in df.columns]]
     
     # Rename columns to match schema
@@ -157,20 +157,20 @@ def filter_airports(df: pd.DataFrame) -> pd.DataFrame:
     }
     df = df.rename(columns=rename_map)
     
-    # Convert is_closed to integer
-    df['is_closed'] = df['is_closed'].apply(lambda x: 1 if x == '1' else 0)
+    # Add is_closed (always 0 since closed airports are filtered by type)
+    df['is_closed'] = 0
     
     # Add loaded_at timestamp
     df['loaded_at'] = datetime.now().isoformat()
     
-    print(f"   → {len(df):,} airports after filtering")
+    print(f"   -> {len(df):,} airports after filtering")
     
     return df
 
 
 def filter_runways(df: pd.DataFrame, valid_icaos: set) -> pd.DataFrame:
     """Filter runways to only include airports we imported."""
-    print("🔍 Filtering runways...")
+    print("[FILTER] Filtering runways...")
     
     # Filter to valid airports only
     df = df[df['airport_ident'].isin(valid_icaos)].copy()
@@ -194,14 +194,14 @@ def filter_runways(df: pd.DataFrame, valid_icaos: set) -> pd.DataFrame:
     df['length_ft'] = pd.to_numeric(df['length_ft'], errors='coerce').fillna(0).astype(int)
     df['width_ft'] = pd.to_numeric(df['width_ft'], errors='coerce').fillna(0).astype(int)
     
-    print(f"   → {len(df):,} runways after filtering")
+    print(f"   -> {len(df):,} runways after filtering")
     
     return df
 
 
 def filter_frequencies(df: pd.DataFrame, valid_icaos: set) -> pd.DataFrame:
     """Filter frequencies to valid types and airports."""
-    print("🔍 Filtering frequencies...")
+    print("[FILTER] Filtering frequencies...")
     
     # Filter to valid airports
     df = df[df['airport_ident'].isin(valid_icaos)].copy()
@@ -225,14 +225,14 @@ def filter_frequencies(df: pd.DataFrame, valid_icaos: set) -> pd.DataFrame:
     # Remove rows with no frequency
     df = df.dropna(subset=['frequency_mhz'])
     
-    print(f"   → {len(df):,} frequencies after filtering")
+    print(f"   -> {len(df):,} frequencies after filtering")
     
     return df
 
 
 def insert_data(df: pd.DataFrame, table_name: str):
     """Insert or replace data using upsert (INSERT OR REPLACE)."""
-    print(f"💾 Inserting {table_name}...")
+    print(f"[INSERT] Inserting {table_name}...")
     
     conn = sqlite3.connect(DB_PATH)
     
@@ -242,7 +242,7 @@ def insert_data(df: pd.DataFrame, table_name: str):
     conn.commit()
     conn.close()
     
-    print(f"   ✓ {len(df):,} rows inserted into {table_name}")
+    print(f"   [OK] {len(df):,} rows inserted into {table_name}")
 
 
 def print_summary():
@@ -250,7 +250,7 @@ def print_summary():
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     
-    print("\n📊 Database Summary:")
+    print("\n[STATS] Database Summary:")
     print("-" * 40)
     
     # Count airports by type
@@ -282,9 +282,9 @@ def print_summary():
 def main():
     """Main function to run the entire import process."""
     print("=" * 50)
-    print("🚀 Aviation Hub Static Data Loader")
+    print("AViation Hub Static Data Loader")
     print("=" * 50)
-    print(f"\n📅 Started at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print(f"\nStarted at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     start_time = datetime.now()
     
@@ -315,8 +315,8 @@ def main():
     print_summary()
     
     elapsed = (datetime.now() - start_time).total_seconds()
-    print(f"\n✅ Done! Completed in {elapsed:.1f} seconds")
-    print(f"📁 Database location: {DB_PATH.absolute()}")
+    print(f"\n[DONE] Completed in {elapsed:.1f} seconds")
+    print(f"[PATH] Database location: {DB_PATH.absolute()}")
 
 
 if __name__ == "__main__":
