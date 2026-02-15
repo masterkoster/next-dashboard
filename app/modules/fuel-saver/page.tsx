@@ -956,9 +956,12 @@ export default function FuelSaverPage() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left Panel - Flight Plan Form */}
         {showPanel && (
-          <div className="w-full lg:w-72 lg:h-full bg-slate-800 border-b lg:border-r border-slate-700 flex flex-col">
-            {/* Scrollable: Flight Plan Details + Route */}
-            <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 space-y-2">
+          <div className="w-full lg:w-72 lg:h-full bg-slate-800 border-b lg:border-r border-slate-700 flex flex-col overflow-hidden">
+            {/* Scrollable: Flight Plan Details + Route - hidden scrollbar */}
+            <div className="flex-1 overflow-y-auto p-2 space-y-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+              <style jsx>{`
+                div::-webkit-scrollbar { display: none; }
+              `}</style>
               {/* Flight Plan Details */}
               <div>
                 <h2 className="text-base font-semibold mb-1.5">Flight Plan Details</h2>
