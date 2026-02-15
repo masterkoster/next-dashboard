@@ -842,14 +842,6 @@ function FlightsList({ groups }: { groups: Group[] }) {
           </div>
         </div>
         {(filterUser || filterAircraft || filterDateFrom || filterDateTo) && (
-              type="date"
-              value={filterDateTo}
-              onChange={(e) => setFilterDateTo(e.target.value)}
-              className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-sm"
-            />
-          </div>
-        </div>
-        {(filterUser || filterAircraft || filterDateFrom || filterDateTo) && (
           <div className="mt-3 flex gap-2">
             <span className="text-xs text-slate-400">
               Showing {filteredLogs.length} of {allLogs.length} logs
