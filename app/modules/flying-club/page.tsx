@@ -95,18 +95,30 @@ export default function FlyingClubPage() {
   const [hoveredBooking, setHoveredBooking] = useState<Booking | null>(null);
   const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
   const [userGroups, setUserGroups] = useState<{ group: Group; role: string; members: Member[] }[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
+      setError(null);
       const [groupsRes, bookingsRes, maintenanceRes] = await Promise.all([
         fetch('/api/groups'),
         fetch('/api/groups/all-bookings'),
         fetch('/api/maintenance')
       ]);
       
+      // Check for errors
+      if (!groupsRes.ok) {
+        const errData = await groupsRes.json();
+        console.error('Groups API error:', errData);
+        setError('Failed to load groups: ' + (errData.error || errData.details || 'Unknown error'));
+      }
+      
       const groupsData = groupsRes.ok ? await groupsRes.json() : [];
       const bookingsData = bookingsRes.ok ? await bookingsRes.json() : [];
       const maintenanceData = maintenanceRes.ok ? await maintenanceRes.json() : [];
+      
+      console.log('Loaded groups:', groupsData);
+      console.log('Bookings:', bookingsData);
       
       setGroups(groupsData);
       setBookings(bookingsData);
@@ -206,6 +218,26 @@ export default function FlyingClubPage() {
     return (
       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-sky-500"></div>
+      </div>
+    );
+  }
+
+  // Show error if any
+  if (error) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white p-8">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-red-900/30 border border-red-700 rounded-xl p-6">
+            <h2 className="text-xl font-bold text-red-400 mb-2">Error Loading Data</h2>
+            <p className="text-slate-300 mb-4">{error}</p>
+            <button 
+              onClick={() => loadData()}
+              className="bg-red-600 hover:bg-red-500 px-4 py-2 rounded-lg"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
