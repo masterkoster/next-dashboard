@@ -18,7 +18,7 @@ export default function LandingPage() {
       {/* Modules Grid - Accessible without login */}
       <div className="mx-auto max-w-6xl px-6 pb-20">
         <h2 className="mb-6 text-xl font-semibold text-white">Try Our Tools</h2>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto">
           
           {/* Plane Carfax */}
           <Link
