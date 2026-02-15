@@ -782,6 +782,7 @@ function MembersList({ groups }: { groups: Group[] }) {
   const [allMembers, setAllMembers] = useState<{ member: any; groupName: string }[]>([]);
   const [pendingInvites, setPendingInvites] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'members' | 'invites'>('members');
   const userGroups = groups?.filter((g: any) => g.role === 'ADMIN' || g.role === 'MEMBER') || [];
   const isAdmin = userGroups.some((g: any) => g.role === 'ADMIN');
 
@@ -848,48 +849,80 @@ function MembersList({ groups }: { groups: Group[] }) {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl font-semibold">Members</h2>
+        <h2 className="text-xl font-semibold">Members & Invites</h2>
       </div>
 
-      {/* Pending Invitations */}
-      {pendingInvites.length > 0 && (
-        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-          <h3 className="text-lg font-medium mb-3 text-yellow-400">📧 Pending Invitations</h3>
-          <div className="space-y-2">
-            {pendingInvites.map((invite) => (
-              <div key={invite.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
-                <div>
-                  <div className="font-medium">{invite.email || 'No email specified'}</div>
-                  <div className="text-sm text-slate-400">
-                    {invite.groupName} • Role: {invite.role} • Sent {new Date(invite.createdAt).toLocaleDateString()}
-                  </div>
-                </div>
-                <span className="text-yellow-400 text-sm">Invitation Sent</span>
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-slate-700">
+        <button
+          onClick={() => setActiveTab('members')}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === 'members'
+              ? 'text-sky-400 border-b-2 border-sky-400'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Members ({Object.keys(membersByEmail).length})
+        </button>
+        <button
+          onClick={() => setActiveTab('invites')}
+          className={`px-4 py-2 font-medium transition-colors ${
+            activeTab === 'invites'
+              ? 'text-yellow-400 border-b-2 border-yellow-400'
+              : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          Invites ({pendingInvites.length})
+        </button>
+      </div>
+
+      {/* Members Tab */}
+      {activeTab === 'members' && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Object.entries(membersByEmail).map(([email, { member, groups }]) => (
+            <div key={email} className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+              <div className="font-medium">{member.user.name || email}</div>
+              <div className="text-slate-400 text-sm">{email}</div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {groups.map(g => (
+                  <span key={g} className="text-xs bg-sky-500/20 text-sky-400 px-2 py-1 rounded">{g}</span>
+                ))}
               </div>
-            ))}
-          </div>
+              <div className="text-xs text-slate-500 mt-2">{member.role}</div>
+            </div>
+          ))}
+          {Object.keys(membersByEmail).length === 0 && (
+            <div className="col-span-full text-center py-12 text-slate-400">
+              <div className="text-4xl mb-4">👥</div>
+              <p>No members yet</p>
+            </div>
+          )}
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {Object.entries(membersByEmail).map(([email, { member, groups }]) => (
-          <div key={email} className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-            <div className="font-medium">{member.user.name || email}</div>
-            <div className="text-slate-400 text-sm">{email}</div>
-            <div className="flex flex-wrap gap-2 mt-2">
-              {groups.map(g => (
-                <span key={g} className="text-xs bg-sky-500/20 text-sky-400 px-2 py-1 rounded">{g}</span>
+      {/* Invites Tab */}
+      {activeTab === 'invites' && (
+        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+          {pendingInvites.length > 0 ? (
+            <div className="space-y-2">
+              {pendingInvites.map((invite) => (
+                <div key={invite.id} className="flex justify-between items-center bg-slate-700 p-3 rounded-lg">
+                  <div>
+                    <div className="font-medium">{invite.email || 'No email specified'}</div>
+                    <div className="text-sm text-slate-400">
+                      {invite.groupName} • Role: {invite.role} • Sent {new Date(invite.createdAt).toLocaleDateString()}
+                    </div>
+                  </div>
+                  <span className="text-yellow-400 text-sm">Pending</span>
+                </div>
               ))}
             </div>
-            <div className="text-xs text-slate-500 mt-2">{member.role}</div>
-          </div>
-        ))}
-      </div>
-
-      {allMembers.length === 0 && (
-        <div className="text-center py-12 text-slate-400">
-          <div className="text-4xl mb-4">👥</div>
-          <p>No members yet</p>
+          ) : (
+            <div className="text-center py-12 text-slate-400">
+              <div className="text-4xl mb-4">📧</div>
+              <p>No pending invitations</p>
+            </div>
+          )}
         </div>
       )}
     </div>
