@@ -22,20 +22,17 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const body = await request.json();
     const { status, cost, notes, isGrounded } = body;
 
-    // Verify user has access to this maintenance (must be member of the aircraft's group)
-    const maintenance = await prisma.$queryRawUnsafe(`
-      SELECT m.*, a.groupId, g.id as groupId2
-      FROM Maintenance m
-      JOIN ClubAircraft a ON m.aircraftId = a.id
-      JOIN FlyingGroup g ON a.groupId = g.id
-      WHERE m.id = ?
-    `, id) as any[];
+    // First get the maintenance record with its aircraft
+    const maintenance = await prisma.maintenance.findUnique({
+      where: { id },
+      include: { aircraft: { include: { group: true } } }
+    });
 
-    if (!maintenance || maintenance.length === 0) {
+    if (!maintenance) {
       return NextResponse.json({ error: 'Maintenance not found' }, { status: 404 });
     }
 
-    const groupId = maintenance[0].groupId;
+    const groupId = maintenance.aircraft.groupId;
 
     // Check membership
     const membership = await prisma.groupMember.findFirst({
@@ -49,11 +46,17 @@ export async function PUT(request: Request, { params }: RouteParams) {
     const resolvedDate = status === 'DONE' ? new Date() : null;
     const groundedStatus = isGrounded !== undefined ? isGrounded : (status === 'DONE' ? false : null);
 
-    await prisma.$queryRawUnsafe(`
-      UPDATE Maintenance 
-      SET status = ?, cost = ?, notes = ?, resolvedDate = ?, isGrounded = ?, updatedAt = GETDATE()
-      WHERE id = ?
-    `, status, cost || null, notes || null, resolvedDate, groundedStatus, id);
+    // Use Prisma update instead of raw SQL
+    await prisma.maintenance.update({
+      where: { id },
+      data: {
+        status,
+        cost: cost ? parseFloat(cost) : null,
+        notes,
+        resolvedDate,
+        isGrounded: groundedStatus,
+      }
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {
