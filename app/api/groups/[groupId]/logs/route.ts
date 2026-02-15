@@ -30,29 +30,46 @@ export async function GET(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Not a member' }, { status: 403 });
     }
 
-    // Get logs using raw SQL
-    const logs = await prisma.$queryRawUnsafe(`
-      SELECT 
-        fl.*, 
-        a.nNumber, a.customName, a.nickname, a.make, a.model, a.groupId as aircraftGroupId,
-        u.name as userName, u.email as userEmail
-      FROM FlightLog fl
-      JOIN ClubAircraft a ON fl.aircraftId = a.id
-      JOIN User u ON fl.userId = u.id
-      WHERE a.groupId = '${groupId}'
-      ORDER BY fl.date DESC
-      OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
-    `) as any[];
+    // Get logs using raw SQL - simplified query
+    let logs: any[] = [];
+    try {
+      const logResult = await prisma.$queryRawUnsafe(`
+        SELECT 
+          fl.id, fl.aircraftId, fl.userId, fl.date, fl.tachTime, fl.hobbsTime, fl.notes, fl.createdAt, fl.updatedAt
+        FROM FlightLog fl
+        JOIN ClubAircraft a ON fl.aircraftId = a.id
+        WHERE a.groupId = '${groupId}'
+        ORDER BY fl.date DESC
+        OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
+      `);
+      logs = logResult as any[];
+    } catch (e) {
+      console.error('Error fetching logs:', e);
+      return NextResponse.json({ error: 'Failed to fetch logs', details: String(e) }, { status: 500 });
+    }
 
-    // Get maintenance for this group
-    const maintenance = await prisma.$queryRawUnsafe(`
-      SELECT m.*, a.nNumber, a.customName, a.nickname
-      FROM Maintenance m
-      JOIN ClubAircraft a ON m.aircraftId = a.id
-      WHERE a.groupId = '${groupId}'
-      ORDER BY m.reportedDate DESC
-      OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
-    `) as any[];
+    // Get aircraft and user data separately
+    const aircraftIds = [...new Set((logs || []).map((l: any) => l.aircraftId))];
+    const userIds = [...new Set((logs || []).map((l: any) => l.userId))];
+    
+    let aircraftMap: Record<string, any> = {};
+    let userMap: Record<string, any> = {};
+    
+    if (aircraftIds.length > 0) {
+      const aircraftList = await prisma.$queryRawUnsafe(`
+        SELECT id, nNumber, customName, nickname, make, model, groupId as aircraftGroupId
+        FROM ClubAircraft 
+        WHERE id IN (${aircraftIds.map((id: string) => "'" + id + "'").join(',')})
+      `) as any[];
+      (aircraftList || []).forEach((a: any) => { aircraftMap[a.id] = a; });
+    }
+    
+    if (userIds.length > 0) {
+      const userList = await prisma.$queryRawUnsafe(`
+        SELECT id, name, email FROM User WHERE id IN (${userIds.map((id: string) => "'" + id + "'").join(',')})
+      `) as any[];
+      (userList || []).forEach((u: any) => { userMap[u.id] = u; });
+    }
 
     const formattedLogs = (logs || []).map((l: any) => ({
       id: l.id,
@@ -64,21 +81,25 @@ export async function GET(request: Request, { params }: RouteParams) {
       notes: l.notes,
       createdAt: l.createdAt,
       updatedAt: l.updatedAt,
-      aircraft: {
-        id: l.aircraftId,
-        nNumber: l.nNumber,
-        customName: l.customName,
-        nickname: l.nickname,
-        make: l.make,
-        model: l.model,
-        groupId: l.aircraftGroupId,
-      },
-      user: {
-        id: l.userId,
-        name: l.userName,
-        email: l.userEmail,
-      },
+      aircraft: aircraftMap[l.aircraftId] || {},
+      user: userMap[l.userId] || {},
     }));
+
+    // Get maintenance for this group
+    let maintenance: any[] = [];
+    try {
+      const maintResult = await prisma.$queryRawUnsafe(`
+        SELECT m.*, a.nNumber, a.customName, a.nickname
+        FROM Maintenance m
+        JOIN ClubAircraft a ON m.aircraftId = a.id
+        WHERE a.groupId = '${groupId}'
+        ORDER BY m.reportedDate DESC
+        OFFSET 0 ROWS FETCH NEXT 20 ROWS ONLY
+      `);
+      maintenance = maintResult as any[];
+    } catch (e) {
+      console.error('Error fetching maintenance:', e);
+    }
 
     const formattedMaintenance = (maintenance || []).map((m: any) => ({
       id: m.id,
