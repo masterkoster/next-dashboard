@@ -67,7 +67,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { email, role } = body;
+    const { email, role, expiresInDays } = body;
 
     // Check if invite already exists for this email+group (and not expired)
     if (email) {
@@ -96,10 +96,22 @@ export async function POST(request: Request, { params }: RouteParams) {
       }
     }
 
+    // Get group's default expiry setting
+    const group = await prisma.flyingGroup.findUnique({
+      where: { id: groupId },
+      select: { defaultInviteExpiry: true }
+    });
+    
+    // Determine expiry: use provided value, or group's default, or 7 days
+    let expiresAt: Date | null = null;
+    if (expiresInDays !== -1) { // -1 means never
+      const days = expiresInDays ?? group?.defaultInviteExpiry ?? 7;
+      expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + days);
+    }
+
     // Generate unique token
     const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7); // 7 day expiry
 
     const invite = await prisma.invite.create({
       data: {
@@ -108,11 +120,15 @@ export async function POST(request: Request, { params }: RouteParams) {
         email: email ? email.toLowerCase() : null,
         role: role || 'VIEWER',
         createdBy: user.id,
-        expiresAt,
+        expiresAt: expiresAt || new Date(Date.now() + 1000 * 60 * 60 * 24 * 365 * 10), // 10 years if null
       },
     });
 
-    return NextResponse.json({ token, expiresAt: invite.expiresAt });
+    return NextResponse.json({ 
+      token, 
+      expiresAt: expiresAt,
+      expiresNever: expiresInDays === -1 
+    });
   } catch (error) {
     console.error('Error creating invite:', error);
     return NextResponse.json({ error: 'Failed to create invite: ' + String(error) }, { status: 500 });

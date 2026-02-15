@@ -141,6 +141,20 @@ model FlyingGroup {
   dryRate     Decimal? @db.Decimal(10, 2)
   wetRate     Decimal? @db.Decimal(10, 2)
   customRates String?  @db.NVarChar(Max)
+  
+  // Visibility settings - what members can see
+  showBookings    Boolean  @default(true)
+  showAircraft    Boolean  @default(true)
+  showFlights     Boolean  @default(true)
+  showMaintenance Boolean  @default(true)
+  showBilling     Boolean  @default(true)
+  showBillingAll Boolean  @default(true)  // true = see all members' billing, false = see only own
+  showMembers     Boolean  @default(true)
+  showPartners    Boolean  @default(true)
+  
+  // Default invite expiration (null = never, 1 = day, 7 = week, 30 = month)
+  defaultInviteExpiry Int? @default(7)
+  
   createdAt   DateTime @default(now()) @db.DateTime2
   updatedAt   DateTime @updatedAt @db.DateTime2
 

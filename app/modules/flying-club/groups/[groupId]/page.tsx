@@ -14,6 +14,16 @@ interface Group {
   members: Member[];
   aircraft: Aircraft[];
   bookings?: any[];
+  // Visibility settings
+  showBookings?: boolean;
+  showAircraft?: boolean;
+  showFlights?: boolean;
+  showMaintenance?: boolean;
+  showBilling?: boolean;
+  showBillingAll?: boolean;
+  showMembers?: boolean;
+  showPartners?: boolean;
+  defaultInviteExpiry?: number | null;
 }
 
 interface Member {
@@ -50,7 +60,8 @@ export default function GroupDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'aircraft' | 'bookings' | 'logs' | 'members'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'aircraft' | 'bookings' | 'logs' | 'members' | 'settings'>('overview');
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     // Get current user info from session
@@ -149,17 +160,17 @@ export default function GroupDetailPage() {
         </div>
 
         <div className="flex gap-2 border-b border-slate-700 mb-6">
-          {(['overview', 'aircraft', 'bookings', 'logs', 'members'] as const).map((tab) => (
+          {(['overview', 'aircraft', 'bookings', 'logs', 'members', 'settings'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => setActiveTab(tab as any)}
               className={`px-4 py-3 font-medium transition-colors ${
                 activeTab === tab
                   ? 'text-sky-400 border-b-2 border-sky-400'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'settings' ? '⚙️ Settings' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -224,7 +235,12 @@ export default function GroupDetailPage() {
             members={group.members} 
             isAdmin={isAdmin}
             currentUserId={currentUserId}
+            groupSettings={group}
           />
+        )}
+
+        {activeTab === 'settings' && isAdmin && (
+          <SettingsTab group={group} onUpdate={(updated: any) => setGroup(updated)} />
         )}
       </div>
     </div>
@@ -1050,14 +1066,16 @@ function LogsTab({ groupId, aircraft, bookings, canLog }: { groupId: string; air
   );
 }
 
-function MembersTab({ groupId, members, isAdmin, currentUserId }: { 
+function MembersTab({ groupId, members, isAdmin, currentUserId, groupSettings }: { 
   groupId: string; 
   members: Member[]; 
   isAdmin: boolean;
   currentUserId: string | null;
+  groupSettings?: Group;
 }) {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('MEMBER');
+  const [inviteExpiry, setInviteExpiry] = useState(7);
   const [inviting, setInviting] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
   const router = useRouter();
@@ -1069,12 +1087,15 @@ function MembersTab({ groupId, members, isAdmin, currentUserId }: {
       const res = await fetch(`/api/groups/${groupId}/invites`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: inviteEmail, role: inviteRole }),
+        body: JSON.stringify({ email: inviteEmail, role: inviteRole, expiresInDays: inviteExpiry }),
       });
-      if (        const data = await res.json();
-res.ok) {
+      if (res.ok) {
+        const data = await res.json();
         // Include groupId in the join URL
         setInviteLink(`${window.location.origin}/modules/flying-club/groups/${groupId}/join?groupId=${groupId}&token=${data.token}`);
+      } else {
+        const data = await res.json();
+        alert(data.error || 'Failed to create invite');
       }
     } finally {
       setInviting(false);
@@ -1102,27 +1123,42 @@ res.ok) {
         <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 mb-6">
           <h3 className="text-lg font-semibold mb-4">Invite Members</h3>
           {!inviteLink ? (
-            <form onSubmit={handleInvite} className="flex gap-3">
-              <input
-                type="email"
-                placeholder="Email address"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
-                className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
-                required
-              />
-              <select
-                value={inviteRole}
-                onChange={(e) => setInviteRole(e.target.value)}
-                className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
-              >
-                <option value="VIEWER">Viewer</option>
-                <option value="MEMBER">Member</option>
-                <option value="ADMIN">Admin</option>
-              </select>
-              <button type="submit" disabled={inviting} className="bg-sky-500 px-4 py-2 rounded-lg disabled:opacity-50">
-                {inviting ? 'Sending...' : 'Invite'}
-              </button>
+            <form onSubmit={handleInvite} className="space-y-3">
+              <div className="flex gap-3">
+                <input
+                  type="email"
+                  placeholder="Email address (optional)"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="flex-1 bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                />
+                <select
+                  value={inviteRole}
+                  onChange={(e) => setInviteRole(e.target.value)}
+                  className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                >
+                  <option value="VIEWER">Viewer</option>
+                  <option value="MEMBER">Member</option>
+                  <option value="ADMIN">Admin</option>
+                </select>
+              </div>
+              <div className="flex gap-3 items-center">
+                <label className="text-sm text-slate-400">Expires:</label>
+                <select
+                  value={inviteExpiry}
+                  onChange={(e) => setInviteExpiry(Number(e.target.value))}
+                  className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+                >
+                  <option value={1}>1 day</option>
+                  <option value={7}>1 week</option>
+                  <option value={30}>1 month</option>
+                  <option value={-1}>Never</option>
+                </select>
+                <button type="submit" disabled={inviting} className="bg-sky-500 px-4 py-2 rounded-lg disabled:opacity-50 ml-auto">
+                  {inviting ? 'Creating...' : 'Create Invite'}
+                </button>
+              </div>
+              <p className="text-xs text-slate-500">Leave email blank to create a shareable invite link only</p>
             </form>
           ) : (
             <div>
@@ -1183,5 +1219,118 @@ res.ok) {
         ))}
       </div>
     </div>
+  );
+}
+
+function SettingsTab({ group, onUpdate }: { group: Group; onUpdate: (g: Group) => void }) {
+  const [saving, setSaving] = useState(false);
+  const [settings, setSettings] = useState({
+    showBookings: group.showBookings ?? true,
+    showAircraft: group.showAircraft ?? true,
+    showFlights: group.showFlights ?? true,
+    showMaintenance: group.showMaintenance ?? true,
+    showBilling: group.showBilling ?? true,
+    showBillingAll: group.showBillingAll ?? true,
+    showMembers: group.showMembers ?? true,
+    showPartners: group.showPartners ?? true,
+    defaultInviteExpiry: group.defaultInviteExpiry ?? 7,
+  });
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/groups/${group.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        onUpdate({ ...group, ...updated });
+        alert('Settings saved!');
+      } else {
+        alert('Failed to save settings');
+      }
+    } catch {
+      alert('Error saving settings');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+        <h3 className="text-lg font-semibold mb-4">Member Visibility Settings</h3>
+        <p className="text-sm text-slate-400 mb-4">Control what members can see in this group</p>
+        
+        <div className="space-y-4">
+          <Toggle label="Show Bookings" checked={settings.showBookings} onChange={(v) => setSettings({...settings, showBookings: v})} />
+          <Toggle label="Show Aircraft" checked={settings.showAircraft} onChange={(v) => setSettings({...settings, showAircraft: v})} />
+          <Toggle label="Show Flight Logs" checked={settings.showFlights} onChange={(v) => setSettings({...settings, showFlights: v})} />
+          <Toggle label="Show Maintenance" checked={settings.showMaintenance} onChange={(v) => setSettings({...settings, showMaintenance: v})} />
+          <Toggle label="Show Billing" checked={settings.showBilling} onChange={(v) => setSettings({...settings, showBilling: v})} />
+          {settings.showBilling && (
+            <div className="ml-6 mt-2">
+              <Toggle 
+                label="Members can see ALL members' billing" 
+                checked={settings.showBillingAll} 
+                onChange={(v) => setSettings({...settings, showBillingAll: v})}
+              />
+              <p className="text-xs text-slate-500 ml-6">
+                {settings.showBillingAll 
+                  ? 'Everyone can see each other\'s billing' 
+                  : 'Members can only see their own billing'}
+              </p>
+            </div>
+          )}
+          <Toggle label="Show Members List" checked={settings.showMembers} onChange={(v) => setSettings({...settings, showMembers: v})} />
+          <Toggle label="Show Partnership" checked={settings.showPartners} onChange={(v) => setSettings({...settings, showPartners: v})} />
+        </div>
+      </div>
+
+      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+        <h3 className="text-lg font-semibold mb-4">Invite Defaults</h3>
+        <p className="text-sm text-slate-400 mb-4">Default expiration for new invites</p>
+        
+        <select
+          value={settings.defaultInviteExpiry}
+          onChange={(e) => setSettings({...settings, defaultInviteExpiry: Number(e.target.value)})}
+          className="bg-slate-700 border border-slate-600 rounded-lg px-4 py-2"
+        >
+          <option value={1}>1 day</option>
+          <option value={7}>1 week</option>
+          <option value={30}>1 month</option>
+          <option value={-1}>Never expires</option>
+        </select>
+      </div>
+
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="bg-sky-500 hover:bg-sky-600 px-6 py-3 rounded-lg font-medium disabled:opacity-50"
+      >
+        {saving ? 'Saving...' : 'Save Settings'}
+      </button>
+    </div>
+  );
+}
+
+function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center justify-between cursor-pointer">
+      <span>{label}</span>
+      <button
+        type="button"
+        onClick={() => onChange(!checked)}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+          checked ? 'bg-sky-500' : 'bg-slate-600'
+        }`}
+      >
+        <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+          checked ? 'translate-x-6' : 'translate-x-1'
+        }`} />
+      </button>
+    </label>
   );
 }

@@ -14,6 +14,15 @@ interface Group {
   wetRate: number | null;
   aircraft?: Aircraft[];
   role?: string;
+  // Visibility settings
+  showBookings?: boolean;
+  showAircraft?: boolean;
+  showFlights?: boolean;
+  showMaintenance?: boolean;
+  showBilling?: boolean;
+  showBillingAll?: boolean;
+  showMembers?: boolean;
+  showPartners?: boolean;
 }
 
 interface Aircraft {

@@ -89,7 +89,12 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { name, description, dryRate, wetRate, customRates } = body;
+    const { 
+      name, description, dryRate, wetRate, customRates,
+      showBookings, showAircraft, showFlights, showMaintenance, 
+      showBilling, showBillingAll, showMembers, showPartners,
+      defaultInviteExpiry
+    } = body;
 
     const group = await prisma.flyingGroup.update({
       where: { id: groupId },
@@ -99,6 +104,16 @@ export async function PUT(request: Request, { params }: RouteParams) {
         ...(dryRate !== undefined && { dryRate }),
         ...(wetRate !== undefined && { wetRate }),
         ...(customRates && { customRates: JSON.stringify(customRates) }),
+        // Visibility settings
+        ...(showBookings !== undefined && { showBookings }),
+        ...(showAircraft !== undefined && { showAircraft }),
+        ...(showFlights !== undefined && { showFlights }),
+        ...(showMaintenance !== undefined && { showMaintenance }),
+        ...(showBilling !== undefined && { showBilling }),
+        ...(showBillingAll !== undefined && { showBillingAll }),
+        ...(showMembers !== undefined && { showMembers }),
+        ...(showPartners !== undefined && { showPartners }),
+        ...(defaultInviteExpiry !== undefined && { defaultInviteExpiry }),
       },
     });
 
