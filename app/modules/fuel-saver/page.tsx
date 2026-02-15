@@ -914,10 +914,9 @@ export default function FuelSaverPage() {
     saveToLocalStorage(newPlans);
   };
 
-  // Marker click handler
-  const handleMarkerClick = (airport: Airport) => {
-    // Don't auto-add - just let the popup show
-    // User must click "Add to Route" in popup
+  // Marker click handler - for popup Add to Route button
+  const handleAirportAdd = (airport: Airport) => {
+    addWaypoint(airport);
   };
 
   // Get marker color based on airport type
@@ -957,7 +956,7 @@ export default function FuelSaverPage() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left Panel - Flight Plan Form */}
         {showPanel && (
-          <div className="w-full lg:w-72 bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-2 space-y-2 flex-shrink-0" style={{ maxHeight: '80vh' }}>
+          <div className="w-full lg:w-72 lg:h-full bg-slate-800 border-b lg:border-r border-slate-700 overflow-y-auto p-2 space-y-2 flex-shrink-0">
             {/* Flight Plan Details */}
             <div>
               <h2 className="text-base font-semibold mb-1.5">Flight Plan Details</h2>
@@ -1174,7 +1173,7 @@ export default function FuelSaverPage() {
                 waypoints={waypoints}
                 fuelPrices={fuelPrices}
                 onBoundsChange={setMapBounds}
-                onAirportClick={handleMarkerClick}
+                onAirportClick={handleAirportAdd}
                 mapCenter={mapCenter}
                 mapZoom={mapZoom}
               />
