@@ -14,17 +14,21 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const { groupId } = await params;
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
+    
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
+    
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
+    
+    const userId = users[0].id;
+    
     // Check membership using raw SQL
     const memberships = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user.id}'
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${userId}'
     `) as any[];
 
     if (!memberships || memberships.length === 0) {
@@ -123,17 +127,21 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     const { groupId } = await params;
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
+    
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
+    
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
+    
+    const userId = users[0].id;
+    
     // Check admin role using raw SQL
     const memberships = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${user.id}' AND role = 'ADMIN'
+      SELECT * FROM GroupMember WHERE groupId = '${groupId}' AND userId = '${userId}' AND role = 'ADMIN'
     `) as any[];
 
     if (!memberships || memberships.length === 0) {
@@ -189,14 +197,18 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     }
 
     const { groupId } = await params;
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
+    
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
+    
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
+    
+    const userId = users[0].id;
+    
     // Check ownership using raw SQL
     const groups = await prisma.$queryRawUnsafe(`
       SELECT * FROM FlyingGroup WHERE id = '${groupId}'
@@ -206,7 +218,7 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Group not found' }, { status: 404 });
     }
 
-    if (groups[0].ownerId !== user.id) {
+    if (groups[0].ownerId !== userId) {
       return NextResponse.json({ error: 'Only the owner can delete this group' }, { status: 403 });
     }
 

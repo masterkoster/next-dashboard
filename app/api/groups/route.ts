@@ -9,13 +9,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
 
-    if (!user) {
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    const userId = users[0].id;
 
     const body = await request.json();
     const { name, description, dryRate, wetRate, customRates } = body;
@@ -24,27 +27,35 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Name is required' }, { status: 400 });
     }
 
-    const group = await prisma.flyingGroup.create({
-      data: {
-        name,
-        description,
-        ownerId: user.id,
-        dryRate: dryRate ? parseFloat(dryRate) : null,
-        wetRate: wetRate ? parseFloat(wetRate) : null,
-        customRates: customRates ? JSON.stringify(customRates) : null,
-      },
-    });
+    // Create group using raw SQL
+    const groupId = crypto.randomUUID();
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO FlyingGroup (id, name, description, ownerId, dryRate, wetRate, customRates, createdAt, updatedAt)
+      VALUES ('${groupId}', '${name.replace(/'/g, "''")}', ${description ? "'" + description.replace(/'/g, "''") + "'" : 'NULL'}, '${userId}', ${dryRate ? parseFloat(dryRate) : 'NULL'}, ${wetRate ? parseFloat(wetRate) : 'NULL'}, ${customRates ? "'" + JSON.stringify(customRates).replace(/'/g, "''") + "'" : 'NULL'}, GETDATE(), GETDATE())
+    `);
 
     // Add creator as admin member
-    await prisma.groupMember.create({
-      data: {
-        userId: user.id,
-        groupId: group.id,
-        role: 'ADMIN',
-      },
-    });
+    const memberId = crypto.randomUUID();
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO GroupMember (id, userId, groupId, role, joinedAt)
+      VALUES ('${memberId}', '${userId}', '${groupId}', 'ADMIN', GETDATE())
+    `);
 
-    return NextResponse.json(group);
+    // Fetch created group
+    const groups = await prisma.$queryRawUnsafe(`SELECT * FROM FlyingGroup WHERE id = '${groupId}'`) as any[];
+    const group = groups[0];
+
+    return NextResponse.json({
+      id: group.id,
+      name: group.name,
+      description: group.description,
+      ownerId: group.ownerId,
+      dryRate: group.dryRate ? Number(group.dryRate) : null,
+      wetRate: group.wetRate ? Number(group.wetRate) : null,
+      customRates: group.customRates,
+      createdAt: group.createdAt,
+      updatedAt: group.updatedAt,
+    });
   } catch (error) {
     console.error('Error creating group:', error);
     return NextResponse.json({ error: 'Failed to create group', details: String(error) }, { status: 500 });
@@ -59,24 +70,26 @@ export async function GET() {
       return NextResponse.json([]);
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
 
-    if (!user) {
+    if (!users || users.length === 0) {
       console.log('User not found for email:', session.user.email);
       return NextResponse.json([]);
     }
 
-    console.log('Fetching groups for user:', user.id);
+    const userId = users[0].id;
+    console.log('Fetching groups for user:', userId);
 
     // Use raw SQL - SQL Server doesn't support ? placeholders in $queryRawUnsafe
-    // user.id is a UUID from auth, so string interpolation is safe
+    // userId is a UUID from auth, so string interpolation is safe
     const memberships = await prisma.$queryRawUnsafe(`
       SELECT gm.role, fg.id, fg.name, fg.description, fg.ownerId, fg.dryRate, fg.wetRate, fg.customRates, fg.createdAt, fg.updatedAt
       FROM GroupMember gm
       JOIN FlyingGroup fg ON gm.groupId = fg.id
-      WHERE gm.userId = '${user.id}'
+      WHERE gm.userId = '${userId}'
     `) as any[];
 
     console.log('Memberships found:', memberships.length);

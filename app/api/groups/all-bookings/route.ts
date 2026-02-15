@@ -9,13 +9,16 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
+    
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+    
+    const userId = users[0].id;
 
     // Get all bookings for user's groups using raw SQL
     const bookings = await prisma.$queryRawUnsafe(`
@@ -40,7 +43,7 @@ export async function GET() {
       FROM Booking b
       JOIN ClubAircraft a ON b.aircraftId = a.id
       JOIN FlyingGroup fg ON a.groupId = fg.id
-      JOIN GroupMember gm ON fg.id = gm.groupId AND gm.userId = '${user.id}'
+      JOIN GroupMember gm ON fg.id = gm.groupId AND gm.userId = '${userId}'
       JOIN User u ON b.userId = u.id
       ORDER BY b.startTime ASC
     `) as any[];

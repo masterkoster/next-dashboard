@@ -62,17 +62,20 @@ export async function POST(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Please log in to join as a member' }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
+    // Get user by email using raw SQL
+    const users = await prisma.$queryRawUnsafe(`
+      SELECT id FROM User WHERE email = '${session.user.email}'
+    `) as any[];
+    
+    if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
-
+    
+    const userId = users[0].id;
+    
     // Check if already a member using raw SQL
     const existingMembers = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE userId = '${user.id}' AND groupId = '${groupId}'
+      SELECT * FROM GroupMember WHERE userId = '${userId}' AND groupId = '${groupId}'
     `) as any[];
 
     if (existingMembers && existingMembers.length > 0) {
@@ -83,7 +86,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     const memberId = crypto.randomUUID();
     await prisma.$executeRawUnsafe(`
       INSERT INTO GroupMember (id, userId, groupId, role, joinedAt)
-      VALUES ('${memberId}', '${user.id}', '${groupId}', '${invite.role}', GETDATE())
+      VALUES ('${memberId}', '${userId}', '${groupId}', '${invite.role}', GETDATE())
     `);
 
     // Delete the used invite
