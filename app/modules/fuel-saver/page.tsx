@@ -1265,18 +1265,18 @@ function FuelSaverContent() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Foldout Panel */}
         {showPanel && (
-          <div className="w-80 lg:w-96 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden flex-shrink-0">
+          <div className="w-72 xl:w-80 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden flex-shrink-0">
             {/* Tabs */}
-            <div className="flex border-b border-slate-700">
+            <div className="flex text-xs">
               <button 
                 onClick={() => setActiveTab('details')}
-                className={`flex-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'details' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-700/30'}`}
+                className={`flex-1 py-2 font-medium border-b-2 ${activeTab === 'details' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white'}`}
               >
-                Flight Plan Details
+                Details
               </button>
               <button 
                 onClick={() => setActiveTab('waypoints')}
-                className={`flex-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'waypoints' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-700/30'}`}
+                className={`flex-1 py-2 font-medium border-b-2 ${activeTab === 'waypoints' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white'}`}
               >
                 Waypoints ({waypoints.length})
               </button>
