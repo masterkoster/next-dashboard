@@ -171,7 +171,7 @@ async function scrape() {
         console.log(`  ✗ ${e.message}`);
       }
       
-      await new Promise(r => setTimeout(r, 2500));
+      await new Promise(r => setTimeout(r, 10000)); // 10 second delay between requests
     }
     
     // Get medium airports
@@ -207,7 +207,7 @@ async function scrape() {
           console.log(` ✗ ${e.message}`);
         }
         
-        await new Promise(r => setTimeout(r, 2000));
+        await new Promise(r => setTimeout(r, 8000)); // 8 second delay between requests
       }
       
       console.log(`\n=== Summary ===`);
