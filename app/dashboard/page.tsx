@@ -147,8 +147,6 @@ export default async function DashboardPage() {
                 <span className="rounded-full bg-slate-700 px-3 py-1 text-xs font-semibold text-slate-300">Coming Soon</span>
               </div>
             </div>
-              </div>
-            </a>
 
             {/* Plane Search - Coming Soon */}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 shadow-lg shadow-slate-950/30 opacity-60">
