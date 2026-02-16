@@ -42,8 +42,8 @@ interface FuelPrice {
 }
 
 // Inner component that uses useSearchParams
-function FuelSaverContent() {
-
+// function FuelSaverContent() {
+// 
 // Demo airports (fallback)
 const DEMO_AIRPORTS: Airport[] = [
   { icao: 'KORD', iata: 'ORD', name: "Chicago O'Hare International", city: 'Chicago', latitude: 41.9742, longitude: -87.9073, type: 'large_airport' },
@@ -1436,7 +1436,27 @@ function FuelSaverContent() {
   );
 }
 
-// Wrapper component with Suspense for useSearchParams
+// Wrapper component with Suspense for useSearchParams - TEMP DISABLED FOR DEBUG
+// export default function FuelSaverPage() {
+//   return (
+//     <Suspense fallback={
+//       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+//         <div className="text-slate-400">Loading...</div>
+//       </div>
+//     }>
+//       <FuelSaverContent />
+//     </Suspense>
+//   );
+// }
+
+// Temporary export for debugging
+// export default function FuelSaverPage() {
+//   return <FuelSaverContent />;
+// }
+
+// DEBUG: no export
+// const DEBUG_COMPONENT = () => <FuelSaverContent />;
+
 export default function FuelSaverPage() {
   return (
     <Suspense fallback={
