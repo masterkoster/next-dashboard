@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for Leaflet components (no SSR)
@@ -171,6 +172,23 @@ export default function FuelSaverPage() {
   // Saved flight plans
   const [savedPlans, setSavedPlans] = useState<any[]>([]);
   const [showPlanList, setShowPlanList] = useState(false);
+  
+  // Auth
+  const { data: session, status } = useSession();
+  
+  // Load saved flight plans from database when authenticated
+  useEffect(() => {
+    if (status === 'authenticated' && session?.user?.id) {
+      fetch('/api/flight-plans')
+        .then(res => res.json())
+        .then(data => {
+          if (data.flightPlans) {
+            setSavedPlans(data.flightPlans);
+          }
+        })
+        .catch(err => console.error('Error loading plans:', err));
+    }
+  }, [status, session]);
   
   // Load fuel prices from localStorage on mount
   useEffect(() => {
@@ -852,6 +870,7 @@ export default function FuelSaverPage() {
       alternateIcao,
       remarks,
       soulsOnBoard,
+      departureFuel,
       departureIcao: waypoints[0]?.icao,
       arrivalIcao: waypoints[waypoints.length - 1]?.icao,
       waypoints: waypoints.map(w => ({
@@ -866,25 +885,52 @@ export default function FuelSaverPage() {
       createdAt: new Date().toISOString()
     };
     
-    // Save to localStorage (always works)
-    const newPlans = [...savedPlans, plan];
-    setSavedPlans(newPlans);
-    saveToLocalStorage(newPlans);
-    
-    try {
-      const res = await fetch('/api/flight-plans', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(plan)
-      });
-      
-      if (res.ok) {
-        alert('Flight plan saved!');
-      } else {
-        alert('Flight plan saved locally');
+    // If logged in, save to database
+    if (status === 'authenticated') {
+      try {
+        const res = await fetch('/api/flight-plans', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(plan)
+        });
+        
+        if (res.ok) {
+          const data = await res.json();
+          // Add to local state
+          setSavedPlans(prev => [data.flightPlan, ...prev]);
+          alert('Flight plan saved!');
+        } else {
+          alert('Failed to save flight plan');
+        }
+      } catch (e) {
+        console.error('Error saving:', e);
+        alert('Error saving flight plan');
       }
-    } catch (e) {
-      alert('Flight plan saved locally');
+    } else {
+      // Save to localStorage only
+      const newPlans = [...savedPlans, plan];
+      setSavedPlans(newPlans);
+      saveToLocalStorage(newPlans);
+      alert('Flight plan saved locally (log in to save to your account)');
+    }
+  };
+  
+  // Delete flight plan
+  const deleteFlightPlan = async (planId: string | number) => {
+    if (status === 'authenticated' && typeof planId === 'string') {
+      // Delete from database
+      try {
+        await fetch(`/api/flight-plans?id=${planId}`, { method: 'DELETE' });
+      } catch (e) {
+        console.error('Error deleting:', e);
+      }
+    }
+    
+    // Remove from local state
+    const newPlans = savedPlans.filter((_, i) => i !== planId);
+    setSavedPlans(newPlans);
+    if (typeof planId !== 'string') {
+      saveToLocalStorage(newPlans);
     }
   };
   
@@ -899,9 +945,19 @@ export default function FuelSaverPage() {
     setAlternateIcao(plan.alternateIcao || '');
     setRemarks(plan.remarks || '');
     setSoulsOnBoard(plan.soulsOnBoard || 1);
+    setDepartureFuel(plan.departureFuel || 100);
     
-    if (plan.waypoints) {
-      const loadedWaypoints = plan.waypoints.map((w: any, i: number) => ({
+    // Set aircraft if it matches one of our profiles
+    if (plan.aircraftType) {
+      const ac = AIRCRAFT_PROFILES.find(p => p.name === plan.aircraftType);
+      if (ac) setSelectedAircraft(ac);
+    }
+    
+    // Handle both array waypoints and relation waypoints
+    const waypointsData = plan.waypoints || (plan.waypoints === undefined ? [] : []);
+    
+    if (waypointsData.length > 0) {
+      const loadedWaypoints = waypointsData.map((w: any, i: number) => ({
         id: crypto.randomUUID(),
         icao: w.icao,
         name: w.name || w.icao,
@@ -923,13 +979,6 @@ export default function FuelSaverPage() {
     setShowPlanList(false);
   };
   
-  // Delete a flight plan
-  const deleteFlightPlan = (index: number) => {
-    const newPlans = savedPlans.filter((_, i) => i !== index);
-    setSavedPlans(newPlans);
-    saveToLocalStorage(newPlans);
-  };
-
   // Marker click handler - for popup Add to Route button
   const handleAirportAdd = (airport: Airport) => {
     addWaypoint(airport);
@@ -1142,20 +1191,44 @@ export default function FuelSaverPage() {
               </div>
               
               {/* Saved Plans List */}
-              {showPlanList && savedPlans.length > 0 && (
-                <div className="bg-slate-700 rounded p-2 space-y-2 max-h-32 overflow-y-auto">
-                  <div className="text-sm font-semibold text-slate-300">Saved Plans</div>
-                  {savedPlans.map((plan, i) => (
-                    <div key={i} className="flex items-center justify-between bg-slate-600 rounded p-2 text-sm">
-                      <button onClick={() => loadFlightPlan(plan)} className="text-left flex-1 hover:text-sky-400">
-                        <div className="font-medium">{plan.name || 'Untitled'}</div>
-                        <div className="text-xs text-slate-400">
-                          {plan.departureIcao} → {plan.arrivalIcao} • {plan.waypoints?.length || 0} waypoints
-                        </div>
-                      </button>
-                      <button onClick={() => deleteFlightPlan(i)} className="text-red-400 hover:text-red-300 px-2">✕</button>
+              {showPlanList && (
+                <div className="bg-slate-700 rounded p-2 space-y-2 max-h-48 overflow-y-auto">
+                  {/* Auth status */}
+                  {status === 'authenticated' ? (
+                    <div className="flex items-center justify-between text-xs text-emerald-400">
+                      <span>Logged in as {session?.user?.email}</span>
+                      <button onClick={() => signOut()} className="text-slate-400 hover:text-white">Sign out</button>
                     </div>
-                  ))}
+                  ) : (
+                    <button 
+                      onClick={() => signIn()} 
+                      className="w-full text-xs bg-slate-600 hover:bg-slate-500 rounded py-1.5 text-sky-400"
+                    >
+                      Log in to save plans to your account
+                    </button>
+                  )}
+                  
+                  {savedPlans.length > 0 ? (
+                    <>
+                      <div className="text-sm font-semibold text-slate-300">Saved Plans ({savedPlans.length})</div>
+                      {savedPlans.map((plan, i) => (
+                        <div key={plan.id || i} className="flex items-center justify-between bg-slate-600 rounded p-2 text-sm">
+                          <button onClick={() => loadFlightPlan(plan)} className="text-left flex-1 hover:text-sky-400">
+                            <div className="font-medium">{plan.name || 'Untitled'}</div>
+                            <div className="text-xs text-slate-400">
+                              {plan.departureIcao || '---'} → {plan.arrivalIcao || '---'} • {plan.waypoints?.length || 0} waypoints
+                            </div>
+                            {plan.aircraftType && (
+                              <div className="text-xs text-slate-500">{plan.aircraftType}</div>
+                            )}
+                          </button>
+                          <button onClick={() => deleteFlightPlan(plan.id || i)} className="text-red-400 hover:text-red-300 px-2">✕</button>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="text-xs text-slate-400 text-center py-2">No saved plans</div>
+                  )}
                 </div>
               )}
             </div>
