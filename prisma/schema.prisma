@@ -307,6 +307,7 @@ model FlightPlan {
   // Flight identification
   callsign        String?  @db.NVarChar(20)
   aircraftType    String?  @db.NVarChar(20)  // N-number or aircraft type
+  pilotName       String?  @db.NVarChar(100)  // Pilot name
   
   // Departure
   departureIcao  String?  @db.NVarChar(10)
@@ -348,6 +349,8 @@ model FlightPlanWaypoint {
   flightPlanId  String
   sequence      Int      // Order in the route
   icao          String?  @db.NVarChar(10)
+  name          String?  @db.NVarChar(100)  // Waypoint name
+  city          String?  @db.NVarChar(100)  // Nearest city
   waypointId    String?  @db.NVarChar(20)  // Fix identifier
   latitude      Float
   longitude     Float
