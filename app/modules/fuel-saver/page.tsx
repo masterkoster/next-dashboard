@@ -1265,7 +1265,7 @@ function FuelSaverContent() {
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Foldout Panel */}
         {showPanel && (
-          <div className="w-72 xl:w-80 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden flex-shrink-0">
+          <div className="w-56 sm:w-64 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden flex-shrink-0">
             {/* Tabs */}
             <div className="flex text-xs">
               <button 
