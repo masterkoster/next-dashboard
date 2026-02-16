@@ -1067,6 +1067,11 @@ export default function FuelSaverPage() {
     setSoulsOnBoard(plan.soulsOnBoard || 1);
     setDepartureFuel(plan.departureFuel || 100);
     
+    // Mark this plan as loaded so future saves update it
+    if (plan.id) {
+      setCurrentPlanId(plan.id);
+    }
+    
     // Set aircraft if it matches one of our profiles
     if (plan.aircraftType) {
       const ac = AIRCRAFT_PROFILES.find(p => p.name === plan.aircraftType);
