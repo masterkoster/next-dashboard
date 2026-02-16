@@ -25,9 +25,7 @@
      <SessionProvider>
        <>
          {!isHomePage && <Navigation />}
-         <main className={isHomePage ? '' : 'pt-20'}>
-           {children}
-         </main>
+          <main>{children}</main>
          <OfflineBanner onSyncNow={() => setShowConflicts(true)} />
          <ConflictModal 
            isOpen={showConflicts} 
