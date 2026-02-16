@@ -288,3 +288,96 @@ model FlightPlanWaypoint {
 
   @@map("FlightPlanWaypoint")
 }
+
+// ============ CACHE TABLES ============
+
+model AirportCache {
+  icao          String   @id @db.NVarChar(10)
+  iata          String?  @db.NVarChar(3)
+  name          String   @db.NVarChar(255)
+  city          String?  @db.NVarChar(100)
+  state         String?  @db.NVarChar(50)
+  country       String?  @db.NVarChar(100)
+  latitude      Float
+  longitude     Float
+  elevation_ft  Int?
+  type          String   @db.NVarChar(50)  // large_airport, medium_airport, small_airport, seaplane_base, heliport
+  timezone      String?  @db.NVarChar(50)
+  hasTower      Boolean?
+  hasWeather    Boolean?
+  scraped_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([type])
+  @@index([country, state])
+  @@map("AirportCache")
+}
+
+model FuelPriceCache {
+  icao           String   @id @db.NVarChar(10)
+  price100ll     Decimal? @db.Decimal(6, 2)
+  priceJetA      Decimal? @db.Decimal(6, 2)
+  priceSulfar    Decimal? @db.Decimal(6, 2) // UL94
+  source         String?  @db.NVarChar(50)  // airnav, fuel100, own
+  source_url     String?  @db.NVarChar(500)
+  last_reported  DateTime?
+  attribution    String?  @db.NVarChar(255)
+  scraped_at     DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([price100ll])
+  @@map("FuelPriceCache")
+}
+
+model AircraftCache {
+  id             Int      @id @default(autoincrement())
+  manufacturer   String   @db.NVarChar(100)
+  model          String   @db.NVarChar(200)
+  year           Int?
+  variant        String?  @db.NVarChar(100)
+  
+  // Engine specs
+  engine_type    String?  @db.NVarChar(50)  // Piston, Turbine, Jet
+  engine_count   Int?
+  fuel_type      String?  @db.NVarChar(50)  // 100LL, JetA, UL94, Mogas
+  fuel_capacity_gal Decimal? @db.Decimal(8, 2)
+  fuel_capacityusable_gal Decimal? @db.Decimal(8, 2)
+  
+  // Performance - fuel saver relevant
+  cruise_speed_kts Int?  // Typical cruise speed
+  burn_rate_gph   Decimal? @db.Decimal(6, 2) // gallons per hour
+  range_nm        Int?  // Range with full tanks
+  range_with_reserve_nm Int? // Range with reserves (45min + 1hr)
+  
+  // Weights
+  empty_weight_lbs Int?
+  max_takeoff_weight_lbs Int?
+  max_landing_weight_lbs Int?
+  
+  // Useful for planning
+  pax_capacity   Int?
+  useful_load_lbs Int?
+  
+  // Source
+  source_url     String?  @db.NVarChar(500)
+  is_verified    Boolean  @default(false)
+  scraped_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+
+  @@index([manufacturer, model])
+  @@index([fuel_type])
+  @@map("AircraftCache")
+}
+
+model WeatherCache {
+  icao           String   @id @db.NVarChar(10)
+  station_type   String?  @db.NVarChar(20)  // METAR, TAF
+  raw_data       String   @db.NVarChar(Max)
+  parsed_data    String?  @db.NVarChar(Max) // JSON parsed
+  valid_from     DateTime
+  valid_until    DateTime
+  scraped_at     DateTime @default(now())
+
+  @@index([valid_until])
+  @@map("WeatherCache")
+}

@@ -94,11 +94,42 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-// Fuel price cache
+// Persistent cache with localStorage
+const CACHE_EXPIRY = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+function getCachedData<T>(key: string): T | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const cached = localStorage.getItem(key);
+    if (!cached) return null;
+    const { data, timestamp } = JSON.parse(cached);
+    if (Date.now() - timestamp > CACHE_EXPIRY) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return data as T;
+  } catch { return null; }
+}
+
+function setCachedData<T>(key: string, data: T): void {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(key, JSON.stringify({ data, timestamp: Date.now() }));
+  } catch { /* ignore */ }
+}
+
+// Fuel price cache (in-memory + localStorage)
 const fuelPriceCache: Record<string, FuelPrice> = {};
 
 async function getFuelPrice(icao: string): Promise<FuelPrice | undefined> {
   if (fuelPriceCache[icao]) return fuelPriceCache[icao];
+  
+  // Check localStorage cache first
+  const cachedPrices = getCachedData<Record<string, FuelPrice>>('fuelPricesCache');
+  if (cachedPrices?.[icao]) {
+    fuelPriceCache[icao] = cachedPrices[icao];
+    return cachedPrices[icao];
+  }
   
   // Check demo prices
   const demo = DEMO_FUEL_PRICES.find(f => f.icao === icao);
@@ -350,6 +381,34 @@ function FuelSaverContent() {
   
   // Cached airports - accumulates as user pans around
   const [cachedAirports, setCachedAirports] = useState<Airport[]>([]);
+  const [allUSAirportsLoaded, setAllUSAirportsLoaded] = useState(false);
+  
+  // Pre-load all US airports on first load
+  useEffect(() => {
+    if (allUSAirportsLoaded) return;
+    
+    const cached = getCachedData<Airport[]>('allUSAirports');
+    if (cached && cached.length > 0) {
+      setCachedAirports(cached);
+      setAirports(cached.slice(0, 100));
+      setAllUSAirportsLoaded(true);
+      return;
+    }
+    
+    // Fetch all US airports (large + medium)
+    fetch('/api/airports?country=US&limit=10000')
+      .then(r => r.json())
+      .then(data => {
+        if (data.airports) {
+          const all = data.airports as Airport[];
+          setCachedAirports(all);
+          setAirports(all.slice(0, 100));
+          setCachedData('allUSAirports', all);
+          setAllUSAirportsLoaded(true);
+        }
+      })
+      .catch(console.error);
+  }, [allUSAirportsLoaded]);
   
   // Fetch airports when map bounds change - with caching
   useEffect(() => {
@@ -1217,9 +1276,9 @@ function FuelSaverContent() {
   // Marker click handler - for popup Add to Route button
   const handleAirportAdd = (airport: Airport) => {
     addWaypoint(airport);
-    // Center map on airport and zoom out slightly
+    // Center map on airport and zoom out to see area (not filling screen)
     setMapCenter([airport.latitude, airport.longitude]);
-    setMapZoom(10);
+    setMapZoom(8);
   };
 
   // Find nearest cheap fuel
