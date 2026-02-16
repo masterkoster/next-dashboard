@@ -1,10 +1,38 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('Are you sure you want to delete your account? This will permanently delete all your data including flight plans, aircraft, and group memberships. This action cannot be undone.')) {
+      return;
+    }
+    if (!confirm('This is your final warning. All your data will be permanently deleted. Continue?')) {
+      return;
+    }
+    
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/auth/delete-account', { method: 'DELETE' });
+      if (res.ok) {
+        alert('Your account has been deleted.');
+        signOut({ callbackUrl: '/' });
+      } else {
+        const data = await res.json();
+        alert('Failed to delete account: ' + (data.error || 'Unknown error'));
+      }
+    } catch (err) {
+      alert('Error deleting account');
+    }
+    setDeleting(false);
+  };
 
   if (status === 'loading') {
     return (
@@ -81,8 +109,12 @@ export default function SettingsPage() {
           <div className="bg-slate-800 rounded-lg p-6 border border-red-500/30">
             <h2 className="text-lg font-semibold mb-4 text-red-400">Danger Zone</h2>
             <div className="space-y-3">
-              <button className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 py-2 rounded-lg transition-colors">
-                Delete Account
+              <button 
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="w-full bg-red-500/20 hover:bg-red-500/30 text-red-400 py-2 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete Account'}
               </button>
             </div>
           </div>

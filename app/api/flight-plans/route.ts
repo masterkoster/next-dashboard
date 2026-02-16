@@ -52,11 +52,24 @@ export async function POST(request: Request) {
       waypoints,
     } = body;
 
+    const planName = name || `Flight Plan ${new Date().toLocaleDateString()}`;
+    
+    // Check for duplicate name
+    const duplicateName = await prisma.flightPlan.findFirst({
+      where: { 
+        userId: session.user.id,
+        name: planName
+      },
+    });
+    if (duplicateName) {
+      return NextResponse.json({ error: 'A flight plan with this name already exists' }, { status: 400 });
+    }
+
     // Create flight plan with waypoints in a transaction
     const flightPlan = await prisma.flightPlan.create({
       data: {
         userId: session.user.id,
-        name: name || `Flight Plan ${new Date().toLocaleDateString()}`,
+        name: planName,
         callsign,
         aircraftType,
         pilotName,
@@ -159,6 +172,20 @@ export async function PUT(request: Request) {
     
     if (!existingPlan) {
       return NextResponse.json({ error: 'Flight plan not found or not owned by user' }, { status: 404 });
+    }
+
+    // Check for duplicate name (but allow the same name if it's the same plan)
+    if (name && name !== existingPlan.name) {
+      const duplicateName = await prisma.flightPlan.findFirst({
+        where: { 
+          userId: session.user.id,
+          name: name,
+          id: { not: id } // exclude current plan
+        },
+      });
+      if (duplicateName) {
+        return NextResponse.json({ error: 'A flight plan with this name already exists' }, { status: 400 });
+      }
     }
 
     // Delete existing waypoints
