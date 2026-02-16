@@ -45,6 +45,8 @@ const LAYERS = {
 };
 
 export function MapControls({ options, onOptionsChange }: MapControlsProps) {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const toggleOption = (key: keyof MapLayerOptions) => {
     if (key === 'baseLayer') return;
     onOptionsChange({
@@ -58,115 +60,119 @@ export function MapControls({ options, onOptionsChange }: MapControlsProps) {
   };
 
   return (
-    <div className="absolute top-3 right-3 z-[1000] bg-slate-800/95 backdrop-blur rounded-lg shadow-xl border border-slate-700">
-      {/* Layer Selector */}
-      <div className="p-3 border-b border-slate-700">
-        <div className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">Map Layer</div>
-        <div className="grid grid-cols-2 gap-1">
-          {(Object.keys(LAYERS) as MapLayerOptions['baseLayer'][]).map((layer) => (
-            <button
-              key={layer}
-              onClick={() => setBaseLayer(layer)}
-              className={`px-2 py-1.5 text-xs rounded transition-colors ${
-                options.baseLayer === layer
-                  ? 'bg-sky-500 text-white'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              {LAYERS[layer].name}
-            </button>
-          ))}
-        </div>
-      </div>
+    <div className={`absolute ${isCollapsed ? 'bottom-4 left-4' : 'bottom-4 left-4'} z-[1000] transition-all`}>
+      {/* Toggle Button */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="bg-slate-800/95 hover:bg-slate-700 text-white p-2 rounded-lg shadow-xl border border-slate-700 mb-2"
+        title={isCollapsed ? 'Show Map Controls' : 'Hide Map Controls'}
+      >
+        {isCollapsed ? '☰' : '✕'}
+      </button>
 
-      {/* Airport Filters */}
-      <div className="p-3 border-b border-slate-700">
-        <div className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">Airports</div>
-        <div className="space-y-1.5">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={options.showLarge}
-              onChange={() => toggleOption('showLarge')}
-              className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-sky-500"
-            />
-            <span className="text-sm">
-              <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1.5"></span>
-              Large ({'>'}10,000ft)
-            </span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={options.showMedium}
-              onChange={() => toggleOption('showMedium')}
-              className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-sky-500"
-            />
-            <span className="text-sm">
-              <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1.5"></span>
-              Medium (5,000-10,000ft)
-            </span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={options.showSmall}
-              onChange={() => toggleOption('showSmall')}
-              className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-sky-500"
-            />
-            <span className="text-sm">
-              <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
-              Small / GA Airstrips
-            </span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={options.showSeaplane}
-              onChange={() => toggleOption('showSeaplane')}
-              className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-sky-500"
-            />
-            <span className="text-sm">
-              <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1.5"></span>
-              Seaplane Bases
-            </span>
-          </label>
-        </div>
-      </div>
+      {!isCollapsed && (
+        <div className="bg-slate-800/95 backdrop-blur rounded-lg shadow-xl border border-slate-700 w-48 max-h-[60vh] overflow-y-auto">
+          {/* Layer Selector */}
+          <div className="p-3 border-b border-slate-700">
+            <div className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">Map Layer</div>
+            <div className="grid grid-cols-2 gap-1">
+              {(Object.keys(LAYERS) as MapLayerOptions['baseLayer'][]).map((layer) => (
+                <button
+                  key={layer}
+                  onClick={() => setBaseLayer(layer)}
+                  className={`px-2 py-1.5 text-xs rounded transition-colors ${
+                    options.baseLayer === layer
+                      ? 'bg-sky-500 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                  }`}
+                >
+                  {LAYERS[layer].name}
+                </button>
+              ))}
+            </div>
+          </div>
 
-      {/* Overlays */}
-      <div className="p-3">
-        <div className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">Overlays</div>
-        <div className="space-y-1.5">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={options.showFuelPrices}
-              onChange={() => toggleOption('showFuelPrices')}
-              className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-sky-500"
-            />
-            <span className="text-sm">💰 Fuel Prices</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={options.showTerrain}
-              onChange={() => toggleOption('showTerrain')}
-              className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-sky-500"
-            />
-            <span className="text-sm">🏔️ Terrain / Elevation</span>
-          </label>
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={options.showAirspaces}
-              onChange={() => toggleOption('showAirspaces')}
-              className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500 focus:ring-sky-500"
-            />
-            <span className="text-sm">✈️ Airspaces (B/C/D)</span>
-          </label>
+          {/* Airport Filters */}
+          <div className="p-3 border-b border-slate-700">
+            <div className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">Airports</div>
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.showLarge}
+                  onChange={() => toggleOption('showLarge')}
+                  className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500"
+                />
+                <span className="text-sm">
+                  <span className="inline-block w-2 h-2 rounded-full bg-red-500 mr-1"></span>
+                  Large
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.showMedium}
+                  onChange={() => toggleOption('showMedium')}
+                  className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500"
+                />
+                <span className="text-sm">
+                  <span className="inline-block w-2 h-2 rounded-full bg-amber-500 mr-1"></span>
+                  Medium
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.showSmall}
+                  onChange={() => toggleOption('showSmall')}
+                  className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500"
+                />
+                <span className="text-sm">
+                  <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                  Small
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.showSeaplane}
+                  onChange={() => toggleOption('showSeaplane')}
+                  className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500"
+                />
+                <span className="text-sm">
+                  <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1"></span>
+                  Seaplane
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Overlays */}
+          <div className="p-3">
+            <div className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wide">Overlays</div>
+            <div className="space-y-1.5">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.showFuelPrices}
+                  onChange={() => toggleOption('showFuelPrices')}
+                  className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500"
+                />
+                <span className="text-sm">💰 Fuel Prices</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.showTerrain}
+                  onChange={() => toggleOption('showTerrain')}
+                  className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500"
+                />
+                <span className="text-sm">🏔️ Terrain</span>
+              </label>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import dynamic from 'next/dynamic';
 // Dynamic imports for Leaflet components (no SSR)
 const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
 import { MapControls, DEFAULT_MAP_OPTIONS, MapTileLayer, MapLayerOptions } from './MapControls';
+import FlightPlayback from './FlightPlayback';
 
 // Types
 interface Airport {
@@ -1567,7 +1568,13 @@ function FuelSaverContent() {
                 </div>
               )}
             </div>
-          )}
+            )}
+          </div>
+
+          {/* Flight Playback */}
+          <div className="flex-shrink-0">
+            <FlightPlayback />
+          </div>
         </div>
       </div>
     </div>
