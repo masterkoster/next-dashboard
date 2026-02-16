@@ -1663,15 +1663,8 @@ function FuelSaverContent() {
             </div>
           )}
 
-          {/* Additional Tools */}
-          <div className="flex-shrink-0">
-            <RangeRingCalculator 
-              onRangeChange={(range, center) => {
-                console.log('Range:', range, 'Center:', center);
-              }}
-              initialCenter={waypoints[0] ? [waypoints[0].latitude, waypoints[0].longitude] : undefined}
-            />
-          </div>
+          {/* Additional Tools - Hidden by default, can be shown if needed */}
+          {/* RangeRingCalculator moved to settings panel */}
         </div>
       </div>
 
