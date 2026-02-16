@@ -18,6 +18,7 @@ model User {
   password         String?   @db.NVarChar(255)
   resetToken       String?   @db.NVarChar(255)
   resetTokenExpiry DateTime?
+  flightPlans      FlightPlan[]
 
   @@map("User")
 }
@@ -249,6 +250,9 @@ model FlightPlan {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  waypoints     FlightPlanWaypoint[]
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("FlightPlan")
 }
 
@@ -265,6 +269,8 @@ model FlightPlanWaypoint {
   altitude     Int?
   flightType   String?  @db.NVarChar(10)
   createdAt    DateTime @default(now())
+
+  flightPlan   FlightPlan @relation(fields: [flightPlanId], references: [id], onDelete: Cascade)
 
   @@map("FlightPlanWaypoint")
 }
