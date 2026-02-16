@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Popup, Polyline, CircleMarker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -73,11 +73,13 @@ interface LeafletMapProps {
   onAirportClick: (airport: Airport) => void;
   mapCenter: [number, number];
   mapZoom: number;
+  showTerrain?: boolean;
+  showAirspaces?: boolean;
 }
 
-// Component to handle map move events
-function MapEventHandler({ onBoundsChange }: { onBoundsChange: (bounds: any) => void }) {
-  useMapEvents({
+// Component to handle map move events and get map reference
+function MapEventHandler({ onBoundsChange, onMapReady }: { onBoundsChange: (bounds: any) => void; onMapReady?: (map: L.Map) => void }) {
+  const map = useMapEvents({
     moveend: (e: any) => {
       const bounds = e.target.getBounds();
       onBoundsChange({
@@ -88,6 +90,13 @@ function MapEventHandler({ onBoundsChange }: { onBoundsChange: (bounds: any) => 
       });
     }
   });
+  
+  useEffect(() => {
+    if (onMapReady) {
+      onMapReady(map);
+    }
+  }, [map, onMapReady]);
+  
   return null;
 }
 
@@ -307,7 +316,42 @@ function AirportPopup({ airport, onAddToRoute }: { airport: Airport; onAddToRout
   );
 }
 
-export default function LeafletMap({ airports, waypoints, fuelPrices, onBoundsChange, onAirportClick, mapCenter, mapZoom }: LeafletMapProps) {
+export default function LeafletMap({ 
+  airports, 
+  waypoints, 
+  fuelPrices, 
+  onBoundsChange, 
+  onAirportClick, 
+  mapCenter, 
+  mapZoom,
+  showTerrain = false,
+  showAirspaces = false
+}: LeafletMapProps) {
+  const [terrainLayer, setTerrainLayer] = useState<L.TileLayer | null>(null);
+  const mapRef = useRef<L.Map | null>(null);
+  
+  // Toggle terrain layer based on setting
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Import Leaflet dynamically
+    import('leaflet').then((L) => {
+      if (showTerrain && !terrainLayer) {
+        // Add OpenTopoMap terrain layer
+        const terrain = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+          attribution: 'Map data: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+          maxZoom: 17,
+        });
+        terrain.addTo(mapRef.current!);
+        setTerrainLayer(terrain);
+      } else if (!showTerrain && terrainLayer) {
+        // Remove terrain layer
+        terrainLayer.remove();
+        setTerrainLayer(null);
+      }
+    });
+  }, [showTerrain, terrainLayer]);
+ 
   return (
     <MapContainer
       center={mapCenter}
@@ -319,7 +363,7 @@ export default function LeafletMap({ airports, waypoints, fuelPrices, onBoundsCh
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       
-      <MapEventHandler onBoundsChange={onBoundsChange} />
+      <MapEventHandler onBoundsChange={onBoundsChange} onMapReady={(map) => { mapRef.current = map; }} />
       
       {/* Airport markers - only show larger airports when zoomed out */}
       {airports.map(airport => (

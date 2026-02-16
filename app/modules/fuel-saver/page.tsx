@@ -10,6 +10,7 @@ const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
 import { MapControls, DEFAULT_MAP_OPTIONS, MapTileLayer, MapLayerOptions } from './MapControls';
 import FlightPlayback from './FlightPlayback';
 import RangeRingCalculator from './RangeRing';
+import PerformanceSettingsPanel, { PerformanceSettings, DEFAULT_SETTINGS } from './PerformanceSettings';
 
 // Types
 interface Airport {
@@ -180,6 +181,12 @@ function FuelSaverContent() {
   // Map layer options
   const [mapOptions, setMapOptions] = useState<MapLayerOptions>(DEFAULT_MAP_OPTIONS);
   
+  // Performance settings
+  const [performanceSettings, setPerformanceSettings] = useState<PerformanceSettings>(DEFAULT_SETTINGS);
+  
+  // Map height control (percentage)
+  const [mapHeightPercent, setMapHeightPercent] = useState(60);
+   
   // Flight plan state
   const [flightPlanName, setFlightPlanName] = useState('');
   const [callsign, setCallsign] = useState('');
@@ -1223,20 +1230,36 @@ function FuelSaverContent() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white flex flex-col">
-      {/* Header - full width */}
-      <div className="w-full p-2 lg:p-3 bg-slate-800 border-b border-slate-700 flex-shrink-0">
+    <div className="h-screen bg-slate-900 text-white flex flex-col overflow-hidden">
+      {/* Header - full width, no margin */}
+      <div className="w-full p-2 bg-slate-800 border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg lg:text-xl font-bold">Flight Planner & Fuel Saver</h1>
+            <h1 className="text-lg font-bold">Flight Planner & Fuel Saver</h1>
             <p className="text-slate-400 text-xs">Plan route, find fuel stops</p>
           </div>
-          <button
-            onClick={() => setShowPanel(!showPanel)}
-            className="bg-slate-700 hover:bg-slate-600 p-1.5 rounded-lg text-white"
-          >
-            {showPanel ? '✕' : '☰'}
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Map Height Control */}
+            <div className="flex items-center gap-1 bg-slate-700 rounded px-2 py-1">
+              <button 
+                onClick={() => setMapHeightPercent(Math.max(30, mapHeightPercent - 10))}
+                className="text-slate-300 hover:text-white text-xs px-1"
+                title="Smaller map"
+              >−</button>
+              <span className="text-xs text-slate-300 w-8 text-center">{mapHeightPercent}%</span>
+              <button 
+                onClick={() => setMapHeightPercent(Math.min(90, mapHeightPercent + 10))}
+                className="text-slate-300 hover:text-white text-xs px-1"
+                title="Larger map"
+              >+</button>
+            </div>
+            <button
+              onClick={() => setShowPanel(!showPanel)}
+              className="bg-slate-700 hover:bg-slate-600 p-1.5 rounded-lg text-white"
+            >
+              {showPanel ? '✕' : '☰'}
+            </button>
+          </div>
         </div>
         {/* Legend */}
         <div className="flex flex-wrap gap-2 text-xs mt-1">
@@ -1273,13 +1296,49 @@ function FuelSaverContent() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Left Panel - Flight Plan Form - fixed width */}
-        {showPanel && (
-          <div className="w-full lg:w-96 bg-slate-800 border-b lg:border-r border-slate-700 flex flex-col flex-shrink-0" style={{ maxHeight: 'calc(100vh - 80px)' }}>
-            {/* Scrollable: Flight Plan Details + Route */}
-            <div className="flex-1 overflow-y-auto p-2 space-y-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-              {/* Flight Plan Details */}
+      {/* Main Content: Map on top, Panel on bottom */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Map Section - Top */}
+        <div className="overflow-hidden flex-shrink-0" style={{ height: `${mapHeightPercent}%` }}>
+          <div className="h-full w-full">
+            {!mapLoaded ? (
+              <div className="h-full flex items-center justify-center bg-slate-800">
+                <button onClick={() => setMapLoaded(true)} className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm">
+                  Load Map
+                </button>
+              </div>
+            ) : (
+              <>
+                <LeafletMap
+                  airports={airports.filter(a => {
+                    if (a.type === 'large_airport' && !mapOptions.showLarge) return false;
+                    if (a.type === 'medium_airport' && !mapOptions.showMedium) return false;
+                    if (a.type === 'small_airport' && !mapOptions.showSmall) return false;
+                    if (a.type === 'seaplane_base' && !mapOptions.showSeaplane) return false;
+                    return true;
+                  })}
+                  waypoints={waypoints}
+                  fuelPrices={fuelPrices}
+                  onBoundsChange={setMapBounds}
+                  onAirportClick={handleAirportAdd}
+                  mapCenter={mapCenter}
+                  mapZoom={mapZoom}
+                  showTerrain={performanceSettings.showTerrain}
+                  showAirspaces={performanceSettings.showAirspaces}
+                />
+                <MapControls options={mapOptions} onOptionsChange={setMapOptions} />
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Panel Section - Bottom - full width */}
+        <div className="flex-1 overflow-hidden" style={{ height: `${100 - mapHeightPercent}%` }}>
+          {showPanel && (
+            <div className="h-full bg-slate-800 border-t border-slate-700 flex flex-col overflow-hidden">
+              {/* Scrollable content */}
+              <div className="flex-1 overflow-y-auto p-2 space-y-2">
+                {/* Flight Plan Details */}
               <div>
                 <h2 className="text-base font-semibold mb-1.5">Flight Plan Details</h2>
                 <div className="space-y-2">
@@ -1487,67 +1546,8 @@ function FuelSaverContent() {
                 </div>
               )}
             </div>
-          </div>
-        )}
-
-        {/* Map - Always visible */}
-        <div className="flex-1 flex flex-col">
-          {/* Toolbar */}
-          <div className="bg-slate-800 p-1.5 flex gap-1.5 flex-wrap items-center flex-shrink-0">
-            <label className="bg-sky-500 hover:bg-sky-600 px-2 py-1 rounded text-xs cursor-pointer">
-              Import
-              <input type="file" accept=".gpx,.fpl,.json,.csv" onChange={handleFileUpload} className="hidden" />
-            </label>
-            <input
-              type="text"
-              id="fpdbPlanId"
-              placeholder="FPDB ID"
-              className="bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs flex-1"
-              onKeyDown={(e) => { if (e.key === 'Enter') { const input = document.getElementById('fpdbPlanId') as HTMLInputElement; if (input.value) { importFromFPDB(input.value); input.value = ''; } }}}
-            />
-            <input
-              type="checkbox"
-              id="showAll"
-              checked={showAllAirports}
-              onChange={(e) => setShowAllAirports(e.target.checked)}
-              className="rounded"
-            />
-            <label htmlFor="showAll" className="text-xs">All</label>
-          </div>
-
-          {/* Map Container */}
-          <div className="flex-1 min-h-[200px]">
-            {!mapLoaded ? (
-              <div className="h-full flex items-center justify-center bg-slate-800">
-                <button onClick={() => setMapLoaded(true)} className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm">
-                  Load Map
-                </button>
-              </div>
-            ) : (
-              <>
-                <LeafletMap
-                  airports={airports.filter(a => {
-                    if (a.type === 'large_airport' && !mapOptions.showLarge) return false;
-                    if (a.type === 'medium_airport' && !mapOptions.showMedium) return false;
-                    if (a.type === 'small_airport' && !mapOptions.showSmall) return false;
-                    if (a.type === 'seaplane_base' && !mapOptions.showSeaplane) return false;
-                    return true;
-                  })}
-                  waypoints={waypoints}
-                  fuelPrices={fuelPrices}
-                  onBoundsChange={setMapBounds}
-                  onAirportClick={handleAirportAdd}
-                  mapCenter={mapCenter}
-                  mapZoom={mapZoom}
-                />
-                {/* Map Controls */}
-                <MapControls 
-                  options={mapOptions} 
-                  onOptionsChange={setMapOptions} 
-                />
-              </>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Route Summary */}
           {routeStats && (
@@ -1588,6 +1588,9 @@ function FuelSaverContent() {
           </div>
         </div>
       </div>
+
+      {/* Performance Settings Panel */}
+      <PerformanceSettingsPanel onSettingsChange={setPerformanceSettings} />
     </div>
   );
 }
