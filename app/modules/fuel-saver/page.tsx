@@ -1262,10 +1262,22 @@ function FuelSaverContent() {
       </div>
 
       {/* Main Content: Sidebar left, Map right */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Foldout Panel */}
-        {showPanel && (
-          <div className="w-56 sm:w-64 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden flex-shrink-0">
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Toggle Arrow Button */}
+        <button
+          onClick={() => setShowPanel(!showPanel)}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 bg-slate-700 hover:bg-slate-600 text-white px-2 py-4 rounded-r-lg text-sm transition-all"
+          style={{ left: showPanel ? '224px' : '0px' }}
+        >
+          {showPanel ? '◀' : '▶'}
+        </button>
+
+        {/* Left Sidebar - Slide-in Panel */}
+        <div 
+          className={`bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden transition-all duration-300 ${showPanel ? 'w-56' : 'w-0'}`}
+        >
+          {showPanel && (
+            <div className="w-56 flex flex-col h-full">
             {/* Tabs */}
             <div className="flex text-xs">
               <button 
@@ -1578,7 +1590,8 @@ function FuelSaverContent() {
               )}
             </div>
           </div>
-        )}
+          )}
+        </div>
 
         {/* Right Side - Map and Bottom Stats */}
         <div className="flex-1 flex flex-col overflow-hidden">
