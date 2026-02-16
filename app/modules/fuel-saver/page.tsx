@@ -1473,6 +1473,30 @@ function FuelSaverContent() {
                       className="w-full"
                     />
                   </div>
+
+                  {/* Range Calculator - compact inline */}
+                  <div className="bg-slate-700 rounded p-2 space-y-1">
+                    <div className="text-xs font-medium text-slate-300">Range</div>
+                    <div className="grid grid-cols-3 gap-1 text-xs">
+                      <div>
+                        <div className="text-slate-500 text-[10px]">Gal</div>
+                        <div className="text-white">{selectedAircraft.fuelCapacity}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500 text-[10px]">Burn</div>
+                        <div className="text-white">{selectedAircraft.burnRate}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500 text-[10px]">Kts</div>
+                        <div className="text-white">{selectedAircraft.speed}</div>
+                      </div>
+                    </div>
+                    {routeStats && (
+                      <div className="text-[10px] text-sky-400 pt-1 border-t border-slate-600">
+                        Max Range: {Math.round((selectedAircraft.fuelCapacity * departureFuel / 100 / selectedAircraft.burnRate) * selectedAircraft.speed)} NM
+                      </div>
+                    )}
+                  </div>
                 </div>
               ) : (
                 /* Waypoints Tab */
@@ -1673,18 +1697,6 @@ function FuelSaverContent() {
               )}
             </div>
           )}
-
-          {/* Additional Tools - Range Calculator at bottom of map area */}
-          <div className="absolute bottom-4 left-4 right-4 flex-shrink-0 pointer-events-none">
-            <div className="pointer-events-auto inline-block">
-              <RangeRingCalculator 
-                onRangeChange={(range, center) => {
-                  console.log('Range:', range, 'Center:', center);
-                }}
-                initialCenter={waypoints[0] ? [waypoints[0].latitude, waypoints[0].longitude] : undefined}
-              />
-            </div>
-          </div>
         </div>
       </div>
 
