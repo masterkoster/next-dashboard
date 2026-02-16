@@ -1,7 +1,7 @@
 /**
- * AirNav Fuel Price Scraper - Midwest Region
+ * AirNav Fuel Price Scraper - East Region
  * Scrapes fuel prices from AirNav.com
- * Smart caching: Large = 72h, Medium = 168h
+ * East US: CT, DE, FL, GA, ME, MD, MA, NH, NJ, NY, NC, PA, RI, SC, VT, VA, WV
  */
 
 const sqlite3 = require('sqlite3').verbose();
@@ -10,8 +10,8 @@ const http = require('http');
 
 const DB_PATH = require('path').join(__dirname, '..', 'data', 'aviation_hub.db');
 
-// Midwest US states
-const MIDWEST_STATES = ['IL', 'IN', 'MI', 'OH', 'WI', 'MN', 'IA', 'MO', 'KS', 'ND', 'NE', 'SD'];
+// East US states
+const EAST_STATES = ['CT', 'DE', 'FL', 'GA', 'ME', 'MD', 'MA', 'NH', 'NJ', 'NY', 'NC', 'PA', 'RI', 'SC', 'VT', 'VA', 'WV'];
 
 function httpGet(url, retries = 3) {
   return new Promise((resolve, reject) => {
@@ -37,7 +37,6 @@ function parseAirportData(html) {
   const results = [];
   const lines = html.split('\n');
   
-  // Data to extract
   let lastReported = null;
   let prices = { '100LL': null, 'JetA': null };
   let hasTower = 0;
@@ -46,7 +45,6 @@ function parseAirportData(html) {
   let landingFee = null;
   let manager = null;
   
-  // Parse all data from HTML
   const fullHtml = html;
   
   // Extract prices
@@ -62,7 +60,6 @@ function parseAirportData(html) {
           if (!prices['100LL']) prices['100LL'] = price;
           else if (!prices['JetA']) prices['JetA'] = price;
         }
-        // Check for landing fee (usually $XX)
         if (line.includes('Landing fee') || line.includes('landing fee')) {
           if (price > 0 && price < 500) {
             landingFee = price;
@@ -72,30 +69,30 @@ function parseAirportData(html) {
     }
   }
   
-  // Extract tower - look for "Control tower: yes" or "Tower: yes"
+  // Extract tower
   if (fullHtml.match(/Control tower:\s*yes/i) || fullHtml.match(/Tower:\s*yes/i)) {
     hasTower = 1;
   }
   
-  // Extract attendance - "Attendance:"
+  // Extract attendance
   const attendanceMatch = fullHtml.match(/Attendance:[^<]*<td[^>]*>([^<]+)<\/td>/i);
   if (attendanceMatch) {
     attendance = attendanceMatch[1].trim();
   }
   
-  // Extract phone - look for phone numbers
+  // Extract phone
   const phoneMatch = fullHtml.match(/(\d{3}[-.]?\d{3}[-.]?\d{4})/);
   if (phoneMatch) {
     phone = phoneMatch[1];
   }
   
-  // Extract manager - "Manager:"
+  // Extract manager
   const managerMatch = fullHtml.match(/Manager:[^<]*<td[^>]*>([^<]+)<\/td>/i);
   if (managerMatch) {
     manager = managerMatch[1].trim();
   }
   
-  // Extract landing fee if found in more specific location
+  // Extract landing fee
   const landingMatch = fullHtml.match(/Landing fee:[^<]*<td[^>]*>\s*([^<$]+)/i);
   if (landingMatch) {
     const fee = parseFloat(landingMatch[1].replace(/[$,]/g, ''));
@@ -133,15 +130,15 @@ function parseAirportData(html) {
 }
 
 async function scrape() {
-  console.log('=== AirNav Fuel Scraper - Midwest ===\n');
+  console.log('=== AirNav Fuel Scraper - East Region ===\n');
   
   const db = new sqlite3.Database(DB_PATH);
   
-  // Get all Midwest large airports
-  db.all("SELECT icao, name, state FROM airports WHERE type = 'large_airport' AND state LIKE 'US-%' AND substr(state, 4, 2) IN ('IL', 'IN', 'MI', 'OH', 'WI', 'MN', 'IA', 'MO', 'KS', 'ND', 'NE', 'SD') ORDER BY state, name", [], async (err, largeAirports) => {
+  // Get all East large airports
+  db.all(`SELECT icao, name, state FROM airports WHERE type = 'large_airport' AND state LIKE 'US-%' AND substr(state, 4, 2) IN (${EAST_STATES.map(s => `'${s}'`).join(',')}) ORDER BY state, name`, [], async (err, largeAirports) => {
     if (err) { console.error(err); db.close(); return; }
     
-    console.log(`Found ${largeAirports.length} large airports in Midwest\n`);
+    console.log(`Found ${largeAirports.length} large airports in East region\n`);
     
     let total = 0;
     
@@ -178,7 +175,7 @@ async function scrape() {
     }
     
     // Get medium airports
-    db.all("SELECT icao, name, state FROM airports WHERE type = 'medium_airport' AND state LIKE 'US-%' AND substr(state, 4, 2) IN ('IL', 'IN', 'MI', 'OH', 'WI', 'MN', 'IA', 'MO', 'KS', 'ND', 'NE', 'SD') ORDER BY state, name", async (err, mediumAirports) => {
+    db.all(`SELECT icao, name, state FROM airports WHERE type = 'medium_airport' AND state LIKE 'US-%' AND substr(state, 4, 2) IN (${EAST_STATES.map(s => `'${s}'`).join(',')}) ORDER BY state, name`, async (err, mediumAirports) => {
       console.log(`\nFound ${mediumAirports.length} medium airports...\n`);
       
       for (const airport of mediumAirports) {
