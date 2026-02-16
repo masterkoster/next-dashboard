@@ -12,10 +12,10 @@ const DB_PATH = path.join(process.cwd(), 'data', 'aviation_hub.db');
 // Standard passenger weights (including 10 lb allowance for clothing/baggage)
 const DEFAULT_PASSENGER_WEIGHT = 170; // lbs
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
   const db = new sqlite3.Database(DB_PATH);
   
-  return new Promise((resolve) => {
+  return new Promise<NextResponse>((resolve) => {
     db.all("SELECT make, model, empty_weight, empty_cg, max_weight, fuel_capacity, cruise_speed, fuel_burn FROM weight_balance ORDER BY make, model", [], (err, rows: any[]) => {
       db.close();
       
@@ -29,7 +29,7 @@ export async function GET() {
   });
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   try {
     const { 
       aircraftId,
