@@ -337,7 +337,14 @@ function FuelSaverContent() {
   
   // Panel visibility
   const [showPanel, setShowPanel] = useState(true);
-  const [activeTab, setActiveTab] = useState<'details' | 'waypoints'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'waypoints' | 'info'>('details');
+  const [tabIndex, setTabIndex] = useState(0);
+  
+  const tabs = [
+    { id: 'details', label: 'Details' },
+    { id: 'waypoints', label: 'Route' },
+    { id: 'info', label: 'Info' }
+  ];
   
   // Cached airports - accumulates as user pans around
   const [cachedAirports, setCachedAirports] = useState<Airport[]>([]);
@@ -1234,7 +1241,7 @@ function FuelSaverContent() {
   };
 
   return (
-    <div className="h-screen bg-slate-900 text-white flex flex-col overflow-hidden">
+    <div className="h-screen bg-slate-900 text-white flex flex-col overflow-hidden pt-15">
       {/* Top Bar - Minimal header with controls */}
       <div className="w-full p-2 bg-slate-800 border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center justify-between">
@@ -1269,48 +1276,45 @@ function FuelSaverContent() {
         >
           {showPanel && (
             <div className="w-64 flex flex-col h-full">
-            {/* Tabs - align with header */}
-            <div className="flex text-xs border-b border-slate-700">
-              <button 
-                onClick={() => setActiveTab('details')}
-                className={`flex-1 py-1.5 font-medium border-b-2 ${activeTab === 'details' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white'}`}
-              >
-                Details
-              </button>
-              <button 
-                onClick={() => setActiveTab('waypoints')}
-                className={`flex-1 py-1.5 font-medium border-b-2 ${activeTab === 'waypoints' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white'}`}
-              >
-                Route ({waypoints.length})
-              </button>
-            </div>
+              {/* Horizontal Scrollable Tabs with < > */}
+              <div className="flex items-center text-xs border-b border-slate-700 px-1">
+                <button
+                  onClick={() => setTabIndex(Math.max(0, tabIndex - 1))}
+                  disabled={tabIndex === 0}
+                  className="p-1.5 text-slate-400 disabled:opacity-30 hover:text-white"
+                >
+                  ‹
+                </button>
+                <div className="flex-1 flex overflow-hidden">
+                  {tabs.slice(tabIndex, tabIndex + 2).map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setActiveTab(tab.id as 'details' | 'waypoints' | 'info')}
+                      className={`flex-1 py-1.5 font-medium border-b-2 ${
+                        activeTab === tab.id 
+                          ? 'text-white border-sky-500 bg-slate-700/50' 
+                          : 'text-slate-400 border-transparent hover:text-white'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  onClick={() => setTabIndex(Math.min(tabs.length - 2, tabIndex + 1))}
+                  disabled={tabIndex >= tabs.length - 2}
+                  className="p-1.5 text-slate-400 disabled:opacity-30 hover:text-white"
+                >
+                  ›
+                </button>
+              </div>
 
-            {/* Content - no scroll */}
-            <div className="flex-1 overflow-hidden">
-              {activeTab === 'details' ? (
+              {/* Content - scrollable */}
+              <div className="flex-1 overflow-y-auto">
+                {activeTab === 'details' ? (
                 /* Flight Plan Details Tab */
                 <div className="p-2 space-y-2">
-                  {/* Quick Actions */}
-                  <div className="flex gap-1">
-                    <button
-                      onClick={() => setMapZoom(Math.max(mapZoom - 1, 3))}
-                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-1 py-1 rounded text-xs"
-                    >
-                      Out
-                    </button>
-                    <button
-                      onClick={() => setMapZoom(Math.min(mapZoom + 1, 18))}
-                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-1 py-1 rounded text-xs"
-                    >
-                      In
-                    </button>
-                    <button
-                      onClick={() => { setMapCenter([39.8283, -98.5795]); setMapZoom(5); }}
-                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-1 py-1 rounded text-xs"
-                    >
-                      Reset
-                    </button>
-                  </div>
+                  {/* Search */}
 
                   {/* Search */}
                   <div>
