@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
 import { MapControls, DEFAULT_MAP_OPTIONS, MapTileLayer, MapLayerOptions } from './MapControls';
 import FlightPlayback from './FlightPlayback';
+import RangeRingCalculator from './RangeRing';
 
 // Types
 interface Airport {
@@ -1569,6 +1570,17 @@ function FuelSaverContent() {
               )}
             </div>
             )}
+          </div>
+
+          {/* Range Ring Calculator */}
+          <div className="flex-shrink-0">
+            <RangeRingCalculator 
+              onRangeChange={(range, center) => {
+                // Could draw circle on map here
+                console.log('Range:', range, 'Center:', center);
+              }}
+              initialCenter={waypoints[0] ? [waypoints[0].latitude, waypoints[0].longitude] : undefined}
+            />
           </div>
 
           {/* Flight Playback */}
