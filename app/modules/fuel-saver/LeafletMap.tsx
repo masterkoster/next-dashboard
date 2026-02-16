@@ -57,6 +57,8 @@ interface AirportDetails {
     source: string;
     sourceUrl?: string;
     lastReported?: string;
+    providerName?: string;
+    providerPhone?: string;
   };
   landingFee?: { amount: number };
   hasTower?: boolean;
@@ -131,7 +133,15 @@ function AirportPopup({ airport, onAddToRoute }: { airport: Airport; onAddToRout
   }, [airport.icao]);
 
   return (
-    <div className="min-w-[160px] max-w-[220px] text-slate-900">
+    <div className="min-w-[150px] max-w-[180px] text-slate-900 relative">
+      {/* Close button */}
+      <button
+        onClick={(e) => { e.stopPropagation(); }}
+        className="absolute -top-1 -right-1 w-5 h-5 bg-slate-200 hover:bg-slate-300 rounded-full text-xs flex items-center justify-center"
+        title="Close"
+      >
+        ×
+      </button>
       <strong className="text-lg">{airport.icao}</strong>
       {airport.iata && <span className="ml-2 text-slate-500">({airport.iata})</span>}
       <div className="font-medium">{airport.name}</div>
