@@ -8,9 +8,6 @@ import dynamic from 'next/dynamic';
 // Dynamic import for Leaflet components (no SSR)
 const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
 
-// Inner component that uses useSearchParams
-function FuelSaverContent() {
-
 // Types
 interface Airport {
   icao: string;
@@ -43,6 +40,9 @@ interface FuelPrice {
   lastUpdated: string;
   source?: string;
 }
+
+// Inner component that uses useSearchParams
+function FuelSaverContent() {
 
 // Demo airports (fallback)
 const DEMO_AIRPORTS: Airport[] = [
