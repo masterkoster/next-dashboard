@@ -238,10 +238,17 @@ export default function FuelSaverPage() {
           setCachedAirports(prev => {
             const existing = new Set(prev.map(a => a.icao));
             const newOnes = data.airports.filter((a: Airport) => !existing.has(a.icao));
-            return [...prev, ...newOnes];
+            const allAirports = [...prev, ...newOnes];
+            // Show airports in current view
+            const inView = allAirports.filter(a => 
+              a.latitude >= mapBounds.minLat - 2 && 
+              a.latitude <= mapBounds.maxLat + 2 &&
+              a.longitude >= mapBounds.minLon - 2 && 
+              a.longitude <= mapBounds.maxLon + 2
+            );
+            setAirports(inView);
+            return allAirports;
           });
-          // Show recent ones
-          setAirports(data.airports);
         }
       } catch (e) {
         console.error('Error fetching airports:', e);
