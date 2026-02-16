@@ -117,3 +117,80 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: 'Failed to delete flight plan' }, { status: 500 });
   }
 }
+
+// PUT - Update a flight plan
+export async function PUT(request: Request) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Flight plan ID required' }, { status: 400 });
+    }
+
+    const body = await request.json();
+    
+    const {
+      name,
+      callsign,
+      aircraftType,
+      pilotName,
+      departureTime,
+      cruisingAlt,
+      alternateIcao,
+      remarks,
+      soulsOnBoard,
+      departureIcao,
+      arrivalIcao,
+      departureFuel,
+      waypoints,
+    } = body;
+
+    // First delete existing waypoints
+    await prisma.flightPlanWaypoint.deleteMany({
+      where: { flightPlanId: id },
+    });
+
+    // Then update the flight plan with new waypoints
+    const flightPlan = await prisma.flightPlan.update({
+      where: { id, userId: session.user.id },
+      data: {
+        name: name || `Flight Plan ${new Date().toLocaleDateString()}`,
+        callsign,
+        aircraftType,
+        pilotName,
+        departureTime: departureTime ? new Date(departureTime) : null,
+        departureFuel,
+        cruisingAlt,
+        arrivalIcao,
+        alternateIcao,
+        remarks,
+        soulsOnBoard,
+        departureIcao,
+        waypoints: waypoints ? {
+          create: waypoints.map((wp: any, index: number) => ({
+            sequence: index,
+            icao: wp.icao,
+            name: wp.name,
+            city: wp.city,
+            latitude: wp.latitude,
+            longitude: wp.longitude,
+            altitude: wp.altitude,
+          }))
+        } : undefined,
+      },
+      include: { waypoints: { orderBy: { sequence: 'asc' } } },
+    });
+
+    return NextResponse.json({ flightPlan, message: 'Flight plan updated' });
+  } catch (error) {
+    console.error('Error updating flight plan:', error);
+    return NextResponse.json({ error: 'Failed to update flight plan' }, { status: 500 });
+  }
+}

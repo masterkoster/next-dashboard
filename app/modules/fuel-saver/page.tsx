@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for Leaflet components (no SSR)
@@ -176,6 +177,22 @@ export default function FuelSaverPage() {
   // Auth
   const { data: session, status } = useSession();
   const [syncOffered, setSyncOffered] = useState(false);
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+  
+  // Get URL params for loading a plan
+  const searchParams = useSearchParams();
+  
+  // Load plan from URL param when plans are loaded
+  useEffect(() => {
+    const loadId = searchParams?.get('load');
+    if (loadId && savedPlans.length > 0) {
+      const planToLoad = savedPlans.find((p: any) => p.id === loadId);
+      if (planToLoad) {
+        setCurrentPlanId(loadId);
+        loadFlightPlan(planToLoad);
+      }
+    }
+  }, [searchParams, savedPlans]);
   
   // Load saved flight plans - localStorage first, then database
   useEffect(() => {
@@ -909,8 +926,10 @@ export default function FuelSaverPage() {
       return;
     }
     
+    const planName = flightPlanName || `Flight Plan ${new Date().toLocaleDateString()}`;
+    
     const plan = {
-      name: flightPlanName || `Flight Plan ${new Date().toLocaleDateString()}`,
+      name: planName,
       callsign,
       aircraftType: aircraftType || selectedAircraft.name,
       pilotName,
@@ -937,6 +956,31 @@ export default function FuelSaverPage() {
     // If logged in, save to database
     if (status === 'authenticated') {
       try {
+        // If we have a current plan ID and the name hasn't changed, update it
+        // Otherwise create a new plan
+        if (currentPlanId) {
+          // Check if name matches the current plan
+          const currentPlan = savedPlans.find((p: any) => p.id === currentPlanId);
+          if (currentPlan && currentPlan.name === planName) {
+            // Update existing plan
+            const res = await fetch(`/api/flight-plans?id=${currentPlanId}`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(plan)
+            });
+            
+            if (res.ok) {
+              const data = await res.json();
+              setSavedPlans(prev => prev.map(p => p.id === currentPlanId ? data.flightPlan : p));
+              alert('Flight plan updated!');
+            } else {
+              alert('Failed to update flight plan');
+            }
+            return;
+          }
+        }
+        
+        // Name changed or no current plan - create new
         const res = await fetch('/api/flight-plans', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -945,8 +989,8 @@ export default function FuelSaverPage() {
         
         if (res.ok) {
           const data = await res.json();
-          // Add to local state
           setSavedPlans(prev => [data.flightPlan, ...prev]);
+          setCurrentPlanId(data.flightPlan.id);
           alert('Flight plan saved!');
         } else {
           alert('Failed to save flight plan');
@@ -957,7 +1001,20 @@ export default function FuelSaverPage() {
       }
     } else {
       // Save to localStorage only (when not logged in)
-      const newPlans = [...savedPlans.filter(p => !p.id), { ...plan, fromLocal: true }];
+      // If we have a current local plan with same name, update it
+      const currentLocalPlan = savedPlans.find((p: any) => p.fromLocal && p.id === currentPlanId);
+      if (currentLocalPlan && currentLocalPlan.name === planName) {
+        const newPlans = savedPlans.map((p: any) => 
+          (p.fromLocal && p.id === currentPlanId) ? { ...plan, id: currentPlanId, fromLocal: true } : p
+        );
+        setSavedPlans(newPlans);
+        saveToLocalStorage(newPlans);
+        alert('Flight plan updated!');
+        return;
+      }
+      
+      // Name changed or new - create new
+      const newPlans = [...savedPlans.filter(p => !p.id || !p.fromLocal), { ...plan, id: Date.now(), fromLocal: true }];
       setSavedPlans(newPlans);
       saveToLocalStorage(newPlans);
       alert('Flight plan saved locally (log in to save to your account)');
