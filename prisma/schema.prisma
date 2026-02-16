@@ -20,6 +20,7 @@ model User {
   resetTokenExpiry DateTime?
   flightPlans      FlightPlan[]
   memberships      GroupMember[]
+  aircraft         UserAircraft[]
 
   @@map("User")
 }
@@ -32,6 +33,8 @@ model UserAircraft {
   notes     String?   @db.NVarChar(Max)
   createdAt DateTime? @default(now(), map: "DF__UserAircr__creat__08B54D69")
   updatedAt DateTime? @default(now(), map: "DF__UserAircr__updat__09A971A2") @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("UserAircraft")
 }
