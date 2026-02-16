@@ -1402,13 +1402,22 @@ function FuelSaverContent() {
 
                   {/* Search */}
                   <div>
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => handleSearch(e.target.value)}
-                      placeholder="Search..."
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase text-xs"
-                    />
+                    <div className="flex gap-1">
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => handleSearch(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && searchResults[0] && addWaypoint(searchResults[0])}
+                        placeholder="Search airport..."
+                        className="flex-1 bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase text-xs"
+                      />
+                      <button 
+                        onClick={() => searchQuery.length >= 2 && searchResults[0] && addWaypoint(searchResults[0])}
+                        className="bg-sky-600 hover:bg-sky-500 px-3 rounded text-white text-xs"
+                      >
+                        Add
+                      </button>
+                    </div>
                     {showSearchResults && searchResults.length > 0 && (
                       <div className="mt-2 bg-slate-700 rounded max-h-40 overflow-y-auto">
                         {searchResults.map((airport) => (
@@ -1422,6 +1431,9 @@ function FuelSaverContent() {
                           </button>
                         ))}
                       </div>
+                    )}
+                    {showSearchResults && searchResults.length === 0 && searchQuery.length >= 2 && (
+                      <div className="mt-2 text-xs text-slate-400 text-center py-2">No airports found</div>
                     )}
                   </div>
 
