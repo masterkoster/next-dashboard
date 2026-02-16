@@ -185,6 +185,10 @@ async function checkForConflict(
         return { hasConflict: false }; // New item, not a conflict
       }
       
+      if (!existing.updatedAt) {
+        return { hasConflict: false };
+      }
+      
       const modifiedAt = new Date(existing.updatedAt);
       if (modifiedAt > lastSynced) {
         return {
@@ -203,6 +207,10 @@ async function checkForConflict(
       });
       
       if (!existing) {
+        return { hasConflict: false };
+      }
+      
+      if (!existing.updatedAt) {
         return { hasConflict: false };
       }
       
@@ -227,6 +235,10 @@ async function checkForConflict(
         return { hasConflict: false };
       }
       
+      if (!existing.updatedAt) {
+        return { hasConflict: false };
+      }
+      
       const modifiedAt = new Date(existing.updatedAt);
       if (modifiedAt > lastSynced) {
         return {
@@ -246,6 +258,10 @@ async function checkForConflict(
       
       if (!existing) {
         return { hasConflict: true, type: 'deleted' };
+      }
+      
+      if (!existing.updatedAt) {
+        return { hasConflict: false };
       }
       
       const modifiedAt = new Date(existing.updatedAt);
