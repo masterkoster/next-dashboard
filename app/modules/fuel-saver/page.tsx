@@ -1231,28 +1231,25 @@ function FuelSaverContent() {
 
   return (
     <div className="h-screen bg-slate-900 text-white flex flex-col overflow-hidden">
-      {/* Header - full width, no margin */}
+      {/* Top Bar - Minimal header with controls */}
       <div className="w-full p-2 bg-slate-800 border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold">Flight Planner & Fuel Saver</h1>
-            <p className="text-slate-400 text-xs">Plan routes, find cheap fuel</p>
+            {/* Legend */}
+            <div className="hidden sm:flex items-center gap-3 text-xs">
+              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Large</div>
+              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Medium</div>
+              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Small</div>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            {/* Map Height Control */}
-            <div className="flex items-center gap-1 bg-slate-700 rounded px-2 py-1">
-              <button 
-                onClick={() => setMapHeightPercent(Math.max(30, mapHeightPercent - 10))}
-                className="text-slate-300 hover:text-white text-xs px-1"
-                title="Smaller map"
-              >−</button>
-              <span className="text-xs text-slate-300 w-8 text-center">{mapHeightPercent}%</span>
-              <button 
-                onClick={() => setMapHeightPercent(Math.min(90, mapHeightPercent + 10))}
-                className="text-slate-300 hover:text-white text-xs px-1"
-                title="Larger map"
-              >+</button>
-            </div>
+            <button
+              onClick={() => findNearestFuel()}
+              className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1"
+            >
+              <span>⛽</span> Find Cheap Fuel
+            </button>
             <button
               onClick={() => setShowPanel(!showPanel)}
               className="bg-slate-700 hover:bg-slate-600 p-1.5 rounded-lg text-white"
@@ -1261,46 +1258,222 @@ function FuelSaverContent() {
             </button>
           </div>
         </div>
-        {/* Legend */}
-        <div className="flex flex-wrap gap-2 text-xs mt-1">
-          <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Large</div>
-          <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Medium</div>
-          <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Small</div>
-        </div>
-        {/* Quick Actions */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          <button
-            onClick={() => findNearestFuel()}
-            className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1"
-          >
-            <span>⛽</span> Find Cheap Fuel
-          </button>
-          <button
-            onClick={() => setMapZoom(Math.max(mapZoom - 1, 3))}
-            className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-xs"
-          >
-            Zoom Out
-          </button>
-          <button
-            onClick={() => setMapZoom(Math.min(mapZoom + 1, 18))}
-            className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-xs"
-          >
-            Zoom In
-          </button>
-          <button
-            onClick={() => { setMapCenter([39.8283, -98.5795]); setMapZoom(5); }}
-            className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-xs"
-          >
-            Reset View
-          </button>
-        </div>
       </div>
 
-      {/* Main Content: Map on top, Panel on bottom */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Map Section - Top */}
-        <div className="overflow-hidden flex-shrink-0" style={{ height: `${mapHeightPercent}%` }}>
-          <div className="h-full w-full">
+      {/* Main Content: Sidebar left, Map right */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Left Sidebar - Collapsible */}
+        {showPanel && (
+          <div className="w-80 lg:w-96 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden flex-shrink-0">
+            {/* Tabs */}
+            <div className="flex border-b border-slate-700">
+              <button className="flex-1 py-2 text-sm font-medium text-white border-b-2 border-sky-500 bg-slate-700/50">
+                Itinerary
+              </button>
+              <button 
+                className="flex-1 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700/30"
+                onClick={() => alert('Details tab coming soon!')}
+              >
+                Details
+              </button>
+            </div>
+
+            {/* Scrollable content */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Quick Actions Bar */}
+              <div className="flex gap-2 p-3 border-b border-slate-700">
+                <button
+                  onClick={() => setMapZoom(Math.max(mapZoom - 1, 3))}
+                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
+                >
+                  Zoom Out
+                </button>
+                <button
+                  onClick={() => setMapZoom(Math.min(mapZoom + 1, 18))}
+                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
+                >
+                  Zoom In
+                </button>
+                <button
+                  onClick={() => { setMapCenter([39.8283, -98.5795]); setMapZoom(5); }}
+                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
+                >
+                  Reset
+                </button>
+              </div>
+
+              {/* Search */}
+              <div className="p-3 border-b border-slate-700">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder="Search airport..."
+                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white uppercase text-sm"
+                />
+                {showSearchResults && searchResults.length > 0 && (
+                  <div className="mt-2 bg-slate-700 rounded max-h-40 overflow-y-auto">
+                    {searchResults.map((airport) => (
+                      <button
+                        key={airport.icao}
+                        onClick={() => addWaypoint(airport)}
+                        className="w-full text-left px-3 py-2 hover:bg-slate-600 text-sm border-b border-slate-600 last:border-0"
+                      >
+                        <div className="font-medium">{airport.icao}</div>
+                        <div className="text-xs text-slate-400">{airport.name}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Waypoints List - Timeline Style */}
+              <div className="p-3">
+                <h2 className="text-sm font-semibold mb-3 text-slate-300">Route ({waypoints.length} stops)</h2>
+                {waypoints.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 text-sm">
+                    <div className="mb-2">✈️</div>
+                    <p>No waypoints yet</p>
+                    <p className="text-xs mt-1">Search airports to build your route</p>
+                  </div>
+                ) : (
+                  <div className="space-y-0">
+                    {waypoints.map((wp, i) => {
+                      const isFirst = i === 0;
+                      const isLast = i === waypoints.length - 1;
+                      const legDistance = i > 0 ? routeStats?.segments?.[i-1] : null;
+                      
+                      return (
+                        <div key={wp.id} className="relative">
+                          {/* Connection line */}
+                          {!isFirst && (
+                            <div className="absolute left-4 -top-3 w-0.5 h-6 bg-sky-500"></div>
+                          )}
+                          
+                          {/* Waypoint Card */}
+                          <div className="flex items-start gap-3 py-2">
+                            {/* Number circle */}
+                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-sm z-10">
+                              {i + 1}
+                            </div>
+                            
+                            {/* Content */}
+                            <div className="flex-1 min-w-0">
+                              <div className="bg-slate-700 rounded-lg p-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="font-medium text-white truncate">{wp.name}</div>
+                                    <div className="text-sky-400 text-sm font-mono">{wp.icao}</div>
+                                    {wp.city && (
+                                      <div className="text-xs text-slate-400">{wp.city}</div>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-1 flex-shrink-0">
+                                    <button 
+                                      onClick={() => moveWaypoint(wp.id, 'up')}
+                                      disabled={isFirst}
+                                      className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-1"
+                                    >
+                                      ↑
+                                    </button>
+                                    <button 
+                                      onClick={() => moveWaypoint(wp.id, 'down')}
+                                      disabled={isLast}
+                                      className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-1"
+                                    >
+                                      ↓
+                                    </button>
+                                    <button 
+                                      onClick={() => removeWaypoint(wp.id)}
+                                      className="text-red-400 hover:text-red-300 text-xs p-1"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                </div>
+                                
+                                {/* Leg info */}
+                                {legDistance && (
+                                  <div className="mt-2 pt-2 border-t border-slate-600 text-xs text-slate-400">
+                                    <span className="text-sky-400">{Math.round(legDistance)} NM</span>
+                                    <span className="mx-2">•</span>
+                                    <span>{Math.round((legDistance / selectedAircraft.speed) * 60)} min</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Bottom Actions - Load/Save */}
+            <div className="p-3 border-t border-slate-700 bg-slate-800 flex-shrink-0 space-y-2">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowPlanList(!showPlanList)}
+                  className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 rounded-lg text-sm"
+                >
+                  Load Plan {savedPlans.length > 0 && `(${savedPlans.length})`}
+                </button>
+                <button
+                  onClick={saveFlightPlan}
+                  disabled={waypoints.length < 2}
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 text-white font-semibold py-2 rounded-lg text-sm"
+                >
+                  Save Plan
+                </button>
+              </div>
+              
+              {/* Saved Plans List */}
+              {showPlanList && (
+                <div className="bg-slate-700 rounded p-2 space-y-2 max-h-48 overflow-y-auto">
+                  {status === 'authenticated' ? (
+                    <div className="flex items-center justify-between text-xs text-emerald-400">
+                      <span>Logged in as {session?.user?.email}</span>
+                      <button onClick={() => signOut()} className="text-slate-400 hover:text-white">Sign out</button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={() => signIn()} 
+                      className="w-full text-xs bg-slate-600 hover:bg-slate-500 rounded py-1.5 text-sky-400"
+                    >
+                      Log in to save plans to your account
+                    </button>
+                  )}
+                  
+                  {savedPlans.length > 0 ? (
+                    <>
+                      <div className="text-sm font-semibold text-slate-300">Saved Plans ({savedPlans.length})</div>
+                      {savedPlans.map((plan, i) => (
+                        <div key={plan.id || i} className="flex items-center justify-between bg-slate-600 rounded p-2 text-sm">
+                          <button onClick={() => loadFlightPlan(plan)} className="text-left flex-1 hover:text-sky-400">
+                            <div className="font-medium">{plan.name || 'Untitled'}</div>
+                            <div className="text-xs text-slate-400">
+                              {plan.departureIcao || '---'} → {plan.arrivalIcao || '---'} • {plan.waypoints?.length || 0} waypoints
+                            </div>
+                          </button>
+                          <button onClick={() => deleteFlightPlan(plan.id || i)} className="text-red-400 hover:text-red-300 px-2">✕</button>
+                        </div>
+                      ))}
+                    </>
+                  ) : (
+                    <div className="text-xs text-slate-400 text-center py-2">No saved plans</div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Right Side - Map and Bottom Stats */}
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Map Section */}
+          <div className="flex-1 overflow-hidden relative">
             {!mapLoaded ? (
               <div className="h-full flex items-center justify-center bg-slate-800">
                 <button onClick={() => setMapLoaded(true)} className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm">
@@ -1330,240 +1503,47 @@ function FuelSaverContent() {
               </>
             )}
           </div>
-        </div>
 
-        {/* Panel Section - Bottom - full width */}
-        <div className="flex-1 overflow-hidden" style={{ height: `${100 - mapHeightPercent}%` }}>
-          {showPanel && (
-            <div className="h-full bg-slate-800 border-t border-slate-700 flex flex-col overflow-hidden">
-              {/* Scrollable content */}
-              <div className="flex-1 overflow-y-auto p-2 space-y-2">
-                {/* Flight Plan Details */}
-              <div>
-                <h2 className="text-base font-semibold mb-1.5">Flight Plan Details</h2>
-                <div className="space-y-2">
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Plan Name</label>
-                    <input
-                      type="text"
-                      value={flightPlanName}
-                      onChange={(e) => setFlightPlanName(e.target.value)}
-                      placeholder="My Cross Country"
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                    />
+          {/* Bottom Stats Bar - Full Width */}
+          {routeStats && (
+            <div className="bg-slate-800 border-t border-slate-700 p-3 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                {/* Main Stats */}
+                <div className="flex gap-6">
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-sky-400">{Math.round(routeStats.totalDistance)}</div>
+                    <div className="text-xs text-slate-500 uppercase tracking-wider">NM</div>
                   </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Callsign</label>
-                      <input
-                        type="text"
-                        value={callsign}
-                        onChange={(e) => setCallsign(e.target.value)}
-                        placeholder="N12345"
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Pilot Name</label>
-                      <input
-                        type="text"
-                        value={pilotName}
-                        onChange={(e) => setPilotName(e.target.value)}
-                        placeholder="John Doe"
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                      />
-                    </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-amber-400">{routeStats.flightHours}h</div>
+                    <div className="text-xs text-slate-500 uppercase tracking-wider">Flight Time</div>
                   </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Aircraft</label>
-                      <select
-                        value={selectedAircraft.name}
-                        onChange={(e) => {
-                          const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
-                          if (ac) setSelectedAircraft(ac);
-                        }}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                      >
-                        {['Cessna', 'Piper', 'Beechcraft', 'Diamond', 'Cirrus'].map(mfr => (
-                          <optgroup key={mfr} label={mfr}>
-                            {AIRCRAFT_PROFILES.filter(p => p.manufacturer === mfr).map(p => (
-                              <option key={p.name} value={p.name}>{p.name}</option>
-                            ))}
-                          </optgroup>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Departure Time</label>
-                      <input
-                        type="datetime-local"
-                        value={departureTime}
-                        onChange={(e) => setDepartureTime(e.target.value)}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                      />
-                    </div>
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-purple-400">{routeStats.fuelNeeded}</div>
+                    <div className="text-xs text-slate-500 uppercase tracking-wider">Gal Fuel</div>
                   </div>
-                  <div className="grid grid-cols-2 gap-1.5">
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Cruising Alt (ft)</label>
-                      <input
-                        type="number"
-                        value={cruisingAlt}
-                        onChange={(e) => setCruisingAlt(parseInt(e.target.value))}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Souls on Board</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={soulsOnBoard}
-                        onChange={(e) => setSoulsOnBoard(parseInt(e.target.value))}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Alternate Airport</label>
-                    <input
-                      type="text"
-                      value={alternateIcao}
-                      onChange={(e) => setAlternateIcao(e.target.value.toUpperCase())}
-                      placeholder="KABC"
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Remarks</label>
-                    <textarea
-                      value={remarks}
-                      onChange={(e) => setRemarks(e.target.value)}
-                      placeholder="Flight remarks..."
-                      rows={2}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
-                    />
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-emerald-400">${routeStats.estimatedCost}</div>
+                    <div className="text-xs text-slate-500 uppercase tracking-wider">Est. Cost</div>
                   </div>
                 </div>
-              </div>
 
-              {/* Waypoints */}
-              <div>
-                <h2 className="text-base font-semibold mb-1.5">Route ({waypoints.length} waypoints)</h2>
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search airport..."
-                  className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase mb-2 text-sm"
-                />
-                <div className="space-y-1">
-                  {waypoints.map((wp, i) => (
-                    <div key={wp.id} className="flex items-center justify-between bg-slate-700 rounded px-2 py-1 text-sm overflow-x-hidden">
-                      <span className="truncate"><span className="text-slate-400">{i+1}.</span> <strong className="truncate">{wp.icao}</strong></span>
-                      <button onClick={() => removeWaypoint(wp.id)} className="text-red-400 text-xs flex-shrink-0">✕</button>
-                    </div>
-                  ))}
+                {/* Aircraft Info */}
+                <div className="hidden md:block text-right">
+                  <div className="text-sm font-medium text-white">{selectedAircraft.name}</div>
+                  <div className="text-xs text-slate-400">{selectedAircraft.speed} kts • {selectedAircraft.burnRate} gph</div>
                 </div>
-              </div>
-            </div>
-
-            {/* Fixed: Fuel Settings + Save/Load */}
-            <div className="p-2 space-y-2 flex-shrink-0 bg-slate-800">
-              {/* Fuel Settings */}
-              <div>
-                <h2 className="text-base font-semibold mb-1.5">Fuel Settings</h2>
-                <div>
-                  <label className="block text-xs text-slate-400 mb-0.5">Fuel at Departure: {departureFuel}%</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={departureFuel}
-                    onChange={(e) => setDepartureFuel(parseInt(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-
-              {/* Save Button */}
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowPlanList(!showPlanList)}
-                  className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-1.5 rounded-lg text-sm"
-                >
-                  Load Plan {savedPlans.length > 0 && `(${savedPlans.length})`}
-                </button>
-                <button
-                  onClick={saveFlightPlan}
-                  disabled={waypoints.length < 2}
-                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 text-white font-semibold py-1.5 rounded-lg text-sm"
-                >
-                  Save Plan
-                </button>
               </div>
               
-              {/* Saved Plans List */}
-              {showPlanList && (
-                <div className="bg-slate-700 rounded p-2 space-y-2 max-h-48 overflow-y-auto">
-                  {/* Auth status */}
-                  {status === 'authenticated' ? (
-                    <div className="flex items-center justify-between text-xs text-emerald-400">
-                      <span>Logged in as {session?.user?.email}</span>
-                      <button onClick={() => signOut()} className="text-slate-400 hover:text-white">Sign out</button>
-                    </div>
-                  ) : (
-                    <button 
-                      onClick={() => signIn()} 
-                      className="w-full text-xs bg-slate-600 hover:bg-slate-500 rounded py-1.5 text-sky-400"
-                    >
-                      Log in to save plans to your account
-                    </button>
-                  )}
-                  
-                  {savedPlans.length > 0 ? (
-                    <>
-                      <div className="text-sm font-semibold text-slate-300">Saved Plans ({savedPlans.length})</div>
-                      {savedPlans.map((plan, i) => (
-                        <div key={plan.id || i} className="flex items-center justify-between bg-slate-600 rounded p-2 text-sm">
-                          <button onClick={() => loadFlightPlan(plan)} className="text-left flex-1 hover:text-sky-400">
-                            <div className="font-medium">{plan.name || 'Untitled'}</div>
-                            <div className="text-xs text-slate-400">
-                              {plan.departureIcao || '---'} → {plan.arrivalIcao || '---'} • {plan.waypoints?.length || 0} waypoints
-                            </div>
-                            {plan.aircraftType && (
-                              <div className="text-xs text-slate-500">{plan.aircraftType}</div>
-                            )}
-                          </button>
-                          <button onClick={() => deleteFlightPlan(plan.id || i)} className="text-red-400 hover:text-red-300 px-2">✕</button>
-                        </div>
-                      ))}
-                    </>
-                  ) : (
-                    <div className="text-xs text-slate-400 text-center py-2">No saved plans</div>
-                  )}
-                </div>
-              )}
-            </div>
-            </div>
-          )}
-
-          {/* Route Summary */}
-          {routeStats && (
-            <div className="bg-slate-800 p-2 flex-shrink-0 overflow-x-auto">
-              <div className="flex gap-3 text-xs">
-                <div className="text-center"><div className="text-sky-400 font-bold">{Math.round(routeStats.totalDistance)}</div><div className="text-slate-500">NM</div></div>
-                <div className="text-center"><div className="text-amber-400 font-bold">{routeStats.flightHours}h</div><div className="text-slate-500">Flight</div></div>
-                <div className="text-center"><div className="text-purple-400 font-bold">{routeStats.fuelNeeded}</div><div className="text-slate-500">Gal</div></div>
-                <div className="text-center"><div className="text-emerald-400 font-bold">${routeStats.estimatedCost}</div><div className="text-slate-500">Cost</div></div>
-              </div>
+              {/* Leg Breakdown */}
               {routeStats.legs.length > 0 && (
-                <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-1">
+                <div className="mt-3 pt-3 border-t border-slate-700 flex gap-2 overflow-x-auto">
                   {routeStats.legs.map((leg, i) => (
-                    <div key={i} className="flex-shrink-0 bg-slate-700 rounded px-2 py-1 text-xs">
-                      <span className="text-sky-400">{leg.from.icao}</span>→<span className="text-amber-400">{leg.to.icao}</span>
-                      <div className="text-slate-400">{Math.round(leg.distance)}NM ${leg.cost.toFixed(0)}</div>
+                    <div key={i} className="flex-shrink-0 bg-slate-700 rounded px-3 py-2 text-xs">
+                      <span className="text-sky-400 font-medium">{leg.from.icao}</span>
+                      <span className="text-slate-500 mx-1">→</span>
+                      <span className="text-amber-400 font-medium">{leg.to.icao}</span>
+                      <div className="text-slate-400 mt-1">{Math.round(leg.distance)} NM • ${leg.cost.toFixed(0)}</div>
                     </div>
                   ))}
                 </div>
@@ -1571,20 +1551,14 @@ function FuelSaverContent() {
             </div>
           )}
 
-          {/* Range Ring Calculator */}
+          {/* Additional Tools */}
           <div className="flex-shrink-0">
             <RangeRingCalculator 
               onRangeChange={(range, center) => {
-                // Could draw circle on map here
                 console.log('Range:', range, 'Center:', center);
               }}
               initialCenter={waypoints[0] ? [waypoints[0].latitude, waypoints[0].longitude] : undefined}
             />
-          </div>
-
-          {/* Flight Playback */}
-          <div className="flex-shrink-0">
-            <FlightPlayback />
           </div>
         </div>
       </div>
