@@ -1,12 +1,15 @@
 'use client';
 
-import { useState, useMemo, useEffect, useRef, useCallback } from 'react';
+import { useState, useMemo, useEffect, useRef, useCallback, Suspense } from 'react';
 import { useSession, signIn, signOut } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
 // Dynamic import for Leaflet components (no SSR)
 const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
+
+// Inner component that uses useSearchParams
+function FuelSaverContent() {
 
 // Types
 interface Airport {
@@ -141,7 +144,7 @@ const AIRCRAFT_PROFILES = [
   { name: 'Cirrus SR22 (2024)', manufacturer: 'Cirrus', year: 2024, fuelCapacity: 92, burnRate: 12.5, speed: 158, type: '100LL' },
 ];
 
-export default function FuelSaverPage() {
+function FuelSaverContent() {
   // Core state
   const [mapLoaded, setMapLoaded] = useState(true);
   const [airports, setAirports] = useState<Airport[]>([]);
@@ -1430,5 +1433,18 @@ export default function FuelSaverPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Wrapper component with Suspense for useSearchParams
+export default function FuelSaverPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
+        <div className="text-slate-400">Loading...</div>
+      </div>
+    }>
+      <FuelSaverContent />
+    </Suspense>
   );
 }
