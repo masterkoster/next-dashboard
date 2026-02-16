@@ -1278,7 +1278,7 @@ function FuelSaverContent() {
     addWaypoint(airport);
     // Center map on airport and zoom out to see area (not filling screen)
     setMapCenter([airport.latitude, airport.longitude]);
-    setMapZoom(8);
+    setMapZoom(6); // Zoom out more so airport doesn't fill screen
   };
 
   // Find nearest cheap fuel
@@ -1468,12 +1468,12 @@ function FuelSaverContent() {
                       <select
                         value={selectedAircraft.name}
                         onChange={(e) => {
-                          const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
+                        const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
                           if (ac) setSelectedAircraft(ac);
                         }}
                         className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
                       >
-                        {['Cessna', 'Piper', 'Beechcraft', 'Diamond', 'Cirrus'].map(mfr => (
+                        {[...new Set(AIRCRAFT_PROFILES.map(p => p.manufacturer))].map(mfr => (
                           <optgroup key={mfr} label={mfr}>
                             {AIRCRAFT_PROFILES.filter(p => p.manufacturer === mfr).map(p => (
                               <option key={p.name} value={p.name}>{p.name}</option>
