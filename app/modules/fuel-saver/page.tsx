@@ -1185,6 +1185,9 @@ function FuelSaverContent() {
   // Marker click handler - for popup Add to Route button
   const handleAirportAdd = (airport: Airport) => {
     addWaypoint(airport);
+    // Center map on airport and zoom out slightly
+    setMapCenter([airport.latitude, airport.longitude]);
+    setMapZoom(10);
   };
 
   // Find nearest cheap fuel
@@ -1231,7 +1234,7 @@ function FuelSaverContent() {
   };
 
   return (
-    <div className="h-screen bg-slate-900 text-white flex flex-col overflow-hidden pt-15">
+    <div className="h-screen bg-slate-900 text-white flex flex-col overflow-hidden">
       {/* Top Bar - Minimal header with controls */}
       <div className="w-full p-2 bg-slate-800 border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center justify-between">

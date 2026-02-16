@@ -60,7 +60,7 @@ export function MapControls({ options, onOptionsChange }: MapControlsProps) {
   };
 
   return (
-    <div className={`absolute ${isCollapsed ? 'bottom-4 left-4' : 'bottom-4 left-4'} z-[1000] transition-all`}>
+    <div className={`absolute bottom-4 right-4 z-[1000] transition-all`}>
       {/* Toggle Button */}
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
