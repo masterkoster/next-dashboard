@@ -8,23 +8,19 @@ datasource db {
 }
 
 model User {
-  id                   String    @id @default(uuid())
-  email                String    @unique @db.NVarChar(255)
-  name                 String?   @db.NVarChar(255)
-  purchasedModules     String    @default("[]") @db.NVarChar(Max)
-  credits              Int       @default(0)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-  password             String?   @db.NVarChar(255)
-  resetToken           String?   @db.NVarChar(255)
-  resetTokenExpiry     DateTime?
-  homeAirport          String?   @db.NVarChar(10)
-  fuelSearchRadius    Int       @default(50)
-  performanceSettings  String?   @db.NVarChar(Max)  // JSON: { "3dMode": true, "weatherPlayback": true, "animations": true, "liveWeather": true }
-  flightPlans          FlightPlan[]
-  memberships          GroupMember[]
-  aircraft             UserAircraft[]
-  flightRecordings     FlightRecording[]
+  id               String    @id @default(uuid())
+  email            String    @unique @db.NVarChar(255)
+  name             String?   @db.NVarChar(255)
+  purchasedModules String    @default("[]") @db.NVarChar(Max)
+  credits          Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  password         String?   @db.NVarChar(255)
+  resetToken       String?   @db.NVarChar(255)
+  resetTokenExpiry DateTime?
+  flightPlans      FlightPlan[]
+  memberships      GroupMember[]
+  aircraft         UserAircraft[]
 
   @@map("User")
 }
@@ -291,24 +287,4 @@ model FlightPlanWaypoint {
   flightPlan   FlightPlan @relation(fields: [flightPlanId], references: [id], onDelete: Cascade)
 
   @@map("FlightPlanWaypoint")
-}
-
-model FlightRecording {
-  id           String    @id @default(uuid()) @db.NVarChar(36)
-  userId       String    @db.NVarChar(36)
-  aircraftId   String?   @db.NVarChar(36)
-  filename     String    @db.NVarChar(255)
-  fileType     String    @db.NVarChar(10)    // "GPX", "CSV", "IGC"
-  importDate   DateTime  @default(now())
-  flightDate   DateTime?
-  departure    String?   @db.NVarChar(10)
-  arrival      String?   @db.NVarChar(10)
-  duration     Int?      // minutes
-  trackData    String    @db.NVarChar(Max)  // JSON array of track points
-  notes        String?   @db.NVarChar(Max)
-  cloudAhoyUrl String?  @db.NVarChar(500)
-  
-  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("FlightRecording")
 }
