@@ -1282,28 +1282,28 @@ function FuelSaverContent() {
               </button>
             </div>
 
-            {/* Scrollable content */}
-            <div className="flex-1 overflow-y-auto">
+            {/* Content - no scroll */}
+            <div className="flex-1 overflow-hidden">
               {activeTab === 'details' ? (
                 /* Flight Plan Details Tab */
-                <div className="p-3 space-y-4">
+                <div className="p-2 space-y-2">
                   {/* Quick Actions */}
-                  <div className="flex gap-2">
+                  <div className="flex gap-1">
                     <button
                       onClick={() => setMapZoom(Math.max(mapZoom - 1, 3))}
-                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-1 py-1 rounded text-xs"
                     >
-                      Zoom Out
+                      Out
                     </button>
                     <button
                       onClick={() => setMapZoom(Math.min(mapZoom + 1, 18))}
-                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-1 py-1 rounded text-xs"
                     >
-                      Zoom In
+                      In
                     </button>
                     <button
                       onClick={() => { setMapCenter([39.8283, -98.5795]); setMapZoom(5); }}
-                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-1 py-1 rounded text-xs"
                     >
                       Reset
                     </button>
@@ -1315,8 +1315,8 @@ function FuelSaverContent() {
                       type="text"
                       value={searchQuery}
                       onChange={(e) => handleSearch(e.target.value)}
-                      placeholder="Search airport..."
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white uppercase text-sm"
+                      placeholder="Search..."
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase text-xs"
                     />
                     {showSearchResults && searchResults.length > 0 && (
                       <div className="mt-2 bg-slate-700 rounded max-h-40 overflow-y-auto">
@@ -1336,51 +1336,51 @@ function FuelSaverContent() {
 
                   {/* Plan Name */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Plan Name</label>
+                    <label className="block text-xs text-slate-400 mb-0.5">Plan</label>
                     <input
                       type="text"
                       value={flightPlanName}
                       onChange={(e) => setFlightPlanName(e.target.value)}
                       placeholder="My Cross Country"
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
                     />
                   </div>
 
                   {/* Callsign & Pilot */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Callsign</label>
+                      <label className="block text-xs text-slate-400 mb-0.5">Callsign</label>
                       <input
                         type="text"
                         value={callsign}
                         onChange={(e) => setCallsign(e.target.value)}
                         placeholder="N12345"
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Pilot Name</label>
+                      <label className="block text-xs text-slate-400 mb-0.5">Pilot</label>
                       <input
                         type="text"
                         value={pilotName}
                         onChange={(e) => setPilotName(e.target.value)}
                         placeholder="John Doe"
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
                       />
                     </div>
                   </div>
 
                   {/* Aircraft & Departure Time */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Aircraft</label>
+                      <label className="block text-xs text-slate-400 mb-0.5">Aircraft</label>
                       <select
                         value={selectedAircraft.name}
                         onChange={(e) => {
                           const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
                           if (ac) setSelectedAircraft(ac);
                         }}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
                       >
                         {['Cessna', 'Piper', 'Beechcraft', 'Diamond', 'Cirrus'].map(mfr => (
                           <optgroup key={mfr} label={mfr}>
@@ -1392,66 +1392,66 @@ function FuelSaverContent() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Departure Time</label>
+                      <label className="block text-xs text-slate-400 mb-0.5">Departure</label>
                       <input
                         type="datetime-local"
                         value={departureTime}
                         onChange={(e) => setDepartureTime(e.target.value)}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
                       />
                     </div>
                   </div>
 
                   {/* Cruising Alt & Souls */}
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-2 gap-1">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Cruising Alt (ft)</label>
+                      <label className="block text-xs text-slate-400 mb-0.5">Alt (ft)</label>
                       <input
                         type="number"
                         value={cruisingAlt}
                         onChange={(e) => setCruisingAlt(parseInt(e.target.value))}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Souls on Board</label>
+                      <label className="block text-xs text-slate-400 mb-0.5">Souls</label>
                       <input
                         type="number"
                         min="1"
                         value={soulsOnBoard}
                         onChange={(e) => setSoulsOnBoard(parseInt(e.target.value))}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
                       />
                     </div>
                   </div>
 
                   {/* Alternate Airport */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Alternate Airport</label>
+                    <label className="block text-xs text-slate-400 mb-0.5">Alternate</label>
                     <input
                       type="text"
                       value={alternateIcao}
                       onChange={(e) => setAlternateIcao(e.target.value.toUpperCase())}
                       placeholder="KABC"
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white uppercase text-sm"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white uppercase text-xs"
                     />
                   </div>
 
                   {/* Remarks */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Remarks</label>
+                    <label className="block text-xs text-slate-400 mb-0.5">Remarks</label>
                     <textarea
                       value={remarks}
                       onChange={(e) => setRemarks(e.target.value)}
-                      placeholder="Flight remarks..."
-                      rows={2}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                      placeholder="..."
+                      rows={1}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
                     />
                   </div>
 
                   {/* Fuel Settings */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Fuel at Departure: {departureFuel}%</label>
+                    <label className="block text-xs text-slate-400 mb-0.5">Fuel: {departureFuel}%</label>
                     <input
                       type="range"
                       min="0"
@@ -1464,53 +1464,51 @@ function FuelSaverContent() {
                 </div>
               ) : (
                 /* Waypoints Tab */
-                <div className="p-3">
+                <div className="p-1.5">
                   {waypoints.length === 0 ? (
-                    <div className="text-center py-8 text-slate-500 text-sm">
-                      <div className="mb-2">✈️</div>
-                      <p>No waypoints yet</p>
-                      <p className="text-xs mt-1">Search airports to build your route</p>
+                    <div className="text-center py-2 text-slate-500 text-xs">
+                      <p>No waypoints</p>
                     </div>
                   ) : (
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       {waypoints.map((wp, i) => {
                         const legInfo = routeStats?.legs?.[i];
                         
                         return (
-                          <div key={wp.id} className="bg-slate-700 rounded-lg p-3">
+                          <div key={wp.id} className="bg-slate-700 rounded p-2">
                             <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className="w-6 h-6 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-xs">
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-xs">
                                   {i + 1}
                                 </span>
                                 <div>
-                                  <div className="font-medium text-white text-sm">{wp.icao}</div>
+                                  <div className="font-medium text-white text-xs">{wp.icao}</div>
                                   <div className="text-xs text-slate-400">{wp.city || wp.name}</div>
                                 </div>
                               </div>
-                              <div className="flex gap-1">
+                              <div className="flex gap-0.5">
                                 <button 
                                   onClick={() => moveWaypoint(wp.id, 'up')}
                                   disabled={i === 0}
-                                  className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-1"
+                                  className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-0.5"
                                 >↑</button>
                                 <button 
                                   onClick={() => moveWaypoint(wp.id, 'down')}
                                   disabled={i === waypoints.length - 1}
-                                  className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-1"
+                                  className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-0.5"
                                 >↓</button>
                                 <button 
                                   onClick={() => removeWaypoint(wp.id)}
-                                  className="text-red-400 hover:text-red-300 text-xs p-1"
+                                  className="text-red-400 hover:text-red-300 text-xs p-0.5"
                                 >✕</button>
                               </div>
                             </div>
                             
                             {/* Leg stats - shows for all except last waypoint */}
                             {legInfo && (
-                              <div className="mt-2 pt-2 border-t border-slate-600 flex justify-between text-xs">
+                              <div className="mt-1 pt-1 border-t border-slate-600 flex justify-between text-xs">
                                 <span className="text-sky-400">→ {legInfo.to.icao}</span>
-                                <span className="text-amber-400">{Math.round(legInfo.distance)} NM</span>
+                                <span className="text-amber-400">{Math.round(legInfo.distance)}NM</span>
                                 <span className="text-emerald-400">${legInfo.cost.toFixed(0)}</span>
                               </div>
                             )}
@@ -1524,26 +1522,26 @@ function FuelSaverContent() {
             </div>
 
             {/* Bottom Actions - Load/Save */}
-            <div className="p-3 border-t border-slate-700 bg-slate-800 flex-shrink-0 space-y-2">
-              <div className="flex gap-2">
+            <div className="p-2 border-t border-slate-700 bg-slate-800 flex-shrink-0 space-y-1">
+              <div className="flex gap-1">
                 <button
                   onClick={() => setShowPlanList(!showPlanList)}
-                  className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-semibold py-2 rounded-lg text-sm"
+                  className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-medium py-1.5 rounded text-xs"
                 >
-                  Load Plan {savedPlans.length > 0 && `(${savedPlans.length})`}
+                  Load {savedPlans.length > 0 && `(${savedPlans.length})`}
                 </button>
                 <button
                   onClick={saveFlightPlan}
                   disabled={waypoints.length < 2}
-                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 text-white font-semibold py-2 rounded-lg text-sm"
+                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 text-white font-medium py-1.5 rounded text-xs"
                 >
-                  Save Plan
+                  Save
                 </button>
               </div>
               
               {/* Saved Plans List */}
               {showPlanList && (
-                <div className="bg-slate-700 rounded p-2 space-y-2 max-h-40 overflow-y-auto">
+                <div className="bg-slate-700 rounded p-1.5 space-y-1 max-h-24 overflow-y-auto">
                   {status === 'authenticated' ? (
                     <div className="flex items-center justify-between text-xs text-emerald-400">
                       <span>Logged in as {session?.user?.email}</span>
@@ -1663,8 +1661,17 @@ function FuelSaverContent() {
             </div>
           )}
 
-          {/* Additional Tools - Hidden by default, can be shown if needed */}
-          {/* RangeRingCalculator moved to settings panel */}
+          {/* Additional Tools - Range Calculator at bottom of map area */}
+          <div className="absolute bottom-4 left-4 right-4 flex-shrink-0 pointer-events-none">
+            <div className="pointer-events-auto inline-block">
+              <RangeRingCalculator 
+                onRangeChange={(range, center) => {
+                  console.log('Range:', range, 'Center:', center);
+                }}
+                initialCenter={waypoints[0] ? [waypoints[0].latitude, waypoints[0].longitude] : undefined}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
