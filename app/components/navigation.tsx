@@ -2,8 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { signOut } from 'next-auth/react';
+import { useState, useEffect, useRef } from 'react';
+import { signOut, useSession } from 'next-auth/react';
 
 const modules = [
   { id: 'plane-carfax', label: 'Plane Carfax', href: '/modules/plane-carfax' },
@@ -25,21 +25,24 @@ interface Invite {
 
 export default function Navigation() {
   const pathname = usePathname();
+  const { data: session } = useSession();
   const isHomeOrDashboard = pathname === '/' || pathname === '/dashboard';
   const [showDropdown, setShowDropdown] = useState(false);
   const [showInviteDropdown, setShowInviteDropdown] = useState(false);
   const [pendingInvites, setPendingInvites] = useState<Invite[]>([]);
   const [loadingInvites, setLoadingInvites] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Check if user is logged in
-    fetch('/api/auth/session')
-      .then(res => res.json())
-      .then(data => {
-        setIsLoggedIn(!!data?.user);
-      })
-      .catch(() => setIsLoggedIn(false));
+    // Close dropdown when clicking outside
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+        setShowInviteDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -176,9 +179,9 @@ export default function Navigation() {
             </button>
           </div>
 
-          {/* Login/Logout - Show Login when not logged in, Profile dropdown when logged in */}
-          {isLoggedIn ? (
-            <div className="relative">
+          {/* Profile Dropdown */}
+          {session ? (
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => { setShowDropdown(!showDropdown); setShowInviteDropdown(false); }}
                 className="flex items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 hover:bg-slate-700 transition-colors"
@@ -186,27 +189,96 @@ export default function Navigation() {
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                <span className="hidden sm:inline">Profile</span>
+                <span className="hidden sm:inline">{session.user?.name || session.user?.email?.split('@')[0]}</span>
                 <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
               
               {showDropdown && (
-                <div className="absolute right-0 mt-2 w-40 rounded-lg bg-slate-800 border border-slate-700 shadow-lg overflow-hidden z-50">
-                  <Link
-                    href="/profile"
-                    className="block px-4 py-2 text-sm text-slate-200 hover:bg-slate-700"
-                    onClick={() => setShowDropdown(false)}
-                  >
-                    My Profile
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700"
-                  >
-                    Logout
-                  </button>
+                <div className="absolute right-0 mt-2 w-56 rounded-lg bg-slate-800 border border-slate-700 shadow-lg overflow-hidden z-50">
+                  {/* User info */}
+                  <div className="px-4 py-3 border-b border-slate-700">
+                    <div className="font-medium text-white">{session.user?.name || 'User'}</div>
+                    <div className="text-xs text-slate-400">{session.user?.email}</div>
+                  </div>
+                  
+                  {/* Menu items */}
+                  <div className="py-1">
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Profile
+                    </Link>
+                    <Link
+                      href="/trips"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                      </svg>
+                      My Trips
+                    </Link>
+                    <Link
+                      href="/places"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      My Saved Places
+                    </Link>
+                    <Link
+                      href="/reviews"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                      </svg>
+                      My Reviews
+                    </Link>
+                    <div className="border-t border-slate-700 my-1"></div>
+                    <Link
+                      href="/settings"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Settings
+                    </Link>
+                    <Link
+                      href="/support"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700"
+                      onClick={() => setShowDropdown(false)}
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Support
+                    </Link>
+                    <div className="border-t border-slate-700 my-1"></div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-400 hover:bg-slate-700"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Sign Out
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -221,7 +293,7 @@ export default function Navigation() {
         </div>
       </div>
 
-      {/* Mobile menu dropdown - simplified for now */}
+      {/* Mobile menu dropdown */}
       <div className="border-t border-slate-800/60 md:hidden">
         <div className="flex overflow-x-auto px-4 py-2 gap-2">
           {modules.map((module) => (
