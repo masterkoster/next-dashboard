@@ -1236,7 +1236,7 @@ function FuelSaverContent() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold">Flight Planner & Fuel Saver</h1>
-            <p className="text-slate-400 text-xs">Plan route, find fuel stops</p>
+            <p className="text-slate-400 text-xs">Plan routes, find cheap fuel</p>
           </div>
           <div className="flex items-center gap-2">
             {/* Map Height Control */}
