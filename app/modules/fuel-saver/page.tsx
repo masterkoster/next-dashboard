@@ -118,22 +118,25 @@ async function getFuelPrice(icao: string): Promise<FuelPrice | undefined> {
   return undefined;
 }
 
-// Aircraft profiles with manufacturer and year
+// Aircraft profiles with manufacturer and year (accurate specs)
 const AIRCRAFT_PROFILES = [
-  { name: 'Cessna 172S (2018)', manufacturer: 'Cessna', year: 2018, fuelCapacity: 56, burnRate: 8.5, speed: 120, type: '100LL' },
-  { name: 'Cessna 172S (2022)', manufacturer: 'Cessna', year: 2022, fuelCapacity: 56, burnRate: 8.2, speed: 122, type: '100LL' },
-  { name: 'Cessna 182T (2018)', manufacturer: 'Cessna', year: 2018, fuelCapacity: 92, burnRate: 12, speed: 140, type: '100LL' },
-  { name: 'Cessna 182T (2023)', manufacturer: 'Cessna', year: 2023, fuelCapacity: 92, burnRate: 11.5, speed: 142, type: '100LL' },
+  // Cessna
+  { name: 'Cessna 172S (2022)', manufacturer: 'Cessna', year: 2022, fuelCapacity: 56, burnRate: 9.9, speed: 122, type: '100LL' },
+  { name: 'Cessna 182T (2020)', manufacturer: 'Cessna', year: 2020, fuelCapacity: 92, burnRate: 12.5, speed: 140, type: '100LL' },
+  { name: 'Cessna 208 Caravan (2020)', manufacturer: 'Cessna', year: 2020, fuelCapacity: 335, burnRate: 55, speed: 180, type: 'JET-A' },
+  // Piper
   { name: 'Piper Cherokee Six (2015)', manufacturer: 'Piper', year: 2015, fuelCapacity: 84, burnRate: 11, speed: 130, type: '100LL' },
   { name: 'Piper Cherokee Six (2020)', manufacturer: 'Piper', year: 2020, fuelCapacity: 84, burnRate: 10.5, speed: 132, type: '100LL' },
+  { name: 'Piper Meridian (2021)', manufacturer: 'Piper', year: 2021, fuelCapacity: 242, burnRate: 40, speed: 240, type: 'JET-A' },
+  // Beechcraft
   { name: 'Beechcraft Bonanza A36 (2018)', manufacturer: 'Beechcraft', year: 2018, fuelCapacity: 102, burnRate: 14, speed: 155, type: '100LL' },
   { name: 'Beechcraft Bonanza A36 (2024)', manufacturer: 'Beechcraft', year: 2024, fuelCapacity: 102, burnRate: 13.5, speed: 158, type: '100LL' },
+  // Diamond
   { name: 'Diamond DA40 (2020)', manufacturer: 'Diamond', year: 2020, fuelCapacity: 58, burnRate: 9, speed: 140, type: '100LL' },
   { name: 'Diamond DA40 (2024)', manufacturer: 'Diamond', year: 2024, fuelCapacity: 58, burnRate: 8.8, speed: 142, type: '100LL' },
+  // Cirrus
   { name: 'Cirrus SR22 (2019)', manufacturer: 'Cirrus', year: 2019, fuelCapacity: 92, burnRate: 13, speed: 155, type: '100LL' },
   { name: 'Cirrus SR22 (2024)', manufacturer: 'Cirrus', year: 2024, fuelCapacity: 92, burnRate: 12.5, speed: 158, type: '100LL' },
-  { name: 'Cessna 208 Caravan (2020)', manufacturer: 'Cessna', year: 2020, fuelCapacity: 335, burnRate: 55, speed: 180, type: 'JET-A' },
-  { name: 'Piper Meridian (2021)', manufacturer: 'Piper', year: 2021, fuelCapacity: 242, burnRate: 40, speed: 240, type: 'JET-A' },
 ];
 
 export default function FuelSaverPage() {
@@ -962,7 +965,7 @@ export default function FuelSaverPage() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Left Panel - Flight Plan Form - fixed width */}
         {showPanel && (
-          <div className="w-full lg:w-80 bg-slate-800 border-b lg:border-r border-slate-700 flex flex-col flex-shrink-0" style={{ maxHeight: 'calc(100vh - 80px)' }}>
+          <div className="w-full lg:w-96 bg-slate-800 border-b lg:border-r border-slate-700 flex flex-col flex-shrink-0" style={{ maxHeight: 'calc(100vh - 80px)' }}>
             {/* Scrollable: Flight Plan Details + Route */}
             <div className="flex-1 overflow-y-auto p-2 space-y-2" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
               {/* Flight Plan Details */}
