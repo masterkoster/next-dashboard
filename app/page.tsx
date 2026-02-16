@@ -1,4 +1,10 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "AviationHub - Your All-in-One Aviation Platform",
+  description: "The all-in-one platform for pilots and aviation businesses. Search aircraft, find cheap fuel prices, manage your flying group, and connect with others in the aviation community.",
+};
 
 export default function LandingPage() {
   return (
