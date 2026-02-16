@@ -337,6 +337,8 @@ function FuelSaverContent() {
   
   // Panel visibility
   const [showPanel, setShowPanel] = useState(true);
+  const [showOrientationWarning, setShowOrientationWarning] = useState(false);
+  const [orientationDismissed, setOrientationDismissed] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'waypoints' | 'info'>('details');
   const [tabIndex, setTabIndex] = useState(0);
   
@@ -504,6 +506,29 @@ function FuelSaverContent() {
       }
     };
   }, []);
+
+  // Check for mobile and orientation
+  useEffect(() => {
+    const checkOrientation = () => {
+      const isMobile = window.innerWidth < 768;
+      const isPortrait = window.innerHeight > window.innerWidth;
+      
+      if (isMobile && isPortrait && !orientationDismissed) {
+        setShowOrientationWarning(true);
+      } else {
+        setShowOrientationWarning(false);
+      }
+    };
+
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+    
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, [orientationDismissed]);
 
   // Add waypoint
   const addWaypoint = (airport: Airport, index?: number) => {
@@ -1709,6 +1734,35 @@ function FuelSaverContent() {
           )}
         </div>
       </div>
+
+      {/* Mobile Orientation Warning Popup */}
+      {showOrientationWarning && (
+        <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-8">
+          <div className="text-center">
+            {/* Phone Rotation Animation */}
+            <div className="mb-8 relative w-24 h-40 mx-auto border-4 border-white rounded-3xl bg-slate-800">
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-1 bg-white rounded animate-pulse"></div>
+              </div>
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-600 rounded-full"></div>
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-slate-600 rounded"></div>
+            </div>
+            {/* Arrow Animation */}
+            <div className="mb-6 text-6xl animate-bounce">↻</div>
+            <h2 className="text-2xl font-bold text-white mb-2">Rotate Your Phone</h2>
+            <p className="text-slate-400 mb-6">For the best experience, please rotate your phone to landscape mode.</p>
+            <button
+              onClick={() => {
+                setOrientationDismissed(true);
+                setShowOrientationWarning(false);
+              }}
+              className="bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 rounded-lg font-medium"
+            >
+              Continue Anyway
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
