@@ -1569,8 +1569,7 @@ function FuelSaverContent() {
                 </div>
               )}
             </div>
-            )}
-          </div>
+          )}
 
           {/* Range Ring Calculator */}
           <div className="flex-shrink-0">
