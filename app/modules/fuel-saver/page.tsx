@@ -1635,6 +1635,7 @@ function FuelSaverContent() {
             ) : (
               <>
                 <LeafletMap
+                  key={showPanel ? 'map-open' : 'map-closed'}
                   airports={airports.filter(a => {
                     if (a.type === 'large_airport' && !mapOptions.showLarge) return false;
                     if (a.type === 'medium_airport' && !mapOptions.showMedium) return false;
