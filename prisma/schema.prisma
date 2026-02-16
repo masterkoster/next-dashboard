@@ -19,6 +19,7 @@ model User {
   resetToken       String?   @db.NVarChar(255)
   resetTokenExpiry DateTime?
   flightPlans      FlightPlan[]
+  memberships      GroupMember[]
 
   @@map("User")
 }
@@ -134,6 +135,9 @@ model FlyingGroup {
   createdAt   DateTime? @default(now(), map: "DF__FlyingGro__creat__17036CC0")
   updatedAt   DateTime? @default(now(), map: "DF__FlyingGro__updat__17F790F9") @updatedAt
 
+  members     GroupMember[]
+  invites     Invite[]
+
   @@map("FlyingGroup")
 }
 
@@ -144,6 +148,10 @@ model GroupMember {
   role     String?   @default("VIEWER", map: "DF__GroupMembe__role__1CBC4616") @db.NVarChar(20)
   joinedAt DateTime? @default(now(), map: "DF__GroupMemb__joine__1DB06A4F")
 
+  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group    FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, groupId])
   @@map("GroupMember")
 }
 
@@ -156,6 +164,8 @@ model Invite {
   expiresAt DateTime
   createdBy String    @db.NVarChar(36)
   createdAt DateTime? @default(now(), map: "DF__Invite__createdA__236943A5")
+
+  group     FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@map("Invite")
 }
