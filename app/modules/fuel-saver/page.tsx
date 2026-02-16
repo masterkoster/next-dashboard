@@ -1266,19 +1266,19 @@ function FuelSaverContent() {
         >
           {showPanel && (
             <div className="w-64 flex flex-col h-full">
-            {/* Tabs */}
-            <div className="flex text-xs">
+            {/* Tabs - align with header */}
+            <div className="flex text-xs border-b border-slate-700">
               <button 
                 onClick={() => setActiveTab('details')}
-                className={`flex-1 py-2 font-medium border-b-2 ${activeTab === 'details' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white'}`}
+                className={`flex-1 py-1.5 font-medium border-b-2 ${activeTab === 'details' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white'}`}
               >
                 Details
               </button>
               <button 
                 onClick={() => setActiveTab('waypoints')}
-                className={`flex-1 py-2 font-medium border-b-2 ${activeTab === 'waypoints' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white'}`}
+                className={`flex-1 py-1.5 font-medium border-b-2 ${activeTab === 'waypoints' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white'}`}
               >
-                Waypoints ({waypoints.length})
+                Route ({waypoints.length})
               </button>
             </div>
 
