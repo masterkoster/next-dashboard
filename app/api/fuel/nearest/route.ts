@@ -1,28 +1,27 @@
 /**
  * Nearest Cheap Fuel API
- * Find lowest 100LL price within radius of a given airport
+ * Find lowest 100LL price within a given airport
  */
 
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+import { NextRequest, NextResponse } from 'next/server';
+import sqlite3 from 'sqlite3';
+import path from 'path';
 
-const DB_PATH = path.join(__dirname, '..', 'data', 'aviation_hub.db');
+const DB_PATH = path.join(process.cwd(), 'data', 'aviation_hub.db');
 
-export default async function handler(req, res) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
-  }
-
-  const { icao, radius = '50' } = req.query;
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const icao = searchParams.get('icao');
+  const radius = searchParams.get('radius') || '50';
 
   if (!icao) {
-    return res.status(400).json({ error: 'Missing icao parameter' });
+    return NextResponse.json({ error: 'Missing icao parameter' }, { status: 400 });
   }
 
   const radiusNm = parseInt(radius);
 
   if (isNaN(radiusNm) || radiusNm < 1 || radiusNm > 500) {
-    return res.status(400).json({ error: 'Invalid radius (1-500 nm)' });
+    return NextResponse.json({ error: 'Invalid radius (1-500 nm)' }, { status: 400 });
   }
 
   const db = new sqlite3.Database(DB_PATH);
@@ -32,7 +31,7 @@ export default async function handler(req, res) {
     db.get("SELECT icao, latitude, longitude FROM airports WHERE icao = ?", [icao.toUpperCase()], (err, center) => {
       if (err || !center) {
         db.close();
-        return res.status(404).json({ error: 'Airport not found', icao: icao.toUpperCase() });
+        return NextResponse.json({ error: 'Airport not found', icao: icao.toUpperCase() }, { status: 404 });
       }
 
       // Calculate distance and find fuel prices
@@ -68,11 +67,11 @@ export default async function handler(req, res) {
 
         if (err) {
           console.error('Database error:', err);
-          return res.status(500).json({ error: 'Database error' });
+          return NextResponse.json({ error: 'Database error' }, { status: 500 });
         }
 
         // Format results
-        const results = rows.map(row => ({
+        const results = rows.map((row: any) => ({
           icao: row.icao,
           name: row.name,
           city: row.city,
@@ -88,7 +87,7 @@ export default async function handler(req, res) {
           direction: getDirection(center.latitude, center.longitude, row.latitude, row.longitude)
         }));
 
-        res.json({
+        return NextResponse.json({
           centerAirport: icao.toUpperCase(),
           radiusNm: radiusNm,
           count: results.length,
@@ -99,12 +98,12 @@ export default async function handler(req, res) {
   } catch (error) {
     db.close();
     console.error('Error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
 
 // Calculate compass direction from center to point
-function getDirection(lat1, lon1, lat2, lon2) {
+function getDirection(lat1: number, lon1: number, lat2: number, lon2: number): string {
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const lat1Rad = lat1 * Math.PI / 180;
   const lat2Rad = lat2 * Math.PI / 180;
