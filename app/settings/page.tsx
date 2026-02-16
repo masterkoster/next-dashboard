@@ -105,6 +105,22 @@ export default function SettingsPage() {
             </div>
           </div>
 
+          {/* Data Cache Section */}
+          <div className="bg-slate-800 rounded-lg p-6">
+            <h2 className="text-lg font-semibold mb-4">Data Cache</h2>
+            <div className="space-y-3">
+              <Link 
+                href="/data-status"
+                className="block w-full bg-slate-700 hover:bg-slate-600 text-center text-white py-2 rounded-lg transition-colors"
+              >
+                View Data Cache Status
+              </Link>
+              <p className="text-xs text-slate-500">
+                See what airport data is cached and how old it is. Fuel prices are automatically updated every 72 hours.
+              </p>
+            </div>
+          </div>
+
           {/* Danger Zone */}
           <div className="bg-slate-800 rounded-lg p-6 border border-red-500/30">
             <h2 className="text-lg font-semibold mb-4 text-red-400">Danger Zone</h2>
