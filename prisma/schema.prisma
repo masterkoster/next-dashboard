@@ -176,6 +176,7 @@ model Maintenance {
   userId       String    @db.NVarChar(36)
   description  String    @db.NVarChar(Max)
   status       String?   @default("NEEDED", map: "DF__Maintenan__statu__3587F3E0") @db.NVarChar(20)
+  isGrounded   Boolean   @default(false)
   reportedDate DateTime? @default(now(), map: "DF__Maintenan__repor__367C1819")
   resolvedDate DateTime?
   cost         Decimal?  @db.Decimal(10, 2)
