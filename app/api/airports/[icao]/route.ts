@@ -85,7 +85,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ icao
     
     // Get cached fuel prices from new table (AirNav data)
     const fuelPrices = await db.all(`
-      SELECT fuel_type, service_type, price, last_reported, source_url, scraped_at
+      SELECT fuel_type, service_type, price, last_reported, source_url, scraped_at, has_tower, attendance, phone, landing_fee, manager
       FROM airport_fuel 
       WHERE icao = ?
     `, icaoUpper);

@@ -59,6 +59,10 @@ interface AirportDetails {
     lastReported?: string;
   };
   landingFee?: { amount: number };
+  hasTower?: boolean;
+  attendance?: string;
+  phone?: string;
+  manager?: string;
 }
 
 interface LeafletMapProps {
@@ -183,6 +187,46 @@ function AirportPopup({ airport, onAddToRoute }: { airport: Airport; onAddToRout
                   Source: AirNav.com
                 </a>
               )}
+              {/* Tower & Landing Fee - Important Info */}
+              {(details.hasTower !== undefined || details.landingFee) && (
+                <div className="mt-2 flex gap-2 flex-wrap">
+                  {details.hasTower !== undefined && (
+                    <span className={`text-xs px-2 py-1 rounded ${details.hasTower ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                      {details.hasTower ? '✓ Tower' : '✗ No Tower'}
+                    </span>
+                  )}
+                  {details.landingFee && (
+                    <span className="text-xs px-2 py-1 rounded bg-amber-500/20 text-amber-400">
+                      Landing: ${details.landingFee.amount}
+                    </span>
+                  )}
+                </div>
+              )}
+              {/* More Details Dropdown */}
+              <details className="mt-2">
+                <summary className="text-xs text-slate-500 cursor-pointer hover:text-sky-400">
+                  More details
+                </summary>
+                <div className="mt-2 space-y-1 text-xs bg-slate-100 p-2 rounded">
+                  {details.attendance && (
+                    <div><span className="font-medium">Attendance:</span> {details.attendance}</div>
+                  )}
+                  {details.phone && (
+                    <div><span className="font-medium">Phone:</span> {details.phone}</div>
+                  )}
+                  {details.manager && (
+                    <div><span className="font-medium">Manager:</span> {details.manager}</div>
+                  )}
+                  <a 
+                    href={`https://www.airnav.com/airport/${airport.icao}`}
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-sky-500 hover:underline block mt-2"
+                  >
+                    View full details on AirNav →
+                  </a>
+                </div>
+              </details>
               {/* Submit price button */}
               <details className="mt-2">
                 <summary className="text-xs text-sky-500 cursor-pointer hover:text-sky-400">
