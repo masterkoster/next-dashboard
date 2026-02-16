@@ -4,56 +4,101 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 
 export default function LandingPage() {
-  const [planePosition, setPlanePosition] = useState(0);
+  const [planePhase, setPlanePhase] = useState(0);
 
-  // Animate plane across screen
+  // Fun plane animation phases
   useEffect(() => {
     const interval = setInterval(() => {
-      setPlanePosition((prev) => (prev + 1) % 100);
-    }, 50);
+      setPlanePhase((prev) => (prev + 1) % 100);
+    }, 80);
     return () => clearInterval(interval);
   }, []);
 
+  // Calculate plane position with fun loop
+  const getPlaneStyle = () => {
+    const p = planePhase;
+    if (p < 20) {
+      // Coming in from left
+      return { 
+        left: `${p * 5}%`, 
+        top: '50%',
+        transform: 'translateY(-50%) rotate(0deg) scaleX(1)',
+        opacity: p > 5 ? 1 : p * 20
+      };
+    } else if (p < 30) {
+      // Loop!
+      const loopP = (p - 20) / 10;
+      return {
+        left: '100%',
+        top: `${50 - Math.sin(loopP * Math.PI * 2) * 30}%`,
+        transform: `rotate(${loopP * 360}deg) scaleX(1)`,
+        opacity: 1
+      };
+    } else if (p < 50) {
+      // Going back
+      return { left: '100%', top: '50%', transform: 'translateY(-50%)', opacity: 0 };
+    } else {
+      // Pause before restart
+      return { left: '-10%', top: '50%', transform: 'translateY(-50%)', opacity: 0 };
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800">
-      {/* Animated Hero */}
-      <div className="relative overflow-hidden h-[400px] flex items-center justify-center">
-        {/* Background plane trail */}
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full h-0.5 bg-gradient-to-r from-transparent via-sky-500/30 to-transparent" />
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 overflow-hidden">
+      {/* Animated Hero with fun plane */}
+      <div className="relative h-[350px]">
+        {/* Sky background */}
+        <div className="absolute inset-0 bg-gradient-to-b from-blue-900/20 to-transparent" />
+        
+        {/* Clouds */}
+        <div className="absolute top-8 left-4 text-6xl opacity-30 animate-pulse">☁️</div>
+        <div className="absolute top-16 right-20 text-5xl opacity-20 animate-pulse" style={{animationDelay: '1s'}}>☁️</div>
+        <div className="absolute top-24 left-1/3 text-4xl opacity-15 animate-pulse" style={{animationDelay: '2s'}}>☁️</div>
+        
+        {/* Fun flying plane */}
+        <div 
+          className="absolute text-6xl transition-all duration-75 ease-linear z-10 filter drop-shadow-lg"
+          style={getPlaneStyle()}
+        >
+          <span className="inline-block transform scale-x-[-1]">✈️</span>
         </div>
         
-        {/* Flying plane */}
+        {/* Trail effect */}
         <div 
-          className="absolute text-4xl transition-all duration-[5000ms] ease-linear"
-          style={{ left: `${planePosition}%`, top: '50%', transform: 'translateY(-50%)' }}
-        >
-          ✈️
-        </div>
+          className="absolute h-1 bg-gradient-to-r from-transparent via-sky-400/40 to-transparent"
+          style={{
+            left: '0%',
+            right: '20%',
+            top: '50%',
+            transform: 'translateY(-50%)',
+            width: planePhase > 10 && planePhase < 50 ? `${(planePhase - 10) * 2}%` : '0%',
+            opacity: planePhase > 10 && planePhase < 50 ? 1 : 0,
+            transition: 'all 0.1s'
+          }}
+        />
 
-        {/* Hero Content */}
-        <div className="relative z-10 text-center px-6 max-w-4xl mx-auto">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+        {/* Hero Content - centered */}
+        <div className="relative z-20 h-full flex flex-col items-center justify-center px-6">
+          <h1 className="text-4xl md:text-6xl font-bold text-white mb-3 text-center">
             Find Cheap Fuel. <span className="text-sky-400">Plan Flights.</span>
-            <br />
-            <span className="text-2xl md:text-3xl text-slate-400">Manage Your Club.</span>
           </h1>
-          <p className="text-lg md:text-xl text-slate-300 mb-2">
-            Quick flight planning that does the job. 
+          <p className="text-xl md:text-2xl text-slate-400 mb-2">
+            Manage Your Club.
           </p>
-          <p className="text-slate-500 mb-8">
+          <p className="text-slate-500 mb-6 text-center max-w-lg">
+            Quick flight planning that does the job. <br/>
             When you need more — ForeFlight's there. For quick planning — we're here.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link
               href="/modules/fuel-saver"
-              className="rounded-xl bg-emerald-500 hover:bg-emerald-400 px-8 py-3 font-semibold text-white transition text-lg"
+              className="rounded-xl bg-emerald-500 hover:bg-emerald-400 px-8 py-3 font-semibold text-white transition text-lg shadow-lg hover:shadow-emerald-500/25"
             >
               ⛽ Try Fuel Saver
             </Link>
             <Link
               href="/modules/flying-club?demo=true"
-              className="rounded-xl bg-sky-500 hover:bg-sky-400 px-8 py-3 font-semibold text-white transition text-lg"
+              className="rounded-xl bg-sky-500 hover:bg-sky-400 px-8 py-3 font-semibold text-white transition text-lg shadow-lg hover:shadow-sky-500/25"
             >
               ✈️ Try Flying Club
             </Link>
@@ -178,14 +223,7 @@ export default function LandingPage() {
         {/* Tip Jar */}
         <p className="mt-8 text-sm text-slate-500">
           Like what we're building?{' '}
-          <a 
-            href="#" 
-            className="text-sky-400 hover:underline"
-            onClick={(e) => {
-              e.preventDefault();
-              alert('Tip jar coming soon! Thanks for the support.');
-            }}
-          >
+          <a href="#" className="text-sky-400 hover:underline">
             Leave a tip
           </a>
         </p>

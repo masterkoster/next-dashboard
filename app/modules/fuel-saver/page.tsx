@@ -11,6 +11,9 @@ import { MapControls, DEFAULT_MAP_OPTIONS, MapTileLayer, MapLayerOptions } from 
 import FlightPlayback from './FlightPlayback';
 import RangeRingCalculator from './RangeRing';
 import PerformanceSettingsPanel, { PerformanceSettings, DEFAULT_SETTINGS } from './PerformanceSettings';
+import AuthModal from './AuthModal';
+import UpgradeModal from './UpgradeModal';
+import TierExplainerModal from './TierExplainerModal';
 
 // Types
 interface Airport {
@@ -241,10 +244,48 @@ function FuelSaverContent() {
   const [savedPlans, setSavedPlans] = useState<any[]>([]);
   const [showPlanList, setShowPlanList] = useState(false);
   
+  // Auth Modal
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalAction, setAuthModalAction] = useState<'save' | 'load' | 'export'>('save');
+   
+  // Upgrade Modal
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [upgradeFeature, setUpgradeFeature] = useState<string>('');
+    
+  // Tier Explainer Modal (shown on first visit for free users)
+  const [showTierExplainer, setShowTierExplainer] = useState(false);
+
   // Auth
   const { data: session, status } = useSession();
   const [syncOffered, setSyncOffered] = useState(false);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
+  
+  // User tier (default to free for now, in real app would come from session)
+  const userTier = (session?.user as any)?.tier || 'free';
+
+  // Free tier limits
+  const FREE_TIER_LIMITS = {
+    maxWaypoints: 6,
+    maxSavedPlans: 5,
+    maxClubs: 1,
+    maxAircraft: 3,
+  };
+
+  const isPro = userTier === 'pro';
+
+  // Check if we should show the tier explainer on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userTier !== 'pro') {
+      const seen = localStorage.getItem('hasSeenTierExplainer');
+      if (!seen) {
+        // Show after a short delay to let the page load
+        setTimeout(() => setShowTierExplainer(true), 1500);
+      }
+    }
+  }, [userTier]);
+  
+  // Demo plans flag
+  const [demoPlansLoaded, setDemoPlansLoaded] = useState(false);
   
   // Get URL params for loading a plan
   const searchParams = useSearchParams();
@@ -348,11 +389,31 @@ function FuelSaverContent() {
       const saved = localStorage.getItem('savedFlightPlans');
       if (saved) {
         try {
-          setSavedPlans(JSON.parse(saved));
-        } catch (e) { console.error('Error loading flight plans:', e); }
+          const parsed = JSON.parse(saved);
+          // Add demo plans if no saved plans exist
+          if (parsed.length === 0 && !demoPlansLoaded) {
+            setSavedPlans(DEMO_FLIGHT_PLANS);
+            setDemoPlansLoaded(true);
+          } else {
+            setSavedPlans(parsed);
+          }
+        } catch (e) { 
+          console.error('Error loading flight plans:', e); 
+          // Show demo plans on error
+          if (!demoPlansLoaded) {
+            setSavedPlans(DEMO_FLIGHT_PLANS);
+            setDemoPlansLoaded(true);
+          }
+        }
+      } else {
+        // No saved plans - show demo plans
+        if (!demoPlansLoaded) {
+          setSavedPlans(DEMO_FLIGHT_PLANS);
+          setDemoPlansLoaded(true);
+        }
       }
     }
-  }, []);
+  }, [demoPlansLoaded]);
   
   // Save flight plans to localStorage
   const saveToLocalStorage = (plans: any[]) => {
@@ -360,7 +421,79 @@ function FuelSaverContent() {
       localStorage.setItem('savedFlightPlans', JSON.stringify(plans));
     }
   };
-  
+
+  // Demo flight plans for users who want to try it out
+  const DEMO_FLIGHT_PLANS = [
+    {
+      id: 'demo-1',
+      name: 'California Coast Hop',
+      callsign: 'N12345',
+      aircraftType: 'Cessna 172S (2022)',
+      pilotName: 'Demo Pilot',
+      departureTime: '2026-02-20T08:00',
+      cruisingAlt: 5500,
+      alternateIcao: 'KSMO',
+      remarks: 'Scenic coastal flight',
+      soulsOnBoard: 2,
+      departureFuel: 100,
+      departureIcao: 'KVNY',
+      arrivalIcao: 'KSFO',
+      waypoints: [
+        { icao: 'KVNY', name: 'Van Nuys Airport', city: 'Van Nuys', latitude: 34.2098, longitude: -118.4895, sequence: 0 },
+        { icao: 'KLAX', name: 'Los Angeles International', city: 'Los Angeles', latitude: 33.9425, longitude: -118.4081, sequence: 1 },
+        { icao: 'KSMF', name: 'Sacramento International', city: 'Sacramento', latitude: 38.6954, longitude: -121.5908, sequence: 2 },
+        { icao: 'KSFO', name: 'San Francisco International', city: 'San Francisco', latitude: 37.6213, longitude: -122.379, sequence: 3 },
+      ],
+      isDemo: true,
+      createdAt: '2026-01-15T10:00:00Z'
+    },
+    {
+      id: 'demo-2',
+      name: 'Texas Cross Country',
+      callsign: 'N98765',
+      aircraftType: 'Cessna 182T (2020)',
+      pilotName: 'Demo Pilot',
+      departureTime: '2026-02-21T09:00',
+      cruisingAlt: 6500,
+      alternateIcao: 'KDTO',
+      remarks: 'Austin to Dallas',
+      soulsOnBoard: 3,
+      departureFuel: 100,
+      departureIcao: 'KAUS',
+      arrivalIcao: 'KDFW',
+      waypoints: [
+        { icao: 'KAUS', name: 'Austin-Bergstrom International', city: 'Austin', latitude: 30.1945, longitude: -97.6699, sequence: 0 },
+        { icao: 'KTIW', name: 'Tulip Field', city: 'Cameron', latitude: 30.8791, longitude: -96.9769, sequence: 1 },
+        { icao: 'KCFD', name: 'Caddo Mills Municipal', city: 'Caddo Mills', latitude: 33.0362, longitude: -96.2414, sequence: 2 },
+        { icao: 'KDFW', name: 'Dallas/Fort Worth International', city: 'Dallas', latitude: 32.8998, longitude: -97.0403, sequence: 3 },
+      ],
+      isDemo: true,
+      createdAt: '2026-01-20T14:30:00Z'
+    },
+    {
+      id: 'demo-3',
+      name: 'Florida Fun',
+      callsign: 'N11111',
+      aircraftType: 'Piper Cherokee Six (2020)',
+      pilotName: 'Demo Pilot',
+      departureTime: '2026-02-22T07:30',
+      cruisingAlt: 4500,
+      alternateIcao: 'KMIA',
+      remarks: 'Tampa to Miami scenic',
+      soulsOnBoard: 4,
+      departureFuel: 100,
+      departureIcao: 'KTPA',
+      arrivalIcao: 'KMIA',
+      waypoints: [
+        { icao: 'KTPA', name: 'Tampa International', city: 'Tampa', latitude: 27.9755, longitude: -82.5332, sequence: 0 },
+        { icao: 'KOPF', name: 'Opa Locka Executive', city: 'Miami', latitude: 25.907, longitude: -80.2586, sequence: 1 },
+        { icao: 'KMIA', name: 'Miami International', city: 'Miami', latitude: 25.7959, longitude: -80.287, sequence: 2 },
+      ],
+      isDemo: true,
+      createdAt: '2026-01-25T09:15:00Z'
+    }
+  ];
+
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Airport[]>([]);
@@ -596,6 +729,14 @@ function FuelSaverContent() {
       alert('Airport already in route');
       return;
     }
+
+    // Check free tier limit for waypoints
+    if (!isPro && waypoints.length >= FREE_TIER_LIMITS.maxWaypoints) {
+      setUpgradeFeature('More than 6 waypoints');
+      setUpgradeModalOpen(true);
+      return;
+    }
+
     const wp: Waypoint = {
       id: crypto.randomUUID(),
       icao: airport.icao,
@@ -1094,6 +1235,13 @@ function FuelSaverContent() {
       alert('Please add at least departure and destination');
       return;
     }
+
+    // Check free tier limit for saved plans
+    if (!isPro && savedPlans.filter(p => !p.isDemo).length >= FREE_TIER_LIMITS.maxSavedPlans) {
+      setUpgradeFeature('More than 5 saved flight plans');
+      setUpgradeModalOpen(true);
+      return;
+    }
     
     const planName = flightPlanName || `Flight Plan ${new Date().toLocaleDateString()}`;
     
@@ -1331,8 +1479,31 @@ function FuelSaverContent() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold">Flight Planner & Fuel Saver</h1>
+            {status !== 'authenticated' && (
+              <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
+                DEMO MODE
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-2">
+            {status === 'authenticated' ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-emerald-400">{session?.user?.email}</span>
+                <button 
+                  onClick={() => signOut()}
+                  className="text-xs text-slate-400 hover:text-white"
+                >
+                  Sign out
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => signIn()}
+                className="bg-slate-600 hover:bg-slate-500 text-white px-3 py-1.5 rounded text-xs"
+              >
+                Sign In
+              </button>
+            )}
             <button
               onClick={() => findNearestFuel()}
               className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1"
@@ -1662,13 +1833,27 @@ function FuelSaverContent() {
               </div>
               <div className="flex gap-1">
                 <button
-                  onClick={() => setShowPlanList(!showPlanList)}
+                  onClick={() => {
+                    if (status !== 'authenticated') {
+                      setAuthModalAction('load');
+                      setAuthModalOpen(true);
+                    } else {
+                      setShowPlanList(!showPlanList);
+                    }
+                  }}
                   className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-medium py-1.5 rounded text-xs"
                 >
                   Load {savedPlans.length > 0 && `(${savedPlans.length})`}
                 </button>
                 <button
-                  onClick={saveFlightPlan}
+                  onClick={() => {
+                    if (status !== 'authenticated') {
+                      setAuthModalAction('save');
+                      setAuthModalOpen(true);
+                    } else {
+                      saveFlightPlan();
+                    }
+                  }}
                   disabled={waypoints.length < 2}
                   className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 text-white font-medium py-1.5 rounded text-xs"
                 >
@@ -1699,12 +1884,19 @@ function FuelSaverContent() {
                       {savedPlans.map((plan, i) => (
                         <div key={plan.id || i} className="flex items-center justify-between bg-slate-600 rounded p-2 text-sm">
                           <button onClick={() => loadFlightPlan(plan)} className="text-left flex-1 hover:text-sky-400">
-                            <div className="font-medium">{plan.name || 'Untitled'}</div>
+                            <div className="font-medium flex items-center gap-2">
+                              {plan.name || 'Untitled'}
+                              {plan.isDemo && (
+                                <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">DEMO</span>
+                              )}
+                            </div>
                             <div className="text-xs text-slate-400">
                               {plan.departureIcao || '---'} → {plan.arrivalIcao || '---'} • {plan.waypoints?.length || 0} waypoints
                             </div>
                           </button>
-                          <button onClick={() => deleteFlightPlan(plan.id || i)} className="text-red-400 hover:text-red-300 px-2">✕</button>
+                          {!plan.isDemo && (
+                            <button onClick={() => deleteFlightPlan(plan.id || i)} className="text-red-400 hover:text-red-300 px-2">✕</button>
+                          )}
                         </div>
                       ))}
                     </>
@@ -1834,6 +2026,31 @@ function FuelSaverContent() {
           </div>
         </div>
       )}
+
+      {/* Auth Modal */}
+      <AuthModal 
+        isOpen={authModalOpen} 
+        onClose={() => setAuthModalOpen(false)} 
+        action={authModalAction}
+        onConfirm={() => {
+          if (authModalAction === 'save') {
+            saveFlightPlan();
+          }
+        }}
+      />
+
+      {/* Upgrade Modal */}
+      <UpgradeModal 
+        isOpen={upgradeModalOpen} 
+        onClose={() => setUpgradeModalOpen(false)}
+        feature={upgradeFeature}
+      />
+
+      {/* Tier Explainer Modal */}
+      <TierExplainerModal 
+        isOpen={showTierExplainer} 
+        onClose={() => setShowTierExplainer(false)}
+      />
     </div>
   );
 }

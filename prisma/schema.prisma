@@ -18,9 +18,18 @@ model User {
   password         String?   @db.NVarChar(255)
   resetToken       String?   @db.NVarChar(255)
   resetTokenExpiry DateTime?
+  
+  // Subscription fields
+  tier              String   @default("free") @db.NVarChar(20) // free, pro
+  stripeCustomerId  String?  @db.NVarChar(100)
+  stripeSubscriptionId String? @db.NVarChar(100)
+  subscriptionEnd   DateTime?
+  homeState         String?  @db.NVarChar(2) // User's home state for fuel tracking
+  
   flightPlans      FlightPlan[]
   memberships      GroupMember[]
   aircraft         UserAircraft[]
+  documents        Document[]
 
   @@map("User")
 }
@@ -380,4 +389,22 @@ model WeatherCache {
 
   @@index([valid_until])
   @@map("WeatherCache")
+}
+
+model Document {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  userId      String   @db.NVarChar(36)
+  name        String   @db.NVarChar(255)
+  type        String   @db.NVarChar(50) // POH, insurance, registration, maintenance, other
+  fileUrl     String   @db.NVarChar(500)
+  fileSize    Int?
+  mimeType    String?  @db.NVarChar(100)
+  description String?  @db.NVarChar(500)
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("Document")
 }

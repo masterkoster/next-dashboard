@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { demoGroups, demoBookings, demoMaintenance, demoFlightLogs } from './demoData';
@@ -102,6 +103,17 @@ export default function FlyingClubPage() {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [showDemoPopup, setShowDemoPopup] = useState(false);
 
+  // Tier/upgrade
+  const { data: session } = useSession();
+  const userTier = (session?.user as any)?.tier || 'free';
+  const isPro = userTier === 'pro';
+
+  // Free tier limits
+  const FREE_TIER_LIMITS = {
+    maxClubs: 1,
+    maxAircraft: 3,
+  };
+
   // Demo mode param for links
   const isDemoModeParam = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('demo') === 'true' : false;
   const demoParam = isDemoModeParam ? '?demo=true' : '';
@@ -139,6 +151,12 @@ export default function FlyingClubPage() {
           
           setMaintenanceBlocks(maintenanceWithGroup);
           setLoading(false);
+        }
+
+        // Show tier explainer for free users (will be handled by Fuel Saver module)
+        if (!isPro && params.get('demo') !== 'true') {
+          // The tier explainer is shown in the Fuel Saver module
+          // This keeps the experience consistent across modules
         }
       })
       .catch(() => {
@@ -404,6 +422,14 @@ export default function FlyingClubPage() {
             )}
             <Link
               href="/modules/flying-club/groups/new"
+              onClick={(e) => {
+                // Check tier limits for clubs
+                const userClubs = groups.filter((g: any) => !g.isDemo);
+                if (!isPro && userClubs.length >= FREE_TIER_LIMITS.maxClubs) {
+                  e.preventDefault();
+                  alert('Free tier limited to 1 Flying Club. Upgrade to Pro for unlimited clubs!');
+                }
+              }}
               className="bg-sky-500 hover:bg-sky-600 px-4 py-2 rounded-lg font-medium transition-colors"
             >
               + New Group
