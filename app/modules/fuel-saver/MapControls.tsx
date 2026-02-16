@@ -23,12 +23,12 @@ interface MapControlsProps {
 // Layer configuration
 const LAYERS = {
   osm: {
-    name: 'OpenStreetMap',
+    name: 'OSM',
     url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     attribution: '&copy; OpenStreetMap contributors'
   },
   satellite: {
-    name: 'Satellite',
+    name: 'Sat',
     url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     attribution: '&copy; Esri'
   },
@@ -38,7 +38,7 @@ const LAYERS = {
     attribution: '&copy; OpenTopoMap'
   },
   dark: {
-    name: 'Dark Mode',
+    name: 'Dark',
     url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
     attribution: '&copy; CartoDB'
   }

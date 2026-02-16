@@ -75,6 +75,7 @@ interface LeafletMapProps {
   mapZoom: number;
   showTerrain?: boolean;
   showAirspaces?: boolean;
+  baseLayer?: 'osm' | 'satellite' | 'terrain' | 'dark';
 }
 
 // Component to handle map move events and get map reference
@@ -325,10 +326,19 @@ export default function LeafletMap({
   mapCenter, 
   mapZoom,
   showTerrain = false,
-  showAirspaces = false
+  showAirspaces = false,
+  baseLayer = 'osm'
 }: LeafletMapProps) {
   const [terrainLayer, setTerrainLayer] = useState<L.TileLayer | null>(null);
   const mapRef = useRef<L.Map | null>(null);
+  
+  // Base layer URLs
+  const baseLayers = {
+    osm: { url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenStreetMap' },
+    satellite: { url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', attribution: '&copy; Esri' },
+    terrain: { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenTopoMap' },
+    dark: { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '&copy; CartoDB' }
+  };
   
   // Toggle terrain layer based on setting
   useEffect(() => {
@@ -359,8 +369,8 @@ export default function LeafletMap({
       style={{ height: '100%', width: '100%', zIndex: 0 }}
     >
       <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        attribution={baseLayers[baseLayer].attribution}
+        url={baseLayers[baseLayer].url}
       />
       
       <MapEventHandler onBoundsChange={onBoundsChange} onMapReady={(map) => { mapRef.current = map; }} />

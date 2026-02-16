@@ -1237,12 +1237,6 @@ function FuelSaverContent() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold">Flight Planner & Fuel Saver</h1>
-            {/* Legend */}
-            <div className="hidden sm:flex items-center gap-3 text-xs">
-              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Large</div>
-              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Medium</div>
-              <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Small</div>
-            </div>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -1250,12 +1244,6 @@ function FuelSaverContent() {
               className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1"
             >
               <span>⛽</span> Find Cheap Fuel
-            </button>
-            <button
-              onClick={() => setShowPanel(!showPanel)}
-              className="bg-slate-700 hover:bg-slate-600 p-1.5 rounded-lg text-white"
-            >
-              {showPanel ? '✕' : '☰'}
             </button>
           </div>
         </div>
@@ -1267,17 +1255,17 @@ function FuelSaverContent() {
         <button
           onClick={() => setShowPanel(!showPanel)}
           className="absolute left-0 top-1/2 -translate-y-1/2 z-30 bg-slate-700 hover:bg-slate-600 text-white px-2 py-4 rounded-r-lg text-sm transition-all"
-          style={{ left: showPanel ? '224px' : '0px' }}
+          style={{ left: showPanel ? '256px' : '0px' }}
         >
           {showPanel ? '◀' : '▶'}
         </button>
 
         {/* Left Sidebar - Slide-in Panel */}
         <div 
-          className={`bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden transition-all duration-300 ${showPanel ? 'w-56' : 'w-0'}`}
+          className={`bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden transition-all duration-300 ${showPanel ? 'w-64' : 'w-0'}`}
         >
           {showPanel && (
-            <div className="w-56 flex flex-col h-full">
+            <div className="w-64 flex flex-col h-full">
             {/* Tabs */}
             <div className="flex text-xs">
               <button 
@@ -1557,8 +1545,18 @@ function FuelSaverContent() {
               )}
             </div>
 
-            {/* Bottom Actions - Load/Save */}
+            {/* Bottom Actions - Load/Save/Import */}
             <div className="p-2 border-t border-slate-700 bg-slate-800 flex-shrink-0 space-y-1">
+              {/* Import Button */}
+              <div>
+                <label className="block text-xs text-slate-400 mb-1">Import Flight Plan</label>
+                <input
+                  type="file"
+                  accept=".gpx,.fpl,.json,.csv"
+                  onChange={handleFileUpload}
+                  className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-slate-600 file:text-white hover:file:bg-slate-500"
+                />
+              </div>
               <div className="flex gap-1">
                 <button
                   onClick={() => setShowPlanList(!showPlanList)}
@@ -1645,6 +1643,7 @@ function FuelSaverContent() {
                   mapZoom={mapZoom}
                   showTerrain={performanceSettings.showTerrain}
                   showAirspaces={performanceSettings.showAirspaces}
+                  baseLayer={mapOptions.baseLayer}
                 />
                 <MapControls options={mapOptions} onOptionsChange={setMapOptions} />
               </>
