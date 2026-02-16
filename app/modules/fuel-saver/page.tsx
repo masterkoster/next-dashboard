@@ -5,8 +5,9 @@ import { useSession, signIn, signOut } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
-// Dynamic import for Leaflet components (no SSR)
+// Dynamic imports for Leaflet components (no SSR)
 const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
+import { MapControls, DEFAULT_MAP_OPTIONS, MapTileLayer, MapLayerOptions } from './MapControls';
 
 // Types
 interface Airport {
@@ -173,6 +174,9 @@ function FuelSaverContent() {
   const [showAllAirports, setShowAllAirports] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([39.8283, -98.5795]);
   const [mapZoom, setMapZoom] = useState(5);
+  
+  // Map layer options
+  const [mapOptions, setMapOptions] = useState<MapLayerOptions>(DEFAULT_MAP_OPTIONS);
   
   // Flight plan state
   const [flightPlanName, setFlightPlanName] = useState('');
@@ -1458,15 +1462,28 @@ function FuelSaverContent() {
                 </button>
               </div>
             ) : (
-              <LeafletMap
-                airports={airports}
-                waypoints={waypoints}
-                fuelPrices={fuelPrices}
-                onBoundsChange={setMapBounds}
-                onAirportClick={handleAirportAdd}
-                mapCenter={mapCenter}
-                mapZoom={mapZoom}
-              />
+              <>
+                <LeafletMap
+                  airports={airports.filter(a => {
+                    if (a.type === 'large_airport' && !mapOptions.showLarge) return false;
+                    if (a.type === 'medium_airport' && !mapOptions.showMedium) return false;
+                    if (a.type === 'small_airport' && !mapOptions.showSmall) return false;
+                    if (a.type === 'seaplane_base' && !mapOptions.showSeaplane) return false;
+                    return true;
+                  })}
+                  waypoints={waypoints}
+                  fuelPrices={fuelPrices}
+                  onBoundsChange={setMapBounds}
+                  onAirportClick={handleAirportAdd}
+                  mapCenter={mapCenter}
+                  mapZoom={mapZoom}
+                />
+                {/* Map Controls */}
+                <MapControls 
+                  options={mapOptions} 
+                  onOptionsChange={setMapOptions} 
+                />
+              </>
             )}
           </div>
 
