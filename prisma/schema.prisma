@@ -19,6 +19,9 @@ model User {
   resetToken       String?   @db.NVarChar(255)
   resetTokenExpiry DateTime?
   
+  // Role for admin access
+  role            String   @default("user") @db.NVarChar(20) // user, admin, owner
+  
   // Subscription fields
   tier              String   @default("free") @db.NVarChar(20) // free, pro
   stripeCustomerId  String?  @db.NVarChar(100)
@@ -30,6 +33,7 @@ model User {
   memberships      GroupMember[]
   aircraft         UserAircraft[]
   documents        Document[]
+  errorReports     ErrorReport[]
 
   @@map("User")
 }
@@ -407,4 +411,23 @@ model Document {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("Document")
+}
+
+model ErrorReport {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  userId      String?  @db.NVarChar(36) // null if anonymous
+  email       String?  @db.NVarChar(255) // optional email for anonymous reports
+  title       String   @db.NVarChar(255)
+  description String   @db.NVarChar(Max)
+  stepsToReproduce String? @db.NVarChar(Max)
+  url         String?  @db.NVarChar(500) // page where error occurred
+  browser     String?  @db.NVarChar(100) // browser info
+  status      String   @default("open") @db.NVarChar(20) // open, in_progress, resolved, closed
+  resolution  String?  @db.NVarChar(Max)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("ErrorReport")
 }

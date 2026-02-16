@@ -232,6 +232,31 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="border-t border-slate-800 py-6 text-center text-sm text-slate-600">
         <p>Built by a Dutch student. FAA data. No ads. No selling out.</p>
+        <div className="flex justify-center gap-4 mt-3">
+          <button 
+            onClick={() => {
+              const desc = prompt('Describe the error:');
+              if (desc) {
+                fetch('/api/error-report', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    title: 'User Reported Error',
+                    description: desc,
+                    url: window.location.href,
+                  }),
+                }).then(() => alert('Error report submitted. Thank you!')).catch(() => alert('Failed to submit report'));
+              }
+            }}
+            className="text-slate-500 hover:text-sky-400 transition"
+          >
+            Report Error
+          </button>
+          <span className="text-slate-700">|</span>
+          <Link href="/admin" className="text-slate-500 hover:text-sky-400 transition">
+            Admin
+          </Link>
+        </div>
       </footer>
     </div>
   );
