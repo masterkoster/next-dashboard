@@ -152,7 +152,16 @@ export async function PUT(request: Request) {
       waypoints,
     } = body;
 
-    // First delete existing waypoints
+    // First check if the plan exists and belongs to the user
+    const existingPlan = await prisma.flightPlan.findFirst({
+      where: { id, userId: session.user.id },
+    });
+    
+    if (!existingPlan) {
+      return NextResponse.json({ error: 'Flight plan not found or not owned by user' }, { status: 404 });
+    }
+
+    // Delete existing waypoints
     await prisma.flightPlanWaypoint.deleteMany({
       where: { flightPlanId: id },
     });
@@ -189,8 +198,10 @@ export async function PUT(request: Request) {
     });
 
     return NextResponse.json({ flightPlan, message: 'Flight plan updated' });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating flight plan:', error);
-    return NextResponse.json({ error: 'Failed to update flight plan' }, { status: 500 });
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    return NextResponse.json({ error: 'Failed to update flight plan: ' + (error.message || 'Unknown error') }, { status: 500 });
   }
 }
