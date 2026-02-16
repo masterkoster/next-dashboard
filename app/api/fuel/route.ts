@@ -83,8 +83,8 @@ export async function GET(request: Request) {
       icao,
       prices,
       average: {
-        100LL: avg100LL ? avg100LL.toFixed(2) : null,
-        JetA: avgJetA ? avgJetA.toFixed(2) : null
+        '100LL': avg100LL ? avg100LL.toFixed(2) : null,
+        'JetA': avgJetA ? avgJetA.toFixed(2) : null
       },
       scrapedAt: fuel[0]?.scraped_at,
       attribution: AIRNAV_ATTRIBUTION,
