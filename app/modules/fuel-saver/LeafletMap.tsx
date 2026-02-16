@@ -31,6 +31,15 @@ interface Waypoint {
 interface FuelPrice {
   icao: string;
   price100ll: number | null;
+  priceJetA?: number | null;
+  source?: string;
+  sourceUrl?: string;
+  lastReported?: string;
+  attribution?: {
+    name: string;
+    url: string;
+    airbossUrl: string;
+  };
 }
 
 interface AirportDetails {
@@ -42,7 +51,13 @@ interface AirportDetails {
   state?: string;
   runways?: { length_ft: number; surface: string; he_ident: string }[];
   frequencies?: { frequency_mhz: number; description: string; type: string }[];
-  fuel?: { price100ll: number; source: string };
+  fuel?: { 
+    price100ll: number; 
+    priceJetA?: number;
+    source: string;
+    sourceUrl?: string;
+    lastReported?: string;
+  };
   landingFee?: { amount: number };
 }
 
@@ -145,9 +160,86 @@ function AirportPopup({ airport, onAddToRoute }: { airport: Airport; onAddToRout
           )}
           
           {details.fuel && (
-            <div className="mt-2 text-emerald-600 font-medium">
-              100LL: ${details.fuel.price100ll.toFixed(2)}/gal
-              <span className="text-xs text-slate-400 ml-1">({details.fuel.source})</span>
+            <div className="mt-2">
+              <div className="text-emerald-600 font-medium">
+                100LL: ${details.fuel.price100ll.toFixed(2)}/gal
+                {details.fuel.priceJetA && (
+                  <span className="ml-2">JetA: ${details.fuel.priceJetA.toFixed(2)}/gal</span>
+                )}
+              </div>
+              {details.fuel.lastReported && (
+                <div className="text-xs text-slate-400">
+                  Updated: {details.fuel.lastReported}
+                </div>
+              )}
+              {/* AirNav Attribution */}
+              {details.fuel.source === 'airnav' && (
+                <a 
+                  href={details.fuel.sourceUrl || 'https://www.airnav.com'} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-xs text-slate-500 hover:text-sky-500 block mt-1"
+                >
+                  Source: AirNav.com
+                </a>
+              )}
+              {/* Submit price button */}
+              <details className="mt-2">
+                <summary className="text-xs text-sky-500 cursor-pointer hover:text-sky-400">
+                  Submit updated price
+                </summary>
+                <form 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const form = e.target as HTMLFormElement;
+                    const price = parseFloat((form.elements.namedItem('price') as HTMLInputElement).value);
+                    const fuelType = (form.elements.namedItem('fuelType') as HTMLSelectElement).value;
+                    if (price > 0) {
+                      // Emit event to update price
+                      const event = new CustomEvent('submitFuelPrice', { 
+                        detail: { 
+                          icao: details.icao, 
+                          price, 
+                          fuelType 
+                        } 
+                      });
+                      window.dispatchEvent(event);
+                      alert('Thanks! Price submitted.');
+                    }
+                  }}
+                  className="mt-2 p-2 bg-slate-700 rounded"
+                >
+                  <div className="text-xs mb-2 text-slate-300">Submit your price (per gallon)</div>
+                  <div className="flex gap-2">
+                    <select 
+                      name="fuelType" 
+                      className="bg-slate-600 text-white text-xs px-2 py-1 rounded"
+                    >
+                      <option value="100LL">100LL</option>
+                      <option value="JetA">Jet A</option>
+                    </select>
+                    <input 
+                      type="number" 
+                      name="price" 
+                      step="0.01" 
+                      min="0" 
+                      max="20"
+                      placeholder="$0.00"
+                      className="bg-slate-600 text-white text-xs px-2 py-1 rounded w-20"
+                      required
+                    />
+                    <button 
+                      type="submit"
+                      className="bg-sky-500 hover:bg-sky-600 text-white text-xs px-2 py-1 rounded"
+                    >
+                      Submit
+                    </button>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1">
+                    Prices help other pilots!
+                  </div>
+                </form>
+              </details>
             </div>
           )}
           

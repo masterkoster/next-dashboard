@@ -39,6 +39,8 @@ interface FuelPrice {
   priceJetA: number | null;
   lastUpdated: string;
   source?: string;
+  sourceUrl?: string;
+  lastReported?: string;
 }
 
 // Inner component that uses useSearchParams
@@ -106,6 +108,24 @@ async function getFuelPrice(icao: string): Promise<FuelPrice | undefined> {
     const res = await fetch(`/api/fuel?icao=${icao}`);
     if (res.ok) {
       const data = await res.json();
+      // New API format returns prices array with average
+      if (data.prices && data.prices.length > 0) {
+        const llPrice = data.prices.find((p: any) => p.fuelType === '100LL');
+        const jetPrice = data.prices.find((p: any) => p.fuelType === 'JetA');
+        
+        const fp: FuelPrice = {
+          icao: data.icao,
+          price100ll: llPrice?.price || null,
+          priceJetA: jetPrice?.price || null,
+          lastUpdated: data.scrapedAt || '',
+          source: 'airnav',
+          sourceUrl: llPrice?.sourceUrl || '',
+          lastReported: llPrice?.lastReported || ''
+        };
+        fuelPriceCache[icao] = fp;
+        return fp;
+      }
+      // Fallback to old format
       if (data.price100ll) {
         const fp: FuelPrice = {
           icao: data.icao,
@@ -364,6 +384,47 @@ function FuelSaverContent() {
       fetchPrices();
     }
   }, [waypoints]);
+
+  // Handle user fuel price submissions
+  useEffect(() => {
+    const handleSubmitFuelPrice = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const { icao, price, fuelType } = customEvent.detail;
+      
+      try {
+        const res = await fetch('/api/fuel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            icao,
+            fuelType,
+            price,
+            source: 'user'
+          })
+        });
+        
+        if (res.ok) {
+          // Update local state
+          setFuelPrices(prev => ({
+            ...prev,
+            [icao]: {
+              ...prev[icao],
+              icao,
+              price100ll: fuelType === '100LL' ? price : (prev[icao]?.price100ll || null),
+              priceJetA: fuelType === 'JetA' ? price : (prev[icao]?.priceJetA || null),
+              lastUpdated: new Date().toISOString(),
+              source: 'user'
+            }
+          }));
+        }
+      } catch (e) {
+        console.error('Error submitting fuel price:', e);
+      }
+    };
+    
+    window.addEventListener('submitFuelPrice', handleSubmitFuelPrice);
+    return () => window.removeEventListener('submitFuelPrice', handleSubmitFuelPrice);
+  }, []);
 
   // Debounced search ref
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);

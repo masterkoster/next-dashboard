@@ -83,7 +83,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ icao
       LIMIT 10
     `, icaoUpper);
     
-    // Get cached fuel prices
+    // Get cached fuel prices from new table (AirNav data)
+    const fuelPrices = await db.all(`
+      SELECT fuel_type, service_type, price, last_reported, source_url, scraped_at
+      FROM airport_fuel 
+      WHERE icao = ?
+    `, icaoUpper);
+    
+    // Also check old cache table
     const fuelCache = await db.all(`
       SELECT data_type, price, source_site, last_updated
       FROM airport_cache 
@@ -93,8 +100,30 @@ export async function GET(request: Request, { params }: { params: Promise<{ icao
     const fuelData = fuelCache.find((f: any) => f.data_type === 'fuel');
     const feeData = fuelCache.find((f: any) => f.data_type === 'fee');
     
-    // Use cached data, or fall back to demo prices
-    const fuelPrice = fuelData ? fuelData.price : (DEMO_FUEL_PRICES[icaoUpper] || null);
+    // Use new AirNav table first, then fallback to old cache
+    let fuelPrice = null;
+    let fuelSource = 'demo';
+    let fuelSourceUrl = '';
+    let fuelLastReported = '';
+    
+    if (fuelPrices && fuelPrices.length > 0) {
+      // Get 100LL price (average if multiple)
+      const llPrices = fuelPrices.filter((f: any) => f.fuel_type === '100LL');
+      if (llPrices.length > 0) {
+        fuelPrice = llPrices.reduce((sum: number, f: any) => sum + f.price, 0) / llPrices.length;
+        fuelSource = 'airnav';
+        fuelSourceUrl = llPrices[0].source_url || '';
+        fuelLastReported = llPrices[0].last_reported || '';
+      }
+    } else if (fuelData) {
+      // Fallback to old cache
+      fuelPrice = fuelData.price;
+      fuelSource = fuelData.source_site || 'demo';
+    } else {
+      // Fallback to demo prices
+      fuelPrice = DEMO_FUEL_PRICES[icaoUpper] || null;
+    }
+    
     const landingFeeAmount = feeData ? feeData.price : (DEMO_FEES[icaoUpper] || null);
     
     // If using demo prices, cache them for future use
@@ -126,7 +155,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ icao
       frequencies,
       fuel: fuelPrice ? {
         price100ll: fuelPrice,
-        source: fuelData ? fuelData.source_site : 'demo',
+        source: fuelSource,
+        sourceUrl: fuelSourceUrl,
+        lastReported: fuelLastReported,
         lastUpdated: fuelData ? fuelData.last_updated : new Date().toISOString()
       } : null,
       landingFee: landingFeeAmount ? {
