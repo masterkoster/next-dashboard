@@ -153,12 +153,20 @@ export async function GET(request: Request, { params }: { params: Promise<{ icao
       ...airport,
       runways,
       frequencies,
+      // Manager/owner info from airport_fuel table
+      manager: fuelPrices[0]?.manager || null,
+      phone: fuelPrices[0]?.phone || null,
+      hasTower: fuelPrices[0]?.has_tower ?? null,
+      attendance: fuelPrices[0]?.attendance || null,
       fuel: fuelPrice ? {
         price100ll: fuelPrice,
         source: fuelSource,
         sourceUrl: fuelSourceUrl,
         lastReported: fuelLastReported,
-        lastUpdated: fuelData ? fuelData.last_updated : new Date().toISOString()
+        lastUpdated: fuelData ? fuelData.last_updated : new Date().toISOString(),
+        // Fuel provider info
+        providerName: fuelPrices[0]?.fbo_name || null,
+        providerPhone: fuelPrices[0]?.phone || null
       } : null,
       landingFee: landingFeeAmount ? {
         amount: landingFeeAmount,

@@ -131,7 +131,7 @@ function AirportPopup({ airport, onAddToRoute }: { airport: Airport; onAddToRout
   }, [airport.icao]);
 
   return (
-    <div className="min-w-[200px] text-slate-900">
+    <div className="min-w-[160px] max-w-[220px] text-slate-900">
       <strong className="text-lg">{airport.icao}</strong>
       {airport.iata && <span className="ml-2 text-slate-500">({airport.iata})</span>}
       <div className="font-medium">{airport.name}</div>
@@ -218,14 +218,29 @@ function AirportPopup({ airport, onAddToRoute }: { airport: Airport; onAddToRout
                   More details
                 </summary>
                 <div className="mt-2 space-y-1 text-xs bg-slate-100 p-2 rounded">
-                  {details.attendance && (
-                    <div><span className="font-medium">Attendance:</span> {details.attendance}</div>
-                  )}
-                  {details.phone && (
-                    <div><span className="font-medium">Phone:</span> {details.phone}</div>
-                  )}
                   {details.manager && (
                     <div><span className="font-medium">Manager:</span> {details.manager}</div>
+                  )}
+                  {/* Manager/Airport Phone */}
+                  {details.phone && (
+                    <div>
+                      <span className="font-medium">Airport Phone:</span>{' '}
+                      <a href={`tel:${details.phone}`} className="text-sky-600 hover:underline">{details.phone}</a>
+                    </div>
+                  )}
+                  {/* Fuel Provider Info */}
+                  {details.fuel?.providerName && (
+                    <div>
+                      <span className="font-medium">Fuel Provider:</span> {details.fuel.providerName}
+                      {details.fuel.providerPhone && (
+                        <span className="ml-1">
+                          (<a href={`tel:${details.fuel.providerPhone}`} className="text-sky-600 hover:underline">{details.fuel.providerPhone}</a>)
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {details.attendance && (
+                    <div><span className="font-medium">Attendance:</span> {details.attendance}</div>
                   )}
                   <a 
                     href={`https://www.airnav.com/airport/${airport.icao}`}
