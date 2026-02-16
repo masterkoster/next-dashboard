@@ -173,7 +173,7 @@ export async function PUT(request: Request) {
         remarks,
         soulsOnBoard,
         departureIcao,
-        waypoints: waypoints ? {
+        waypoints: waypoints && waypoints.length > 0 ? {
           create: waypoints.map((wp: any, index: number) => ({
             sequence: index,
             icao: wp.icao,

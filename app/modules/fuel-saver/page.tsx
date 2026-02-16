@@ -956,13 +956,17 @@ export default function FuelSaverPage() {
     // If logged in, save to database
     if (status === 'authenticated') {
       try {
-        // If we have a current plan ID and the name hasn't changed, update it
-        // Otherwise create a new plan
+        // If we have a current plan loaded, update it
+        // Only create new if name changed OR no current plan
         if (currentPlanId) {
-          // Check if name matches the current plan
+          // Check if name changed - if so, create new plan instead
           const currentPlan = savedPlans.find((p: any) => p.id === currentPlanId);
-          if (currentPlan && currentPlan.name === planName) {
-            // Update existing plan
+          if (currentPlan && currentPlan.name !== planName) {
+            // Name changed - create new plan
+            console.log('Name changed, creating new plan');
+          } else {
+            // Same name or no current plan found - update existing
+            console.log('Updating existing plan:', currentPlanId);
             const res = await fetch(`/api/flight-plans?id=${currentPlanId}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
@@ -973,14 +977,18 @@ export default function FuelSaverPage() {
               const data = await res.json();
               setSavedPlans(prev => prev.map(p => p.id === currentPlanId ? data.flightPlan : p));
               alert('Flight plan updated!');
+              return;
             } else {
-              alert('Failed to update flight plan');
+              const errData = await res.json();
+              console.error('Update failed:', errData);
+              alert('Failed to update flight plan: ' + (errData.error || 'Unknown error'));
+              return;
             }
-            return;
           }
         }
         
-        // Name changed or no current plan - create new
+        // Either no current plan or name changed - create new
+        console.log('Creating new plan');
         const res = await fetch('/api/flight-plans', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -993,7 +1001,9 @@ export default function FuelSaverPage() {
           setCurrentPlanId(data.flightPlan.id);
           alert('Flight plan saved!');
         } else {
-          alert('Failed to save flight plan');
+          const errData = await res.json();
+          console.error('Save failed:', errData);
+          alert('Failed to save flight plan: ' + (errData.error || 'Unknown error'));
         }
       } catch (e) {
         console.error('Error saving:', e);
