@@ -1177,6 +1177,39 @@ function FuelSaverContent() {
     addWaypoint(airport);
   };
 
+  // Find nearest cheap fuel
+  const findNearestFuel = async () => {
+    // Use first waypoint as center, or ask user
+    const centerIcao = waypoints[0]?.icao || 'KORD'; // Default to ORD
+    const radius = 50; // nautical miles
+    
+    try {
+      const res = await fetch(`/api/fuel/nearest?icao=${centerIcao}&radius=${radius}`);
+      const data = await res.json();
+      
+      if (data.results && data.results.length > 0) {
+        const resultsText = data.results.slice(0, 5).map((r: any) => 
+          `${r.icao} - $${r.price100ll}/gal (${r.distanceNm}nm ${r.direction})`
+        ).join('\n');
+        alert(`Nearest Cheap Fuel within ${radius}nm of ${centerIcao}:\n\n${resultsText}`);
+        
+        // Add cheapest to route
+        if (confirm('Add cheapest to route?')) {
+          const cheapest = data.results[0];
+          const airport = airports.find(a => a.icao === cheapest.icao);
+          if (airport) {
+            addWaypoint(airport);
+          }
+        }
+      } else {
+        alert(`No fuel prices found within ${radius}nm of ${centerIcao}`);
+      }
+    } catch (e) {
+      console.error('Error finding fuel:', e);
+      alert('Error finding fuel prices. Make sure you have an airport in your route.');
+    }
+  };
+
   // Get marker color based on airport type
   const getMarkerColor = (type?: string) => {
     switch (type) {
@@ -1208,6 +1241,33 @@ function FuelSaverContent() {
           <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500"></span> Large</div>
           <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-orange-500"></span> Medium</div>
           <div className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500"></span> Small</div>
+        </div>
+        {/* Quick Actions */}
+        <div className="flex flex-wrap gap-2 mt-2">
+          <button
+            onClick={() => findNearestFuel()}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1"
+          >
+            <span>⛽</span> Find Cheap Fuel
+          </button>
+          <button
+            onClick={() => setMapZoom(Math.max(mapZoom - 1, 3))}
+            className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-xs"
+          >
+            Zoom Out
+          </button>
+          <button
+            onClick={() => setMapZoom(Math.min(mapZoom + 1, 18))}
+            className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-xs"
+          >
+            Zoom In
+          </button>
+          <button
+            onClick={() => { setMapCenter([39.8283, -98.5795]); setMapZoom(5); }}
+            className="bg-slate-700 hover:bg-slate-600 text-white px-3 py-1.5 rounded text-xs"
+          >
+            Reset View
+          </button>
         </div>
       </div>
 
