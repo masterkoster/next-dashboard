@@ -337,6 +337,7 @@ function FuelSaverContent() {
   
   // Panel visibility
   const [showPanel, setShowPanel] = useState(true);
+  const [activeTab, setActiveTab] = useState<'details' | 'waypoints'>('details');
   
   // Cached airports - accumulates as user pans around
   const [cachedAirports, setCachedAirports] = useState<Airport[]>([]);
@@ -1262,153 +1263,264 @@ function FuelSaverContent() {
 
       {/* Main Content: Sidebar left, Map right */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left Sidebar - Collapsible */}
+        {/* Left Sidebar - Foldout Panel */}
         {showPanel && (
           <div className="w-80 lg:w-96 bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden flex-shrink-0">
             {/* Tabs */}
             <div className="flex border-b border-slate-700">
-              <button className="flex-1 py-2 text-sm font-medium text-white border-b-2 border-sky-500 bg-slate-700/50">
-                Itinerary
+              <button 
+                onClick={() => setActiveTab('details')}
+                className={`flex-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'details' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-700/30'}`}
+              >
+                Flight Plan Details
               </button>
               <button 
-                className="flex-1 py-2 text-sm font-medium text-slate-400 hover:text-white hover:bg-slate-700/30"
-                onClick={() => alert('Details tab coming soon!')}
+                onClick={() => setActiveTab('waypoints')}
+                className={`flex-1 py-2 text-sm font-medium border-b-2 ${activeTab === 'waypoints' ? 'text-white border-sky-500 bg-slate-700/50' : 'text-slate-400 border-transparent hover:text-white hover:bg-slate-700/30'}`}
               >
-                Details
+                Waypoints ({waypoints.length})
               </button>
             </div>
 
             {/* Scrollable content */}
             <div className="flex-1 overflow-y-auto">
-              {/* Quick Actions Bar */}
-              <div className="flex gap-2 p-3 border-b border-slate-700">
-                <button
-                  onClick={() => setMapZoom(Math.max(mapZoom - 1, 3))}
-                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
-                >
-                  Zoom Out
-                </button>
-                <button
-                  onClick={() => setMapZoom(Math.min(mapZoom + 1, 18))}
-                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
-                >
-                  Zoom In
-                </button>
-                <button
-                  onClick={() => { setMapCenter([39.8283, -98.5795]); setMapZoom(5); }}
-                  className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
-                >
-                  Reset
-                </button>
-              </div>
+              {activeTab === 'details' ? (
+                /* Flight Plan Details Tab */
+                <div className="p-3 space-y-4">
+                  {/* Quick Actions */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setMapZoom(Math.max(mapZoom - 1, 3))}
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
+                    >
+                      Zoom Out
+                    </button>
+                    <button
+                      onClick={() => setMapZoom(Math.min(mapZoom + 1, 18))}
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
+                    >
+                      Zoom In
+                    </button>
+                    <button
+                      onClick={() => { setMapCenter([39.8283, -98.5795]); setMapZoom(5); }}
+                      className="flex-1 bg-slate-700 hover:bg-slate-600 text-white px-2 py-1.5 rounded text-xs"
+                    >
+                      Reset
+                    </button>
+                  </div>
 
-              {/* Search */}
-              <div className="p-3 border-b border-slate-700">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => handleSearch(e.target.value)}
-                  placeholder="Search airport..."
-                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white uppercase text-sm"
-                />
-                {showSearchResults && searchResults.length > 0 && (
-                  <div className="mt-2 bg-slate-700 rounded max-h-40 overflow-y-auto">
-                    {searchResults.map((airport) => (
-                      <button
-                        key={airport.icao}
-                        onClick={() => addWaypoint(airport)}
-                        className="w-full text-left px-3 py-2 hover:bg-slate-600 text-sm border-b border-slate-600 last:border-0"
+                  {/* Search */}
+                  <div>
+                    <input
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      placeholder="Search airport..."
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white uppercase text-sm"
+                    />
+                    {showSearchResults && searchResults.length > 0 && (
+                      <div className="mt-2 bg-slate-700 rounded max-h-40 overflow-y-auto">
+                        {searchResults.map((airport) => (
+                          <button
+                            key={airport.icao}
+                            onClick={() => addWaypoint(airport)}
+                            className="w-full text-left px-3 py-2 hover:bg-slate-600 text-sm border-b border-slate-600 last:border-0"
+                          >
+                            <div className="font-medium">{airport.icao}</div>
+                            <div className="text-xs text-slate-400">{airport.name}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Plan Name */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Plan Name</label>
+                    <input
+                      type="text"
+                      value={flightPlanName}
+                      onChange={(e) => setFlightPlanName(e.target.value)}
+                      placeholder="My Cross Country"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                    />
+                  </div>
+
+                  {/* Callsign & Pilot */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Callsign</label>
+                      <input
+                        type="text"
+                        value={callsign}
+                        onChange={(e) => setCallsign(e.target.value)}
+                        placeholder="N12345"
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Pilot Name</label>
+                      <input
+                        type="text"
+                        value={pilotName}
+                        onChange={(e) => setPilotName(e.target.value)}
+                        placeholder="John Doe"
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Aircraft & Departure Time */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Aircraft</label>
+                      <select
+                        value={selectedAircraft.name}
+                        onChange={(e) => {
+                          const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
+                          if (ac) setSelectedAircraft(ac);
+                        }}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
                       >
-                        <div className="font-medium">{airport.icao}</div>
-                        <div className="text-xs text-slate-400">{airport.name}</div>
-                      </button>
-                    ))}
+                        {['Cessna', 'Piper', 'Beechcraft', 'Diamond', 'Cirrus'].map(mfr => (
+                          <optgroup key={mfr} label={mfr}>
+                            {AIRCRAFT_PROFILES.filter(p => p.manufacturer === mfr).map(p => (
+                              <option key={p.name} value={p.name}>{p.name}</option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Departure Time</label>
+                      <input
+                        type="datetime-local"
+                        value={departureTime}
+                        onChange={(e) => setDepartureTime(e.target.value)}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                      />
+                    </div>
                   </div>
-                )}
-              </div>
 
-              {/* Waypoints List - Timeline Style */}
-              <div className="p-3">
-                <h2 className="text-sm font-semibold mb-3 text-slate-300">Route ({waypoints.length} stops)</h2>
-                {waypoints.length === 0 ? (
-                  <div className="text-center py-8 text-slate-500 text-sm">
-                    <div className="mb-2">✈️</div>
-                    <p>No waypoints yet</p>
-                    <p className="text-xs mt-1">Search airports to build your route</p>
+                  {/* Cruising Alt & Souls */}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Cruising Alt (ft)</label>
+                      <input
+                        type="number"
+                        value={cruisingAlt}
+                        onChange={(e) => setCruisingAlt(parseInt(e.target.value))}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Souls on Board</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={soulsOnBoard}
+                        onChange={(e) => setSoulsOnBoard(parseInt(e.target.value))}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                      />
+                    </div>
                   </div>
-                ) : (
-                  <div className="space-y-0">
-                    {waypoints.map((wp, i) => {
-                      const isFirst = i === 0;
-                      const isLast = i === waypoints.length - 1;
-                      const legDistance = i > 0 ? routeStats?.segments?.[i-1] : null;
-                      
-                      return (
-                        <div key={wp.id} className="relative">
-                          {/* Connection line */}
-                          {!isFirst && (
-                            <div className="absolute left-4 -top-3 w-0.5 h-6 bg-sky-500"></div>
-                          )}
-                          
-                          {/* Waypoint Card */}
-                          <div className="flex items-start gap-3 py-2">
-                            {/* Number circle */}
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-sm z-10">
-                              {i + 1}
-                            </div>
-                            
-                            {/* Content */}
-                            <div className="flex-1 min-w-0">
-                              <div className="bg-slate-700 rounded-lg p-3">
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="min-w-0">
-                                    <div className="font-medium text-white truncate">{wp.name}</div>
-                                    <div className="text-sky-400 text-sm font-mono">{wp.icao}</div>
-                                    {wp.city && (
-                                      <div className="text-xs text-slate-400">{wp.city}</div>
-                                    )}
-                                  </div>
-                                  <div className="flex gap-1 flex-shrink-0">
-                                    <button 
-                                      onClick={() => moveWaypoint(wp.id, 'up')}
-                                      disabled={isFirst}
-                                      className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-1"
-                                    >
-                                      ↑
-                                    </button>
-                                    <button 
-                                      onClick={() => moveWaypoint(wp.id, 'down')}
-                                      disabled={isLast}
-                                      className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-1"
-                                    >
-                                      ↓
-                                    </button>
-                                    <button 
-                                      onClick={() => removeWaypoint(wp.id)}
-                                      className="text-red-400 hover:text-red-300 text-xs p-1"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
+
+                  {/* Alternate Airport */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Alternate Airport</label>
+                    <input
+                      type="text"
+                      value={alternateIcao}
+                      onChange={(e) => setAlternateIcao(e.target.value.toUpperCase())}
+                      placeholder="KABC"
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white uppercase text-sm"
+                    />
+                  </div>
+
+                  {/* Remarks */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Remarks</label>
+                    <textarea
+                      value={remarks}
+                      onChange={(e) => setRemarks(e.target.value)}
+                      placeholder="Flight remarks..."
+                      rows={2}
+                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-2 text-white text-sm"
+                    />
+                  </div>
+
+                  {/* Fuel Settings */}
+                  <div>
+                    <label className="block text-xs text-slate-400 mb-1">Fuel at Departure: {departureFuel}%</label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={departureFuel}
+                      onChange={(e) => setDepartureFuel(parseInt(e.target.value))}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+              ) : (
+                /* Waypoints Tab */
+                <div className="p-3">
+                  {waypoints.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500 text-sm">
+                      <div className="mb-2">✈️</div>
+                      <p>No waypoints yet</p>
+                      <p className="text-xs mt-1">Search airports to build your route</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {waypoints.map((wp, i) => {
+                        const legInfo = routeStats?.legs?.[i];
+                        
+                        return (
+                          <div key={wp.id} className="bg-slate-700 rounded-lg p-3">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-xs">
+                                  {i + 1}
+                                </span>
+                                <div>
+                                  <div className="font-medium text-white text-sm">{wp.icao}</div>
+                                  <div className="text-xs text-slate-400">{wp.city || wp.name}</div>
                                 </div>
-                                
-                                {/* Leg info */}
-                                {legDistance && (
-                                  <div className="mt-2 pt-2 border-t border-slate-600 text-xs text-slate-400">
-                                    <span className="text-sky-400">{Math.round(legDistance)} NM</span>
-                                    <span className="mx-2">•</span>
-                                    <span>{Math.round((legDistance / selectedAircraft.speed) * 60)} min</span>
-                                  </div>
-                                )}
+                              </div>
+                              <div className="flex gap-1">
+                                <button 
+                                  onClick={() => moveWaypoint(wp.id, 'up')}
+                                  disabled={i === 0}
+                                  className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-1"
+                                >↑</button>
+                                <button 
+                                  onClick={() => moveWaypoint(wp.id, 'down')}
+                                  disabled={i === waypoints.length - 1}
+                                  className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-1"
+                                >↓</button>
+                                <button 
+                                  onClick={() => removeWaypoint(wp.id)}
+                                  className="text-red-400 hover:text-red-300 text-xs p-1"
+                                >✕</button>
                               </div>
                             </div>
+                            
+                            {/* Leg stats - shows for all except last waypoint */}
+                            {legInfo && (
+                              <div className="mt-2 pt-2 border-t border-slate-600 flex justify-between text-xs">
+                                <span className="text-sky-400">→ {legInfo.to.icao}</span>
+                                <span className="text-amber-400">{Math.round(legInfo.distance)} NM</span>
+                                <span className="text-emerald-400">${legInfo.cost.toFixed(0)}</span>
+                              </div>
+                            )}
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Bottom Actions - Load/Save */}
@@ -1431,7 +1543,7 @@ function FuelSaverContent() {
               
               {/* Saved Plans List */}
               {showPlanList && (
-                <div className="bg-slate-700 rounded p-2 space-y-2 max-h-48 overflow-y-auto">
+                <div className="bg-slate-700 rounded p-2 space-y-2 max-h-40 overflow-y-auto">
                   {status === 'authenticated' ? (
                     <div className="flex items-center justify-between text-xs text-emerald-400">
                       <span>Logged in as {session?.user?.email}</span>
@@ -1569,27 +1681,7 @@ function FuelSaverContent() {
   );
 }
 
-// Wrapper component with Suspense for useSearchParams - TEMP DISABLED FOR DEBUG
-// export default function FuelSaverPage() {
-//   return (
-//     <Suspense fallback={
-//       <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-//         <div className="text-slate-400">Loading...</div>
-//       </div>
-//     }>
-//       <FuelSaverContent />
-//     </Suspense>
-//   );
-// }
-
-// Temporary export for debugging
-// export default function FuelSaverPage() {
-//   return <FuelSaverContent />;
-// }
-
-// DEBUG: no export
-// const DEBUG_COMPONENT = () => <FuelSaverContent />;
-
+// Wrapper component with Suspense for useSearchParams
 export default function FuelSaverPage() {
   return (
     <Suspense fallback={
