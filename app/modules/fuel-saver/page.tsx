@@ -175,20 +175,69 @@ export default function FuelSaverPage() {
   
   // Auth
   const { data: session, status } = useSession();
+  const [syncOffered, setSyncOffered] = useState(false);
   
-  // Load saved flight plans from database when authenticated
+  // Load saved flight plans - localStorage first, then database
   useEffect(() => {
+    // Always load from localStorage first (works offline)
+    if (typeof window !== 'undefined') {
+      const localPlans = localStorage.getItem('savedFlightPlans');
+      if (localPlans) {
+        try {
+          const parsed = JSON.parse(localPlans);
+          // Mark local plans with a flag
+          const localOnlyPlans = parsed.map((p: any) => ({ ...p, fromLocal: true }));
+          setSavedPlans(localOnlyPlans);
+        } catch (e) { 
+          console.error('Error loading local plans:', e); 
+        }
+      }
+    }
+    
+    // If authenticated, load from database and offer to sync
     if (status === 'authenticated' && session?.user?.id) {
       fetch('/api/flight-plans')
         .then(res => res.json())
         .then(data => {
-          if (data.flightPlans) {
-            setSavedPlans(data.flightPlans);
+          if (data.flightPlans && data.flightPlans.length > 0) {
+            // Merge with local plans (database takes precedence for same plans)
+            setSavedPlans(prev => {
+              const dbPlans = data.flightPlans.map((p: any) => ({ ...p, fromLocal: false }));
+              // Keep any local-only plans
+              const localOnly = prev.filter((p: any) => p.fromLocal === true);
+              return [...localOnly, ...dbPlans];
+            });
+            
+            // Offer to import local plans if there are any
+            const localPlans = typeof window !== 'undefined' ? localStorage.getItem('savedFlightPlans') : null;
+            if (localPlans && !syncOffered) {
+              const parsed = JSON.parse(localPlans);
+              if (parsed.length > 0) {
+                // Ask user if they want to import
+                const importConfirm = confirm(`You have ${parsed.length} flight plan(s) saved locally. Import them to your account?`);
+                if (importConfirm) {
+                  // Import each local plan to database
+                  parsed.forEach(async (plan: any) => {
+                    await fetch('/api/flight-plans', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(plan)
+                    });
+                  });
+                  // Clear local storage after import
+                  localStorage.removeItem('savedFlightPlans');
+                  setSyncOffered(true);
+                  // Reload from database
+                  window.location.reload();
+                }
+              }
+              setSyncOffered(true);
+            }
           }
         })
         .catch(err => console.error('Error loading plans:', err));
     }
-  }, [status, session]);
+  }, [status, session, syncOffered]);
   
   // Load fuel prices from localStorage on mount
   useEffect(() => {
@@ -907,8 +956,8 @@ export default function FuelSaverPage() {
         alert('Error saving flight plan');
       }
     } else {
-      // Save to localStorage only
-      const newPlans = [...savedPlans, plan];
+      // Save to localStorage only (when not logged in)
+      const newPlans = [...savedPlans.filter(p => !p.id), { ...plan, fromLocal: true }];
       setSavedPlans(newPlans);
       saveToLocalStorage(newPlans);
       alert('Flight plan saved locally (log in to save to your account)');
@@ -917,20 +966,24 @@ export default function FuelSaverPage() {
   
   // Delete flight plan
   const deleteFlightPlan = async (planId: string | number) => {
-    if (status === 'authenticated' && typeof planId === 'string') {
-      // Delete from database
+    const plan = savedPlans.find((p, i) => (p.id || i) === planId);
+    
+    if (plan?.id) {
+      // Database plan - delete from API
       try {
-        await fetch(`/api/flight-plans?id=${planId}`, { method: 'DELETE' });
+        await fetch(`/api/flight-plans?id=${plan.id}`, { method: 'DELETE' });
       } catch (e) {
         console.error('Error deleting:', e);
       }
     }
     
     // Remove from local state
-    const newPlans = savedPlans.filter((_, i) => i !== planId);
+    const newPlans = savedPlans.filter((p, i) => (p.id || i) !== planId);
     setSavedPlans(newPlans);
-    if (typeof planId !== 'string') {
-      saveToLocalStorage(newPlans);
+    
+    // If it was a local-only plan, update localStorage
+    if (!plan?.id && typeof planId === 'number') {
+      saveToLocalStorage(newPlans.filter(p => !p.id));
     }
   };
   
