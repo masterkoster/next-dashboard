@@ -9,7 +9,7 @@ import path from 'path';
 
 const DB_PATH = path.join(process.cwd(), 'data', 'aviation_hub.db');
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
   const icao = searchParams.get('icao');
   const radius = searchParams.get('radius') || '50';
@@ -27,15 +27,21 @@ export async function GET(request: NextRequest) {
   const db = new sqlite3.Database(DB_PATH);
 
   try {
-    // First get the center airport coordinates
-    db.get("SELECT icao, latitude, longitude FROM airports WHERE icao = ?", [icao.toUpperCase()], (err, center) => {
-      if (err || !center) {
-        db.close();
-        return NextResponse.json({ error: 'Airport not found', icao: icao.toUpperCase() }, { status: 404 });
-      }
+    // Get center airport coordinates
+    const center: any = await new Promise((resolve, reject) => {
+      db.get("SELECT icao, latitude, longitude FROM airports WHERE icao = ?", [icao.toUpperCase()], (err, row) => {
+        if (err) reject(err);
+        else resolve(row);
+      });
+    });
 
-      // Calculate distance and find fuel prices
-      // Using Haversine formula for distance in NM
+    if (!center) {
+      db.close();
+      return NextResponse.json({ error: 'Airport not found', icao: icao.toUpperCase() }, { status: 404 });
+    }
+
+    // Calculate distance and find fuel prices
+    const rows: any[] = await new Promise((resolve, reject) => {
       const sql = `
         SELECT 
           af.icao,
@@ -61,40 +67,37 @@ export async function GET(request: NextRequest) {
         ORDER BY af.price ASC, distance_nm ASC
         LIMIT 20
       `;
-
       db.all(sql, [center.latitude, center.longitude, center.latitude, radiusNm], (err, rows) => {
-        db.close();
-
-        if (err) {
-          console.error('Database error:', err);
-          return NextResponse.json({ error: 'Database error' }, { status: 500 });
-        }
-
-        // Format results
-        const results = rows.map((row: any) => ({
-          icao: row.icao,
-          name: row.name,
-          city: row.city,
-          state: row.state,
-          latitude: row.latitude,
-          longitude: row.longitude,
-          type: row.type,
-          price100ll: row.price,
-          fuelType: row.fuel_type,
-          lastReported: row.last_reported,
-          sourceUrl: row.source_url,
-          distanceNm: Math.round(row.distance_nm * 10) / 10,
-          direction: getDirection(center.latitude, center.longitude, row.latitude, row.longitude)
-        }));
-
-        return NextResponse.json({
-          centerAirport: icao.toUpperCase(),
-          radiusNm: radiusNm,
-          count: results.length,
-          results
-        });
+        if (err) reject(err);
+        else resolve(rows || []);
       });
     });
+
+    db.close();
+
+    const results = rows.map((row) => ({
+      icao: row.icao,
+      name: row.name,
+      city: row.city,
+      state: row.state,
+      latitude: row.latitude,
+      longitude: row.longitude,
+      type: row.type,
+      price100ll: row.price,
+      fuelType: row.fuel_type,
+      lastReported: row.last_reported,
+      sourceUrl: row.source_url,
+      distanceNm: Math.round(row.distance_nm * 10) / 10,
+      direction: getDirection(center.latitude, center.longitude, row.latitude, row.longitude)
+    }));
+
+    return NextResponse.json({
+      centerAirport: icao.toUpperCase(),
+      radiusNm: radiusNm,
+      count: results.length,
+      results
+    });
+
   } catch (error) {
     db.close();
     console.error('Error:', error);
@@ -102,7 +105,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Calculate compass direction from center to point
 function getDirection(lat1: number, lon1: number, lat2: number, lon2: number): string {
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const lat1Rad = lat1 * Math.PI / 180;
