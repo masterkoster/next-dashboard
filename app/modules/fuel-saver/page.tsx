@@ -1231,7 +1231,7 @@ function FuelSaverContent() {
   };
 
   return (
-    <div className="h-screen bg-slate-900 text-white flex flex-col overflow-hidden">
+    <div className="h-screen bg-slate-900 text-white flex flex-col overflow-hidden pt-20">
       {/* Top Bar - Minimal header with controls */}
       <div className="w-full p-2 bg-slate-800 border-b border-slate-700 flex-shrink-0">
         <div className="flex items-center justify-between">
