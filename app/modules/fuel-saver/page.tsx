@@ -118,16 +118,22 @@ async function getFuelPrice(icao: string): Promise<FuelPrice | undefined> {
   return undefined;
 }
 
-// Aircraft profiles
+// Aircraft profiles with manufacturer and year
 const AIRCRAFT_PROFILES = [
-  { name: 'Cessna 172', fuelCapacity: 56, burnRate: 8.5, speed: 120, type: '100LL' },
-  { name: 'Cessna 182', fuelCapacity: 92, burnRate: 12, speed: 140, type: '100LL' },
-  { name: 'Piper Cherokee Six', fuelCapacity: 84, burnRate: 11, speed: 130, type: '100LL' },
-  { name: 'Bonanza A36', fuelCapacity: 102, burnRate: 14, speed: 155, type: '100LL' },
-  { name: 'Diamond DA40', fuelCapacity: 58, burnRate: 9, speed: 140, type: '100LL' },
-  { name: 'Cirrus SR22', fuelCapacity: 92, burnRate: 13, speed: 155, type: '100LL' },
-  { name: 'Cessna 208 Caravan', fuelCapacity: 335, burnRate: 55, speed: 180, type: 'JET-A' },
-  { name: 'Piper Meridian', fuelCapacity: 242, burnRate: 40, speed: 240, type: 'JET-A' },
+  { name: 'Cessna 172S (2018)', manufacturer: 'Cessna', year: 2018, fuelCapacity: 56, burnRate: 8.5, speed: 120, type: '100LL' },
+  { name: 'Cessna 172S (2022)', manufacturer: 'Cessna', year: 2022, fuelCapacity: 56, burnRate: 8.2, speed: 122, type: '100LL' },
+  { name: 'Cessna 182T (2018)', manufacturer: 'Cessna', year: 2018, fuelCapacity: 92, burnRate: 12, speed: 140, type: '100LL' },
+  { name: 'Cessna 182T (2023)', manufacturer: 'Cessna', year: 2023, fuelCapacity: 92, burnRate: 11.5, speed: 142, type: '100LL' },
+  { name: 'Piper Cherokee Six (2015)', manufacturer: 'Piper', year: 2015, fuelCapacity: 84, burnRate: 11, speed: 130, type: '100LL' },
+  { name: 'Piper Cherokee Six (2020)', manufacturer: 'Piper', year: 2020, fuelCapacity: 84, burnRate: 10.5, speed: 132, type: '100LL' },
+  { name: 'Beechcraft Bonanza A36 (2018)', manufacturer: 'Beechcraft', year: 2018, fuelCapacity: 102, burnRate: 14, speed: 155, type: '100LL' },
+  { name: 'Beechcraft Bonanza A36 (2024)', manufacturer: 'Beechcraft', year: 2024, fuelCapacity: 102, burnRate: 13.5, speed: 158, type: '100LL' },
+  { name: 'Diamond DA40 (2020)', manufacturer: 'Diamond', year: 2020, fuelCapacity: 58, burnRate: 9, speed: 140, type: '100LL' },
+  { name: 'Diamond DA40 (2024)', manufacturer: 'Diamond', year: 2024, fuelCapacity: 58, burnRate: 8.8, speed: 142, type: '100LL' },
+  { name: 'Cirrus SR22 (2019)', manufacturer: 'Cirrus', year: 2019, fuelCapacity: 92, burnRate: 13, speed: 155, type: '100LL' },
+  { name: 'Cirrus SR22 (2024)', manufacturer: 'Cirrus', year: 2024, fuelCapacity: 92, burnRate: 12.5, speed: 158, type: '100LL' },
+  { name: 'Cessna 208 Caravan (2020)', manufacturer: 'Cessna', year: 2020, fuelCapacity: 335, burnRate: 55, speed: 180, type: 'JET-A' },
+  { name: 'Piper Meridian (2021)', manufacturer: 'Piper', year: 2021, fuelCapacity: 242, burnRate: 40, speed: 240, type: 'JET-A' },
 ];
 
 export default function FuelSaverPage() {
@@ -1006,7 +1012,13 @@ export default function FuelSaverPage() {
                         }}
                         className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
                       >
-                        {AIRCRAFT_PROFILES.map(p => (<option key={p.name} value={p.name}>{p.name}</option>))}
+                        {['Cessna', 'Piper', 'Beechcraft', 'Diamond', 'Cirrus'].map(mfr => (
+                          <optgroup key={mfr} label={mfr}>
+                            {AIRCRAFT_PROFILES.filter(p => p.manufacturer === mfr).map(p => (
+                              <option key={p.name} value={p.name}>{p.name}</option>
+                            ))}
+                          </optgroup>
+                        ))}
                       </select>
                     </div>
                     <div>
