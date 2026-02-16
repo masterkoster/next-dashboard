@@ -91,13 +91,13 @@ export default function Navigation() {
         {/* Logo / Home */}
         <div className="flex items-center gap-4">
           <Link 
-            href="/" 
+            href="/dashboard" 
             className="text-2xl text-slate-100 hover:text-emerald-400 transition-colors"
           >
             ✈️
           </Link>
           <Link 
-            href="/dashboard" 
+            href="/" 
             className="text-lg font-semibold text-slate-100 hover:text-emerald-400 transition-colors"
           >
             Aviation

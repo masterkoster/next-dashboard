@@ -134,6 +134,23 @@ export default async function DashboardPage() {
               </div>
             </a>
 
+            {/* Fuel Saver */}
+            <a
+              href="/modules/fuel-saver"
+              className="group rounded-2xl border border-slate-800 bg-slate-900/70 p-5 shadow-lg shadow-slate-950/30 transition hover:border-amber-600/70 hover:shadow-amber-500/20"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Module</p>
+                  <h3 className="mt-1 text-xl font-semibold text-slate-50">Fuel Saver</h3>
+                  <p className="mt-2 text-sm text-slate-300">
+                    Plan routes, find cheapest fuel stops.
+                  </p>
+                </div>
+                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-100">Active</span>
+              </div>
+            </a>
+
             {/* Plane Search - Coming Soon */}
             <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-5 shadow-lg shadow-slate-950/30 opacity-60">
               <div className="flex items-center justify-between">
