@@ -46,7 +46,7 @@ function httpGet(url: string): Promise<{ status: number; data: string }> {
   });
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
   const icao = searchParams.get('icao');
   const region = searchParams.get('region');
@@ -91,12 +91,12 @@ export async function GET(request: NextRequest) {
         
         // Cache it
         const expiresAt = new Date(Date.now() + CACHE_DURATION.metar * 60 * 60 * 1000);
-        await new Promise((resolve) => {
+        await new Promise<void>((resolve) => {
           db.run(
             `INSERT OR REPLACE INTO weather_cache (id, region, icao, data_type, data, fetched_at, expires_at)
              VALUES (?, NULL, ?, 'metar', ?, datetime('now'), ?)`,
             [`metar-${icaoUpper}`, icaoUpper, JSON.stringify(metarData), expiresAt.toISOString()],
-            (err) => resolve()
+            () => resolve()
           );
         });
 
@@ -155,12 +155,12 @@ export async function GET(request: NextRequest) {
         
         // Cache it
         const expiresAt = new Date(Date.now() + CACHE_DURATION.regional * 60 * 60 * 1000);
-        await new Promise((resolve) => {
+        await new Promise<void>((resolve) => {
           db.run(
             `INSERT OR REPLACE INTO weather_cache (id, region, icao, data_type, data, fetched_at, expires_at)
              VALUES (?, ?, NULL, 'windtemp', ?, datetime('now'), ?)`,
             [`windtemp-${regionLower}`, regionLower, JSON.stringify(windData), expiresAt.toISOString()],
-            (err) => resolve()
+            () => resolve()
           );
         });
 
@@ -193,18 +193,18 @@ export async function GET(request: NextRequest) {
   });
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
   const { icao, region } = await request.json();
   const db = new sqlite3.Database(DB_PATH);
 
   // Clear cache for this item
   if (icao) {
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       db.run('DELETE FROM weather_cache WHERE icao = ?', [icao.toUpperCase()], () => resolve());
     });
   }
   if (region) {
-    await new Promise((resolve) => {
+    await new Promise<void>((resolve) => {
       db.run('DELETE FROM weather_cache WHERE region = ?', [region.toLowerCase()], () => resolve());
     });
   }
