@@ -8,36 +8,28 @@ datasource db {
 }
 
 model User {
-  id               String         @id @default(uuid())
-  email            String         @unique @db.NVarChar(255)
-  name             String?        @db.NVarChar(255)
-  password         String?        @db.NVarChar(255)
-  purchasedModules String         @default("[]") @db.NVarChar(Max)
-  credits          Int            @default(0)
-  createdAt        DateTime       @default(now()) @db.DateTime2
-  updatedAt        DateTime       @updatedAt @db.DateTime2
-  resetToken       String?        @db.NVarChar(255)
-  resetTokenExpiry DateTime?      @db.DateTime2
-  aircraft         UserAircraft[]
-  memberships      GroupMember[]
-  Booking          Booking[]
-  FlightLog        FlightLog[]
-  PartnershipProfile PartnershipProfile?
-  FlightPlan       FlightPlan[]
+  id               String    @id @default(uuid())
+  email            String    @unique @db.NVarChar(255)
+  name             String?   @db.NVarChar(255)
+  purchasedModules String    @default("[]") @db.NVarChar(Max)
+  credits          Int       @default(0)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  password         String?   @db.NVarChar(255)
+  resetToken       String?   @db.NVarChar(255)
+  resetTokenExpiry DateTime?
 
   @@map("User")
 }
 
 model UserAircraft {
-  id        String   @id @default(uuid())
-  userId    String
-  nNumber   String   @db.NVarChar(10)
-  nickname  String?  @db.NVarChar(100)
-  notes     String?  @db.NVarChar(Max)
-  createdAt DateTime @default(now()) @db.DateTime2
-  updatedAt DateTime @updatedAt @db.DateTime2
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id        String    @id(map: "PK__UserAirc__3213E83F364C6DA2") @default(uuid()) @db.NVarChar(36)
+  userId    String    @db.NVarChar(36)
+  nNumber   String    @db.NVarChar(10)
+  nickname  String?   @db.NVarChar(100)
+  notes     String?   @db.NVarChar(Max)
+  createdAt DateTime? @default(now(), map: "DF__UserAircr__creat__08B54D69")
+  updatedAt DateTime? @default(now(), map: "DF__UserAircr__updat__09A971A2") @updatedAt
 
   @@map("UserAircraft")
 }
@@ -53,7 +45,7 @@ model AircraftMaster {
   serialNumber   String? @map("SERIAL_NUMBER") @db.NVarChar(255)
   engMfr         String? @map("ENG_MFR") @db.NVarChar(255)
   engineModel    String? @map("ENGINE_MODEL") @db.NVarChar(255)
-  engCount       Int?    @map("ENG_COUNT") @db.Int
+  engCount       Int?    @map("ENG_COUNT")
   statusCode     String? @map("STATUS_CODE") @db.NVarChar(50)
 
   @@map("AircraftMaster")
@@ -97,15 +89,15 @@ model AircraftPerformance {
   vc_cruise          String?   @db.VarChar(50)
   v_takeoff          String?   @db.VarChar(50)
   cruise_alt         String?   @db.VarChar(50)
-  created_at         DateTime? @default(now()) @db.DateTime2
+  created_at         DateTime? @default(now(), map: "DF__AircraftP__creat__05D8E0BE") @db.DateTime
 
   @@map("AircraftPerformance")
 }
 
 model AircraftSpecs {
-  id                     Int       @id @default(autoincrement())
-  manufacturer           String    @db.NVarChar(100)
-  model                  String    @db.NVarChar(255)
+  id                     Int       @id(map: "PK__Aircraft__3213E83F90F6A539") @default(autoincrement())
+  manufacturer           String?   @db.NVarChar(100)
+  model                  String?   @db.NVarChar(200)
   length_ft              String?   @db.NVarChar(50)
   wingspan_ft            String?   @db.NVarChar(50)
   height_ft              String?   @db.NVarChar(50)
@@ -125,241 +117,154 @@ model AircraftSpecs {
   rate_of_climb_fpm      String?   @db.NVarChar(50)
   service_ceiling_ft     String?   @db.NVarChar(50)
   source_url             String?   @db.NVarChar(500)
-  scraped_at             DateTime? @db.DateTime2
+  scraped_at             DateTime? @default(now(), map: "DF__AircraftS__scrap__0C85DE4D") @db.DateTime
 
   @@map("AircraftSpecs")
 }
 
-// ============================================
-// Flying Club Models
-// ============================================
-
 model FlyingGroup {
-  id          String   @id @default(uuid())
-  name        String   @db.NVarChar(255)
-  description String?  @db.NVarChar(Max)
-  ownerId     String
-  dryRate     Decimal? @db.Decimal(10, 2)
-  wetRate     Decimal? @db.Decimal(10, 2)
-  customRates String?  @db.NVarChar(Max)
-  
-  // Visibility settings - what members can see
-  showBookings    Boolean  @default(true)
-  showAircraft    Boolean  @default(true)
-  showFlights     Boolean  @default(true)
-  showMaintenance Boolean  @default(true)
-  showBilling     Boolean  @default(true)
-  showBillingAll Boolean  @default(true)  // true = see all members' billing, false = see only own
-  showMembers     Boolean  @default(true)
-  showPartners    Boolean  @default(true)
-  
-  // Default invite expiration (null = never, 1 = day, 7 = week, 30 = month)
-  defaultInviteExpiry Int? @default(7)
-  
-  createdAt   DateTime @default(now()) @db.DateTime2
-  updatedAt   DateTime @updatedAt @db.DateTime2
-
-  members  GroupMember[]
-  aircraft ClubAircraft[]
-  Invite   Invite[]
+  id          String    @id(map: "PK__FlyingGr__3213E83F620FD61F") @default("newid()", map: "DF__FlyingGroup__id__160F4887") @db.NVarChar(36)
+  name        String    @db.NVarChar(255)
+  description String?   @db.NVarChar(Max)
+  ownerId     String    @db.NVarChar(36)
+  dryRate     Decimal?  @db.Decimal(10, 2)
+  wetRate     Decimal?  @db.Decimal(10, 2)
+  customRates String?   @db.NVarChar(Max)
+  createdAt   DateTime? @default(now(), map: "DF__FlyingGro__creat__17036CC0")
+  updatedAt   DateTime? @default(now(), map: "DF__FlyingGro__updat__17F790F9") @updatedAt
 
   @@map("FlyingGroup")
 }
 
 model GroupMember {
-  id       String   @id @default(uuid())
-  userId   String
-  groupId  String
-  role     String   @default("VIEWER") @db.NVarChar(20)
-  joinedAt DateTime @default(now()) @db.DateTime2
+  id       String    @id(map: "PK__GroupMem__3213E83F73ED1832") @default("newid()", map: "DF__GroupMember__id__1BC821DD") @db.NVarChar(36)
+  userId   String    @db.NVarChar(36)
+  groupId  String    @db.NVarChar(36)
+  role     String?   @default("VIEWER", map: "DF__GroupMembe__role__1CBC4616") @db.NVarChar(20)
+  joinedAt DateTime? @default(now(), map: "DF__GroupMemb__joine__1DB06A4F")
 
-  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  group FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, groupId])
   @@map("GroupMember")
 }
 
 model Invite {
-  id        String   @id @default(uuid())
-  groupId   String
-  token     String   @unique @db.NVarChar(255)
-  email     String?  @db.NVarChar(255)
-  role      String   @default("VIEWER") @db.NVarChar(20)
-  expiresAt DateTime @db.DateTime2
-  createdBy String
-  createdAt DateTime @default(now()) @db.DateTime2
-
-  group FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  id        String    @id(map: "PK__Invite__3213E83F3215783F") @default("newid()", map: "DF__Invite__id__2180FB33") @db.NVarChar(36)
+  groupId   String    @db.NVarChar(36)
+  token     String    @unique(map: "UQ__Invite__CA90DA7A533235A9") @db.NVarChar(255)
+  email     String?   @db.NVarChar(255)
+  role      String?   @default("VIEWER", map: "DF__Invite__role__22751F6C") @db.NVarChar(20)
+  expiresAt DateTime
+  createdBy String    @db.NVarChar(36)
+  createdAt DateTime? @default(now(), map: "DF__Invite__createdA__236943A5")
 
   @@map("Invite")
 }
 
 model Maintenance {
-  id           String   @id @default(uuid())
-  aircraftId   String
-  userId       String
-  description  String?  @db.NVarChar(Max)
-  notes        String?  @db.NVarChar(Max)
-  status       String   @default("NEEDED") @db.NVarChar(20)
-  isGrounded   Boolean  @default(false)
-  reportedDate DateTime @db.DateTime2
-  resolvedDate DateTime? @db.DateTime2
-  cost         Decimal? @db.Decimal(10, 2)
-  createdAt    DateTime @default(now()) @db.DateTime2
-  updatedAt    DateTime @updatedAt @db.DateTime2
+  id           String    @id(map: "PK__Maintena__3213E83FBBF3C62C") @default("newid()", map: "DF__Maintenance__id__3493CFA7") @db.NVarChar(36)
+  aircraftId   String    @db.NVarChar(36)
+  userId       String    @db.NVarChar(36)
+  description  String    @db.NVarChar(Max)
+  status       String?   @default("NEEDED", map: "DF__Maintenan__statu__3587F3E0") @db.NVarChar(20)
+  reportedDate DateTime? @default(now(), map: "DF__Maintenan__repor__367C1819")
+  resolvedDate DateTime?
+  cost         Decimal?  @db.Decimal(10, 2)
+  notes        String?   @db.NVarChar(Max)
+  createdAt    DateTime? @default(now(), map: "DF__Maintenan__creat__37703C52")
+  updatedAt    DateTime? @default(now(), map: "DF__Maintenan__updat__3864608B") @updatedAt
 
   @@map("Maintenance")
 }
 
 model ClubAircraft {
-  id                String   @id @default(uuid())
-  groupId           String
-  nNumber           String?  @db.NVarChar(10)
-  nickname          String?  @db.NVarChar(100)
-  customName        String?  @db.NVarChar(255)
-  make              String?  @db.NVarChar(100)
-  model             String?  @db.NVarChar(100)
-  year              Int?
-  totalTachHours   Decimal? @db.Decimal(6, 2)
-  totalHobbsHours  Decimal? @db.Decimal(6, 2)
-  registrationType String?  @db.NVarChar(50)
+  id               String    @id(map: "PK__ClubAirc__3213E83F197A971B") @default("newid()", map: "DF__ClubAircraft__id__2645B050") @db.NVarChar(36)
+  groupId          String    @db.NVarChar(36)
+  nNumber          String?   @db.NVarChar(10)
+  nickname         String?   @db.NVarChar(100)
+  customName       String?   @db.NVarChar(255)
+  hourlyRate       Decimal?  @db.Decimal(10, 2)
+  createdAt        DateTime? @default(now(), map: "DF__ClubAircr__creat__2739D489")
+  updatedAt        DateTime? @default(now(), map: "DF__ClubAircr__updat__282DF8C2") @updatedAt
+  make             String?   @db.NVarChar(100)
+  model            String?   @db.NVarChar(100)
+  year             Int?
+  totalTachHours   Decimal?  @db.Decimal(6, 2)
+  totalHobbsHours  Decimal?  @db.Decimal(6, 2)
+  registrationType String?   @db.NVarChar(50)
   hasInsurance     Boolean?
   maxPassengers    Int?
-  hourlyRate       Decimal? @db.Decimal(10, 2)
-  aircraftNotes    String?  @db.NVarChar(Max)
-  status            String?  @db.NVarChar(50)  // Available, In Use, Maintenance Required, Grounded
-  createdAt        DateTime @default(now()) @db.DateTime2
-  updatedAt        DateTime @updatedAt @db.DateTime2
-
-  group      FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  bookings   Booking[]
-  flightLogs FlightLog[]
+  aircraftNotes    String?   @db.NVarChar(Max)
+  status           String?   @db.NVarChar(50)
 
   @@map("ClubAircraft")
 }
 
 model Booking {
-  id         String   @id @default(uuid())
-  aircraftId String
-  userId     String
-  startTime  DateTime @db.DateTime2
-  endTime    DateTime @db.DateTime2
-  purpose    String?  @db.NVarChar(500)
-  createdAt  DateTime @default(now()) @db.DateTime2
-  updatedAt  DateTime @updatedAt @db.DateTime2
-
-  aircraft ClubAircraft @relation(fields: [aircraftId], references: [id], onDelete: Cascade)
-  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String    @id(map: "PK__Booking__3213E83F64A346D6") @default("newid()", map: "DF__Booking__id__2B0A656D") @db.NVarChar(36)
+  aircraftId String    @db.NVarChar(36)
+  userId     String    @db.NVarChar(36)
+  startTime  DateTime
+  endTime    DateTime
+  purpose    String?   @db.NVarChar(500)
+  createdAt  DateTime? @default(now(), map: "DF__Booking__created__2BFE89A6")
+  updatedAt  DateTime? @default(now(), map: "DF__Booking__updated__2CF2ADDF") @updatedAt
 
   @@map("Booking")
 }
 
 model FlightLog {
-  id        String   @id @default(uuid())
-  aircraftId String
-  userId    String
-  date      DateTime @db.DateTime2
-  tachTime  Decimal? @db.Decimal(6, 2)
-  hobbsTime Decimal? @db.Decimal(6, 2)
-  notes     String?  @db.NVarChar(Max)
-  createdAt DateTime @default(now()) @db.DateTime2
-  updatedAt DateTime @updatedAt @db.DateTime2
-
-  aircraft ClubAircraft @relation(fields: [aircraftId], references: [id], onDelete: Cascade)
-  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String    @id(map: "PK__FlightLo__3213E83FB28F28FC") @default("newid()", map: "DF__FlightLog__id__2FCF1A8A") @db.NVarChar(36)
+  aircraftId     String    @db.NVarChar(36)
+  userId         String    @db.NVarChar(36)
+  date           DateTime
+  tachTime       Decimal?  @db.Decimal(6, 2)
+  hobbsTime      Decimal?  @db.Decimal(6, 2)
+  calculatedCost Decimal?  @db.Decimal(10, 2)
+  notes          String?   @db.NVarChar(Max)
+  createdAt      DateTime? @default(now(), map: "DF__FlightLog__creat__30C33EC3")
+  updatedAt      DateTime? @default(now(), map: "DF__FlightLog__updat__31B762FC") @updatedAt
+  hobbsStart     Decimal?  @db.Decimal(6, 2)
+  hobbsEnd       Decimal?  @db.Decimal(6, 2)
 
   @@map("FlightLog")
 }
 
-model PartnershipProfile {
-  id              String   @id @default(uuid())
-  userId          String   @unique
-  availability    String?  @db.NVarChar(500)  // e.g., "Weekends", "Evenings"
-  flightInterests String?  @db.NVarChar(500)  // e.g., "XC, IFR, Sightseeing"
-  homeAirport     String?  @db.NVarChar(10)   // e.g., "KORD"
-  experienceLevel String?  @db.NVarChar(50)  // e.g., "Private PPL", "Commercial"
-  bio             String?  @db.NVarChar(1000)
-  lookingFor      String?  @db.NVarChar(500)  // What kind of partner seeking
-  isActive        Boolean  @default(true)
-  // Location for map display
-  city            String?  @db.NVarChar(100)
-  state           String?  @db.NVarChar(50)
-  latitude        Float?
-  longitude       Float?
-  createdAt       DateTime @default(now()) @db.DateTime2
-  updatedAt       DateTime @updatedAt @db.DateTime2
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("PartnershipProfile")
-}
-
-// ============================================
-// Flight Planning Models
-// ============================================
-
 model FlightPlan {
-  id              String   @id @default(uuid())
-  userId          String
-  name            String?  @db.NVarChar(255)
-  
-  // Flight identification
-  callsign        String?  @db.NVarChar(20)
-  aircraftType    String?  @db.NVarChar(20)  // N-number or aircraft type
-  pilotName       String?  @db.NVarChar(100)  // Pilot name
-  
-  // Departure
-  departureIcao  String?  @db.NVarChar(10)
-  departureTime  DateTime? @db.DateTime2
-  departureFuel  Int?     // Fuel on board in gallons
-  
-  // Arrival
-  arrivalIcao    String?  @db.NVarChar(10)
-  alternateIcao  String?  @db.NVarChar(10)
-  
-  // Route
-  cruisingAlt    Int?     // Cruising altitude in feet
-  route          String?  @db.NVarChar(Max)  // Route string (waypoints)
-  remarks        String?  @db.NVarChar(Max)
-  
-  // Passengers
-  soulsOnBoard   Int?     // Number of people on board
-  
-  // Raw data for GPX/FPL import
-  rawGpx         String?  @db.NVarChar(Max)
-  rawFpl         String?  @db.NVarChar(Max)
-  
-  // Status
-  isFiled        Boolean  @default(false)
-  filedAt        DateTime? @db.DateTime2
-  
-  createdAt      DateTime @default(now()) @db.DateTime2
-  updatedAt      DateTime @updatedAt @db.DateTime2
+  id            String    @id @default(uuid()) @db.NVarChar(36)
+  userId        String    @db.NVarChar(36)
+  name          String?   @db.NVarChar(255)
+  callsign      String?   @db.NVarChar(20)
+  aircraftType  String?   @db.NVarChar(20)
+  pilotName     String?   @db.NVarChar(100)
+  departureIcao String?   @db.NVarChar(10)
+  departureTime DateTime?
+  departureFuel Int?
+  arrivalIcao   String?   @db.NVarChar(10)
+  alternateIcao String?   @db.NVarChar(10)
+  cruisingAlt   Int?
+  route         String?   @db.NVarChar(Max)
+  remarks       String?   @db.NVarChar(Max)
+  soulsOnBoard  Int?
+  isFiled       Boolean   @default(false)
+  filedAt       DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  waypoints FlightPlanWaypoint[]
-  
   @@map("FlightPlan")
 }
 
-// Waypoints associated with a flight plan
 model FlightPlanWaypoint {
-  id            String   @id @default(uuid())
-  flightPlanId  String
-  sequence      Int      // Order in the route
-  icao          String?  @db.NVarChar(10)
-  name          String?  @db.NVarChar(100)  // Waypoint name
-  city          String?  @db.NVarChar(100)  // Nearest city
-  waypointId    String?  @db.NVarChar(20)  // Fix identifier
-  latitude      Float
-  longitude     Float
-  altitude      Int?     // Optional altitude at waypoint
-  flightType    String?  @db.NVarChar(10)  // A, D, I, etc.
-  
-  createdAt     DateTime @default(now()) @db.DateTime2
+  id           String   @id @default(uuid())
+  flightPlanId String   @db.NVarChar(36)
+  sequence     Int
+  icao         String?  @db.NVarChar(10)
+  name         String?  @db.NVarChar(100)
+  city         String?  @db.NVarChar(100)
+  waypointId   String?  @db.NVarChar(20)
+  latitude     Float
+  longitude    Float
+  altitude     Int?
+  flightType   String?  @db.NVarChar(10)
+  createdAt    DateTime @default(now())
 
-  flightPlan FlightPlan @relation(fields: [flightPlanId], references: [id], onDelete: Cascade)
-  
   @@map("FlightPlanWaypoint")
 }
