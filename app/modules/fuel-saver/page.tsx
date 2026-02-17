@@ -513,14 +513,49 @@ function FuelSaverContent() {
   const [showPanel, setShowPanel] = useState(true);
   const [showOrientationWarning, setShowOrientationWarning] = useState(false);
   const [orientationDismissed, setOrientationDismissed] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'waypoints' | 'info'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'waypoints' | 'info' | 'e6b'>('details');
   const [tabIndex, setTabIndex] = useState(0);
+  
+  // E6B Calculator state
+  const [e6bHeading, setE6bHeading] = useState(360);
+  const [e6bWindspeed, setE6bWindspeed] = useState(15);
+  const [e6bWindDir, setE6bWindDir] = useState(270);
+  const [e6bTAS, setE6bTAS] = useState(120);
+  const [e6bResult, setE6bResult] = useState<{ groundSpeed: number; windCorrection: number; track: number } | null>(null);
   
   const tabs = [
     { id: 'details', label: 'Details' },
     { id: 'waypoints', label: 'Route' },
+    { id: 'e6b', label: 'E6B' },
     { id: 'info', label: 'Info' }
   ];
+  
+  // E6B Wind Correction calculation
+  const calculateE6B = () => {
+    const headingRad = (e6bHeading * Math.PI) / 180;
+    const windRad = (e6bWindDir * Math.PI) / 180;
+    const ws = e6bWindspeed;
+    const tas = e6bTAS;
+    
+    // Wind components
+    const windFrom = (windRad + Math.PI); // wind FROM direction
+    const wx = ws * Math.cos(windFrom);
+    const wy = ws * Math.sin(windFrom);
+    
+    // Ground speed vector
+    const gsx = tas * Math.cos(headingRad) - wx;
+    const gsy = tas * Math.sin(headingRad) - wy;
+    
+    const groundSpeed = Math.sqrt(gsx * gsx + gsy * gsy);
+    const track = ((Math.atan2(gsy, gsx) * 180) / Math.PI + 360) % 360;
+    const windCorrection = track - e6bHeading;
+    
+    setE6bResult({
+      groundSpeed: Math.round(groundSpeed),
+      windCorrection: Math.round(windCorrection),
+      track: Math.round(track)
+    });
+  };
   
   // Cached airports - accumulates as user pans around
   const [cachedAirports, setCachedAirports] = useState<Airport[]>([]);
@@ -1612,10 +1647,10 @@ function FuelSaverContent() {
                   ‹
                 </button>
                 <div className="flex-1 flex overflow-hidden">
-                  {tabs.slice(tabIndex, tabIndex + 2).map((tab) => (
+                  {tabs.slice(tabIndex, tabIndex + 3).map((tab) => (
                     <button
                       key={tab.id}
-                      onClick={() => setActiveTab(tab.id as 'details' | 'waypoints' | 'info')}
+                      onClick={() => setActiveTab(tab.id as 'details' | 'waypoints' | 'info' | 'e6b')}
                       className={`flex-1 py-1.5 font-medium border-b-2 ${
                         activeTab === tab.id 
                           ? 'text-white border-sky-500 bg-slate-700/50' 
