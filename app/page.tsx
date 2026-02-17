@@ -2,9 +2,11 @@
 
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
+import { useAuthModal } from './components/AuthModalContext';
 
 export default function LandingPage() {
   const [planePhase, setPlanePhase] = useState(0);
+  const { openLoginModal } = useAuthModal();
 
   // Fun plane animation phases
   useEffect(() => {
@@ -47,12 +49,12 @@ export default function LandingPage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 overflow-hidden">
       {/* Header with Login */}
       <div className="absolute top-4 right-4 z-30">
-        <Link
-          href="/login"
+        <button
+          onClick={() => openLoginModal()}
           className="rounded-lg bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-medium text-white transition border border-slate-700"
         >
           Log In
-        </Link>
+        </button>
       </div>
 
       {/* Animated Hero with fun plane */}

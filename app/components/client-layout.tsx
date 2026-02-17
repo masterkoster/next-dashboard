@@ -6,6 +6,8 @@
  import Navigation from './navigation';
  import OfflineBanner from './offline-banner';
  import ConflictModal from './conflicts-modal';
+ import { AuthModalProvider } from './AuthModalContext';
+ import LoginModal from './LoginModal';
 
  export default function ClientLayout({ children }: { children: React.ReactNode }) {
    const pathname = usePathname();
@@ -23,16 +25,19 @@
 
     return (
       <SessionProvider>
-        <>
-          {!isHomePage && <Navigation />}
-           <main>{children}</main>
-          <OfflineBanner onSyncNow={() => setShowConflicts(true)} />
-          <ConflictModal
-           isOpen={showConflicts} 
-           onClose={() => setShowConflicts(false)} 
-           onResolved={() => {}} 
-         />
-       </>
-     </SessionProvider>
-   );
+        <AuthModalProvider>
+          <>
+            {!isHomePage && <Navigation />}
+             <main>{children}</main>
+            <OfflineBanner onSyncNow={() => setShowConflicts(true)} />
+            <ConflictModal
+             isOpen={showConflicts} 
+             onClose={() => setShowConflicts(false)} 
+             onResolved={() => {}} 
+           />
+            <LoginModal />
+          </>
+        </AuthModalProvider>
+      </SessionProvider>
+    );
  }

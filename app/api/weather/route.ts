@@ -105,8 +105,8 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const url = `https://aviationweather.gov/api/data/metar?ids=${icaoUpper}&format=json`;
       const response = await httpGet(url);
 
-      let metarData = null;
-      let tafData = null;
+      let metarData: any = null;
+      let tafData: any = null;
 
       if (response.status === 200) {
         metarData = JSON.parse(response.data);

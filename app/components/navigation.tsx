@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { signOut, useSession } from 'next-auth/react';
+import { useAuthModal } from './AuthModalContext';
 
 const modules = [
   { id: 'plane-carfax', label: 'Plane Carfax', href: '/modules/plane-carfax' },
@@ -26,6 +27,7 @@ interface Invite {
 export default function Navigation() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const { openLoginModal } = useAuthModal();
   const isHomeOrDashboard = pathname === '/' || pathname === '/dashboard';
   const [showDropdown, setShowDropdown] = useState(false);
   const [showInviteDropdown, setShowInviteDropdown] = useState(false);
@@ -262,12 +264,12 @@ export default function Navigation() {
               )}
             </div>
           ) : (
-            <Link
-              href="/login"
+            <button
+              onClick={() => openLoginModal()}
               className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-600 transition-colors"
             >
               Login
-            </Link>
+            </button>
           )}
         </div>
       </div>

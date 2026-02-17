@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useAuthModal } from '../components/AuthModalContext';
 
 interface Trip {
   id: string;
@@ -19,6 +20,7 @@ interface Trip {
 export default function TripsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
+  const { openLoginModal } = useAuthModal();
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -75,9 +77,9 @@ export default function TripsPage() {
         <div className="max-w-6xl mx-auto text-center py-16">
           <h1 className="text-2xl font-bold mb-4">My Trips</h1>
           <p className="text-slate-400 mb-6">Sign in to view and manage your saved trips</p>
-          <Link href="/login" className="inline-block bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded-lg font-medium">
+          <button onClick={() => openLoginModal()} className="inline-block bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded-lg font-medium">
             Sign In
-          </Link>
+          </button>
         </div>
       </div>
     );

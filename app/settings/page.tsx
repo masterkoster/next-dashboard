@@ -4,11 +4,13 @@ import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthModal } from '../components/AuthModalContext';
 
 export default function SettingsPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
+  const { openLoginModal } = useAuthModal();
 
   const handleDeleteAccount = async () => {
     if (!confirm('Are you sure you want to delete your account? This will permanently delete all your data including flight plans, aircraft, and group memberships. This action cannot be undone.')) {
@@ -51,9 +53,9 @@ export default function SettingsPage() {
         <div className="max-w-2xl mx-auto text-center py-16">
           <h1 className="text-2xl font-bold mb-4">Settings</h1>
           <p className="text-slate-400 mb-6">Sign in to access settings</p>
-          <Link href="/login" className="inline-block bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded-lg font-medium">
+          <button onClick={() => openLoginModal()} className="inline-block bg-emerald-500 hover:bg-emerald-600 px-6 py-3 rounded-lg font-medium">
             Sign In
-          </Link>
+          </button>
         </div>
       </div>
     );

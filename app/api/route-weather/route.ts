@@ -12,7 +12,7 @@ function httpGet(url: string): Promise<{ status: number; data: string }> {
       timeout: 15000 
     }, (res: any) => {
       let data = '';
-      res.on('data', chunk => data += chunk);
+      res.on('data', (chunk: string) => data += chunk);
       res.on('end', () => resolve({ status: res.statusCode || 500, data }));
     });
     req.on('error', reject);
