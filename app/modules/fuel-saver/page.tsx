@@ -240,6 +240,8 @@ function FuelSaverContent() {
   // Fuel data
   const [fuelPrices, setFuelPrices] = useState<Record<string, FuelPrice>>({});
   
+  // State prices will be calculated in LeafletMap component
+  
   // Saved flight plans
   const [savedPlans, setSavedPlans] = useState<any[]>([]);
   const [showPlanList, setShowPlanList] = useState(false);

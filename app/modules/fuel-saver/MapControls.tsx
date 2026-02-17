@@ -13,6 +13,7 @@ export interface MapLayerOptions {
   showTerrain: boolean;
   showAirspaces: boolean;
   showFuelPrices: boolean;
+  showStatePrices: boolean;
 }
 
 interface MapControlsProps {
@@ -163,6 +164,15 @@ export function MapControls({ options, onOptionsChange }: MapControlsProps) {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
+                  checked={options.showStatePrices}
+                  onChange={() => toggleOption('showStatePrices')}
+                  className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500"
+                />
+                <span className="text-sm">🗺️ State Prices</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
                   checked={options.showTerrain}
                   onChange={() => toggleOption('showTerrain')}
                   className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-sky-500"
@@ -186,7 +196,8 @@ export const DEFAULT_MAP_OPTIONS: MapLayerOptions = {
   showSeaplane: false,
   showTerrain: false,
   showAirspaces: false,
-  showFuelPrices: true
+  showFuelPrices: true,
+  showStatePrices: true // ON by default
 };
 
 // Tile layer component for the map

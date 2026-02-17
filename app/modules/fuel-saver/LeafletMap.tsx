@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Popup, Polyline, CircleMarker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -355,6 +355,7 @@ export default function LeafletMap({
   baseLayer = 'osm'
 }: LeafletMapProps) {
   const [terrainLayer, setTerrainLayer] = useState<L.TileLayer | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const mapRef = useRef<L.Map | null>(null);
   
   // Base layer URLs
@@ -386,7 +387,62 @@ export default function LeafletMap({
       }
     });
   }, [showTerrain, terrainLayer]);
- 
+
+  // Note: State price overlay temporarily disabled due to SSR issues
+  // Will re-enable with proper dynamic import approach
+  
+  // State price overlay temporarily disabled
+  /*
+  // Style for state overlay - transparent with border
+  const stateStyle = {
+    fillColor: 'transparent',
+    fillOpacity: 0,
+    color: '#64748b',
+    weight: 1,
+    opacity: 0.5,
+  };
+
+  // Hover style
+  const stateHoverStyle = {
+    fillColor: '#0ea5e9',
+    fillOpacity: 0.1,
+    color: '#0ea5e9',
+    weight: 2,
+  };
+
+  // Highlight state on hover
+  const [hoveredState, setHoveredState] = useState<string | null>(null);
+
+  const onEachState = (feature: any, layer: L.Layer) => {
+    const stateCode = feature.id;
+    const stateData = calculatedStatePrices[stateCode];
+    const pathLayer = layer as L.Path;
+    
+    layer.on({
+      mouseover: () => {
+        setHoveredState(stateCode);
+        pathLayer.setStyle(stateHoverStyle);
+      },
+      mouseout: () => {
+        setHoveredState(null);
+        pathLayer.setStyle(stateStyle);
+      },
+    });
+
+    // Add tooltip with price
+    if (stateData?.medianPrice) {
+      layer.bindTooltip(
+        `<strong>${stateData.stateName}</strong><br/>$${stateData.medianPrice.toFixed(2)}/gal`,
+        {
+          permanent: false,
+          direction: 'center',
+          className: 'bg-slate-900 text-white px-2 py-1 rounded text-sm',
+        }
+      );
+    }
+  };
+  */
+  
   return (
     <MapContainer
       center={mapCenter}
@@ -399,6 +455,19 @@ export default function LeafletMap({
       />
       
       <MapEventHandler onBoundsChange={onBoundsChange} onMapReady={(map) => { mapRef.current = map; }} />
+      
+      {/* State Price Overlay - disabled due to SSR */}
+      {/* 
+      {showStatePrices && (
+        <GeoJSON
+          data={usStatesGeoJson}
+          style={hoveredState === null ? stateStyle : (feature: any) => 
+            feature.id === hoveredState ? stateHoverStyle : stateStyle
+          }
+          onEachFeature={onEachState}
+        />
+      )}
+      */}
       
       {/* Airport markers - only show larger airports when zoomed out */}
       {airports.map(airport => (
