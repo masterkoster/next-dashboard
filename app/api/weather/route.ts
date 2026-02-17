@@ -51,6 +51,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   const icao = searchParams.get('icao');
   const region = searchParams.get('region');
   const forceRefresh = searchParams.get('forceRefresh') === 'true';
+  const forecastDate = searchParams.get('forecast'); // YYYY-MM-DD format
 
   const db = new sqlite3.Database(DB_PATH);
 
@@ -58,7 +59,7 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
   if (icao) {
     const icaoUpper = icao.toUpperCase();
     
-    // Check cache first
+    // Check cache first for METAR
     if (!forceRefresh) {
       const cached = await new Promise<any>((resolve) => {
         db.get(
@@ -70,11 +71,29 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       });
 
       if (cached) {
+        // Also try to get TAF if requested
+        let tafData = null;
+        const tafCached = await new Promise<any>((resolve) => {
+          db.get(
+            `SELECT data, fetched_at FROM weather_cache 
+             WHERE icao = ? AND data_type = 'taf'`,
+            [icaoUpper],
+            (err, row) => resolve(row)
+          );
+        });
+        
+        if (tafCached) {
+          try {
+            tafData = JSON.parse(tafCached.data);
+          } catch (e) {}
+        }
+
         db.close();
         return NextResponse.json({
           source: 'cache',
           icao: icaoUpper,
           data: JSON.parse(cached.data),
+          taf: tafData,
           fetchedAt: cached.fetched_at,
           expiresAt: cached.expires_at
         });
@@ -86,10 +105,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
       const url = `https://aviationweather.gov/api/data/metar?ids=${icaoUpper}&format=json`;
       const response = await httpGet(url);
 
+      let metarData = null;
+      let tafData = null;
+
       if (response.status === 200) {
-        const metarData = JSON.parse(response.data);
+        metarData = JSON.parse(response.data);
         
-        // Cache it
+        // Cache METAR
         const expiresAt = new Date(Date.now() + CACHE_DURATION.metar * 60 * 60 * 1000);
         await new Promise<void>((resolve) => {
           db.run(
@@ -99,19 +121,39 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
             () => resolve()
           );
         });
-
-        db.close();
-        return NextResponse.json({
-          source: 'live',
-          icao: icaoUpper,
-          data: metarData,
-          fetchedAt: new Date().toISOString(),
-          expiresAt: expiresAt.toISOString()
-        });
-      } else {
-        db.close();
-        return NextResponse.json({ error: 'Failed to fetch METAR' }, { status: response.status });
       }
+
+      // Fetch TAF (Terminal Area Forecast)
+      try {
+        const tafUrl = `https://aviationweather.gov/api/data/taf?ids=${icaoUpper}&format=json`;
+        const tafResponse = await httpGet(tafUrl);
+        
+        if (tafResponse.status === 200) {
+          tafData = JSON.parse(tafResponse.data);
+          
+          // Cache TAF
+          const tafExpiresAt = new Date(Date.now() + CACHE_DURATION.taf * 60 * 60 * 1000);
+          await new Promise<void>((resolve) => {
+            db.run(
+              `INSERT OR REPLACE INTO weather_cache (id, region, icao, data_type, data, fetched_at, expires_at)
+               VALUES (?, NULL, ?, 'taf', ?, datetime('now'), ?)`,
+              [`taf-${icaoUpper}`, icaoUpper, JSON.stringify(tafData), tafExpiresAt.toISOString()],
+              () => resolve()
+            );
+          });
+        }
+      } catch (tafError) {
+        console.log('TAF fetch error:', tafError);
+      }
+
+      db.close();
+      return NextResponse.json({
+        source: 'live',
+        icao: icaoUpper,
+        data: metarData,
+        taf: tafData,
+        fetchedAt: new Date().toISOString()
+      });
     } catch (error: any) {
       db.close();
       return NextResponse.json({ error: error.message }, { status: 500 });

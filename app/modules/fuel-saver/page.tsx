@@ -1179,12 +1179,31 @@ function FuelSaverContent() {
     setWeatherLoading(true);
     const weatherData: Record<string, any> = {};
     
+    // Determine if we should get forecast (TAF) or current (METAR)
+    const isForecast = departureTime && new Date(departureTime) > new Date();
+    const forecastDate = departureTime ? new Date(departureTime).toISOString().split('T')[0] : null;
+    
     for (const wp of waypoints) {
       try {
-        const res = await fetch(`/api/weather?icao=${wp.icao}`);
+        // If departure time is in the future, get TAF forecast
+        let url = `/api/weather?icao=${wp.icao}`;
+        if (isForecast && forecastDate) {
+          url += `&forecast=${forecastDate}`;
+        }
+        
+        const res = await fetch(url);
         if (res.ok) {
           const data = await res.json();
-          weatherData[wp.icao] = data.data?.[0] || null;
+          // Get TAF forecast if available, otherwise METAR
+          const tafData = data.taf?.[0];
+          const metarData = data.data?.[0];
+          
+          // Use forecast if departure is in future, otherwise current
+          weatherData[wp.icao] = isForecast && tafData ? {
+            ...tafData,
+            isForecast: true,
+            forecastFor: forecastDate
+          } : (metarData || null);
         }
       } catch (e) {
         weatherData[wp.icao] = null;
@@ -1898,6 +1917,12 @@ function FuelSaverContent() {
                                     {waypointWeather[wp.icao].flightCategory || 'N/A'}
                                   </span>
                                 </div>
+                                {waypointWeather[wp.icao].isForecast && (
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Type:</span>
+                                    <span className="text-amber-400 text-xs">☁️ Forecast</span>
+                                  </div>
+                                )}
                                 {waypointWeather[wp.icao].ws && (
                                   <div className="flex justify-between">
                                     <span className="text-slate-400">Wind:</span>
