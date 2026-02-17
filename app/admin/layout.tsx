@@ -14,11 +14,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
+    console.log('Session status:', status);
+    console.log('Session user:', session?.user);
+    console.log('User role:', (session?.user as any)?.role);
+    
     if (status === 'unauthenticated') {
       router.push('/login?redirect=/admin');
     } else if (status === 'authenticated') {
       // Check if user has admin or owner role
       const userRole = (session?.user as any)?.role;
+      console.log('Checking role:', userRole);
       if (userRole === 'admin' || userRole === 'owner') {
         setIsAdmin(true);
       }
