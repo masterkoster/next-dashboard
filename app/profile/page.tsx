@@ -2,9 +2,11 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { updateUserName, addUserAircraft, getUserAircraft, removeUserAircraft } from '@/lib/actions';
 
 export default function ProfilePage() {
+  const { data: session } = useSession();
   const [isPending, startTransition] = useTransition();
   const [name, setName] = useState('');
   const [newAircraft, setNewAircraft] = useState('');
@@ -90,6 +92,22 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-950 to-slate-900 px-4 py-8">
       <div className="mx-auto max-w-2xl space-y-6">
         <h1 className="text-3xl font-semibold text-slate-100">Profile</h1>
+
+        {/* Admin Panel Section - Only for d@d */}
+        {session?.user?.email === 'd@d' && (
+          <div className="rounded-2xl border border-sky-800 bg-sky-900/20 p-6">
+            <h2 className="text-lg font-semibold text-sky-100">Admin Panel</h2>
+            <p className="mt-1 text-sm text-sky-300">Access administration features</p>
+            <div className="mt-4">
+              <a
+                href="/admin"
+                className="inline-flex items-center gap-2 rounded-xl bg-sky-600 px-6 py-2 font-semibold text-white hover:bg-sky-500 transition-colors"
+              >
+                ⚙️ Open Admin Panel
+              </a>
+            </div>
+          </div>
+        )}
 
         {/* Name Section */}
         <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6">

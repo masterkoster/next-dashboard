@@ -45,6 +45,16 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 overflow-hidden">
+      {/* Header with Login */}
+      <div className="absolute top-4 right-4 z-30">
+        <Link
+          href="/login"
+          className="rounded-lg bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-medium text-white transition border border-slate-700"
+        >
+          Log In
+        </Link>
+      </div>
+
       {/* Animated Hero with fun plane */}
       <div className="relative h-[350px]">
         {/* Sky background */}
