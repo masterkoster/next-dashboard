@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
 
 // Dynamic imports for Leaflet components (no SSR)
 const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
+const StateInfoPanel = dynamic(() => import('./StateInfoPanel'), { ssr: false });
 import { MapControls, DEFAULT_MAP_OPTIONS, MapTileLayer, MapLayerOptions } from './MapControls';
 import FlightPlayback from './FlightPlayback';
 import RangeRingCalculator from './RangeRing';
@@ -214,6 +215,9 @@ function FuelSaverContent() {
   
   // Map layer options
   const [mapOptions, setMapOptions] = useState<MapLayerOptions>(DEFAULT_MAP_OPTIONS);
+  
+  // State info panel
+  const [selectedStateInfo, setSelectedStateInfo] = useState<any>(null);
   
   // Performance settings
   const [performanceSettings, setPerformanceSettings] = useState<PerformanceSettings>(DEFAULT_SETTINGS);
@@ -2267,9 +2271,23 @@ function FuelSaverContent() {
                   mapCenter={mapCenter}
                   mapZoom={mapZoom}
                   showTerrain={performanceSettings.showTerrain}
-                  showAirspaces={performanceSettings.showAirspaces}
+                  showStateOverlay={mapOptions.showStatePrices}
+                  onStateClick={setSelectedStateInfo}
                   baseLayer={mapOptions.baseLayer}
                 />
+                {selectedStateInfo && (
+                  <StateInfoPanel
+                    stateInfo={selectedStateInfo}
+                    onClose={() => setSelectedStateInfo(null)}
+                    onAirportClick={(icao) => {
+                      // Find and add airport to route
+                      const airport = airports.find(a => a.icao === icao);
+                      if (airport) {
+                        handleAirportAdd(airport);
+                      }
+                    }}
+                  />
+                )}
                 <div className="absolute top-4 right-4 z-[1001]">
                   <PerformanceSettingsPanel onSettingsChange={setPerformanceSettings} />
                 </div>
