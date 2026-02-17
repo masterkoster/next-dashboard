@@ -260,7 +260,8 @@ function FuelSaverContent() {
   const [syncOffered, setSyncOffered] = useState(false);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   
-  // User tier (default to free for now, in real app would come from session)
+  // User tier and role - check session for pro/owner, default to free for guests
+  const userRole = (session?.user as any)?.role;
   const userTier = (session?.user as any)?.tier || 'free';
 
   // Free tier limits
@@ -271,18 +272,22 @@ function FuelSaverContent() {
     maxAircraft: 3,
   };
 
-  const isPro = userTier === 'pro';
+  // Owner or Pro users don't see ads
+  const isOwner = userRole === 'owner';
+  const isPro = userTier === 'pro' || isOwner;
+  const isGuest = status === 'unauthenticated';
 
   // Check if we should show the tier explainer on mount
+  // Only show for guests (not logged in), not for free/pro/owner users
   useEffect(() => {
-    if (typeof window !== 'undefined' && userTier !== 'pro') {
+    if (typeof window !== 'undefined' && isGuest && !isPro) {
       const seen = localStorage.getItem('hasSeenTierExplainer');
       if (!seen) {
         // Show after a short delay to let the page load
         setTimeout(() => setShowTierExplainer(true), 1500);
       }
     }
-  }, [userTier]);
+  }, [isGuest, isPro]);
   
   // Demo plans flag
   const [demoPlansLoaded, setDemoPlansLoaded] = useState(false);
