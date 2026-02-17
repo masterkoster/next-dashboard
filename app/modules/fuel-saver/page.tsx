@@ -1866,6 +1866,84 @@ function FuelSaverContent() {
                     )}
                   </div>
                 </div>
+              ) : activeTab === 'e6b' ? (
+                /* E6B Calculator Tab */
+                <div className="p-3 space-y-4">
+                  <div className="text-sm font-semibold text-white">🧮 E6B Wind Correction</div>
+                  
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">True Airspeed (TAS)</label>
+                      <input
+                        type="number"
+                        value={e6bTAS}
+                        onChange={(e) => setE6bTAS(Number(e.target.value))}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Heading (°)</label>
+                      <input
+                        type="number"
+                        value={e6bHeading}
+                        onChange={(e) => setE6bHeading(Number(e.target.value))}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Wind From (°)</label>
+                        <input
+                          type="number"
+                          value={e6bWindDir}
+                          onChange={(e) => setE6bWindDir(Number(e.target.value))}
+                          className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Wind Speed (kts)</label>
+                        <input
+                          type="number"
+                          value={e6bWindspeed}
+                          onChange={(e) => setE6bWindspeed(Number(e.target.value))}
+                          className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                        />
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={calculateE6B}
+                      className="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 rounded text-sm"
+                    >
+                      Calculate
+                    </button>
+                    
+                    {e6bResult && (
+                      <div className="bg-slate-700 rounded p-3 space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400 text-sm">Ground Speed:</span>
+                          <span className="text-white font-bold">{e6bResult.groundSpeed} kts</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400 text-sm">Track:</span>
+                          <span className="text-white font-bold">{e6bResult.track}°</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400 text-sm">Wind Correction:</span>
+                          <span className={`font-bold ${e6bResult.windCorrection > 0 ? 'text-amber-400' : e6bResult.windCorrection < 0 ? 'text-blue-400' : 'text-white'}`}>
+                            {e6bResult.windCorrection > 0 ? '+' : ''}{e6bResult.windCorrection}°
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="text-xs text-slate-500">
+                    Use weather data from your route to get wind info for accurate calculations.
+                  </div>
+                </div>
               ) : (
                 /* Waypoints Tab */
                 <div className="p-1.5">
