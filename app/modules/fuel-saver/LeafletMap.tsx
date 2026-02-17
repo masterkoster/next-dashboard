@@ -203,18 +203,22 @@ export default function LeafletMap({
 
   // Filter visible airports based on bounds - PERFORMANCE: only show airports in view
   const visibleAirports = useMemo(() => {
-    if (!mapBounds) return airports.slice(0, 100); // Initial limit
+    // Only show limited airports when zoomed out
+    const zoom = mapRef.current?.getZoom() || mapZoom;
+    const maxAirports = zoom < 6 ? 50 : zoom < 8 ? 100 : 150;
+    
+    if (!mapBounds) return airports.slice(0, maxAirports);
     
     const { minLat, maxLat, minLon, maxLon } = mapBounds;
-    const buffer = 2; // Add buffer around edges
+    const buffer = zoom < 5 ? 5 : 3;
     
     return airports.filter(a => 
       a.latitude >= minLat - buffer && 
       a.latitude <= maxLat + buffer &&
       a.longitude >= minLon - buffer && 
       a.longitude <= maxLon + buffer
-    ).slice(0, 200); // Hard limit for performance
-  }, [airports, mapBounds]);
+    ).slice(0, maxAirports);
+  }, [airports, mapBounds, mapZoom]);
 
   // Handle bounds change with debounce
   const handleBoundsChange = useCallback((bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number }) => {
@@ -241,23 +245,24 @@ export default function LeafletMap({
     });
   }, [showTerrain, terrainLayer]);
 
-  // State overlay styles
-  const stateStyle = {
+  // State overlay styles - memoized for performance
+  const stateStyle = useMemo(() => ({
     fillColor: 'transparent',
     fillOpacity: 0,
-    color: '#64748b',
+    color: '#94a3b8',
     weight: 1,
-    opacity: 0.4,
-  };
+    opacity: 0.3,
+  }), []);
 
-  const stateHoverStyle = {
+  const stateHoverStyle = useMemo(() => ({
     fillColor: '#0ea5e9',
-    fillOpacity: 0.15,
-    color: '#0ea5e9',
+    fillOpacity: 0.1,
+    color: '#38bdf8',
     weight: 2,
-  };
+  }), []);
 
-  const onEachState = (feature: any, layer: L.Layer) => {
+  // Memoized event handler
+  const onEachState = useCallback((feature: any, layer: L.Layer) => {
     const stateCode = feature.id;
     const pathLayer = layer as L.Path;
     
@@ -283,7 +288,7 @@ export default function LeafletMap({
         }
       },
     });
-  };
+  }, [stateData, onStateClick, stateStyle, stateHoverStyle]);
 
   // Don't render on server
   if (!isClient) {
