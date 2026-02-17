@@ -247,13 +247,18 @@ function FuelSaverContent() {
   // Auth Modal
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalAction, setAuthModalAction] = useState<'save' | 'load' | 'export'>('save');
-   
+    
   // Upgrade Modal
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState<string>('');
     
   // Tier Explainer Modal (shown on first visit for free users)
   const [showTierExplainer, setShowTierExplainer] = useState(false);
+
+  // Weather for waypoints
+  const [showWeather, setShowWeather] = useState(false);
+  const [waypointWeather, setWaypointWeather] = useState<Record<string, any>>({});
+  const [weatherLoading, setWeatherLoading] = useState(false);
 
   // Auth
   const { data: session, status } = useSession();
@@ -1168,6 +1173,28 @@ function FuelSaverContent() {
     reader.readAsText(file);
   };
 
+  // Fetch weather for all waypoints
+  const fetchWaypointWeather = async () => {
+    if (waypoints.length === 0) return;
+    setWeatherLoading(true);
+    const weatherData: Record<string, any> = {};
+    
+    for (const wp of waypoints) {
+      try {
+        const res = await fetch(`/api/weather?icao=${wp.icao}`);
+        if (res.ok) {
+          const data = await res.json();
+          weatherData[wp.icao] = data.data?.[0] || null;
+        }
+      } catch (e) {
+        weatherData[wp.icao] = null;
+      }
+    }
+    
+    setWaypointWeather(weatherData);
+    setWeatherLoading(false);
+  };
+
   // Calculate route statistics
   const routeStats = useMemo(() => {
     if (waypoints.length < 2) return null;
@@ -1524,18 +1551,38 @@ function FuelSaverContent() {
         {/* Toggle Arrow Button */}
         <button
           onClick={() => setShowPanel(!showPanel)}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 bg-slate-700 hover:bg-slate-600 text-white px-2 py-4 rounded-r-lg text-sm transition-all"
-          style={{ left: showPanel ? '256px' : '0px' }}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 bg-slate-700 hover:bg-slate-600 text-white px-2 py-4 rounded-r-lg text-sm transition-all lg:block hidden"
+          style={{ left: showPanel ? '320px' : '0px' }}
         >
           {showPanel ? '◀' : '▶'}
         </button>
 
+        {/* Mobile Toggle Button - always visible on small screens */}
+        <button
+          onClick={() => setShowPanel(!showPanel)}
+          className="lg:hidden fixed bottom-4 left-4 z-30 bg-sky-600 hover:bg-sky-500 text-white p-4 rounded-full shadow-lg touch-manipulation"
+        >
+          {showPanel ? '✕' : '☰'}
+        </button>
+
         {/* Left Sidebar - Slide-in Panel */}
         <div 
-          className={`bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden transition-all duration-300 ${showPanel ? 'w-64' : 'w-0'}`}
+          className={`bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden transition-all duration-300 fixed lg:relative z-20 h-full ${
+            showPanel ? 'w-full sm:w-80' : 'w-0 lg:w-0'
+          }`}
         >
           {showPanel && (
-            <div className="w-64 flex flex-col h-full">
+            <div className="w-full sm:w-80 flex flex-col h-full">
+              {/* Mobile Close Button */}
+              <div className="lg:hidden flex justify-end p-2 border-b border-slate-700">
+                <button
+                  onClick={() => setShowPanel(false)}
+                  className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg touch-manipulation"
+                >
+                  ✕ Close
+                </button>
+              </div>
+
               {/* Horizontal Scrollable Tabs with < > */}
               <div className="flex items-center text-xs border-b border-slate-700 px-1">
                 <button
@@ -1768,6 +1815,27 @@ function FuelSaverContent() {
               ) : (
                 /* Waypoints Tab */
                 <div className="p-1.5">
+                  {/* Weather Toggle */}
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <span className="text-xs text-slate-400">{waypoints.length} waypoints</span>
+                    <button
+                      onClick={() => {
+                        if (!showWeather) {
+                          fetchWaypointWeather();
+                        }
+                        setShowWeather(!showWeather);
+                      }}
+                      disabled={weatherLoading}
+                      className={`text-xs px-2 py-1 rounded transition ${
+                        showWeather 
+                          ? 'bg-sky-600 text-white' 
+                          : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                      }`}
+                    >
+                      {weatherLoading ? 'Loading...' : '🌤 Weather'}
+                    </button>
+                  </div>
+
                   {waypoints.length === 0 ? (
                     <div className="text-center py-2 text-slate-500 text-xs">
                       <p>No waypoints</p>
@@ -1813,6 +1881,43 @@ function FuelSaverContent() {
                                 <span className="text-sky-400">→ {legInfo.to.icao}</span>
                                 <span className="text-amber-400">{Math.round(legInfo.distance)}NM</span>
                                 <span className="text-emerald-400">${legInfo.cost.toFixed(0)}</span>
+                              </div>
+                            )}
+
+                            {/* Weather info for this waypoint */}
+                            {showWeather && waypointWeather[wp.icao] && (
+                              <div className="mt-2 pt-2 border-t border-slate-600 text-xs space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-slate-400">Flight Cat:</span>
+                                  <span className={`font-medium ${
+                                    waypointWeather[wp.icao].flightCategory === 'VFR' ? 'text-green-400' :
+                                    waypointWeather[wp.icao].flightCategory === 'MVFR' ? 'text-blue-400' :
+                                    waypointWeather[wp.icao].flightCategory === 'IFR' ? 'text-red-400' :
+                                    'text-purple-400'
+                                  }`}>
+                                    {waypointWeather[wp.icao].flightCategory || 'N/A'}
+                                  </span>
+                                </div>
+                                {waypointWeather[wp.icao].ws && (
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Wind:</span>
+                                    <span className="text-white">
+                                      {waypointWeather[wp.icao].ws.value}@{waypointWeather[wp.icao].wd?.value}°
+                                    </span>
+                                  </div>
+                                )}
+                                {waypointWeather[wp.icao].temp && (
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Temp:</span>
+                                    <span className="text-white">{waypointWeather[wp.icao].temp}°C</span>
+                                  </div>
+                                )}
+                                {waypointWeather[wp.icao].altimeter && (
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Alt:</span>
+                                    <span className="text-white">{(waypointWeather[wp.icao].altimeter / 100).toFixed(2)}"</span>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
