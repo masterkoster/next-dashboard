@@ -1,8 +1,21 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
+
+// Helper to check if user is admin or owner
+async function isAdmin(session: any): Promise<boolean> {
+  if (!session?.user?.email) return false;
+  
+  const users = await prisma.$queryRawUnsafe(`
+    SELECT role FROM [User] WHERE email = '${session.user.email}'
+  `) as any[];
+  
+  if (!users || users.length === 0) return false;
+  return users[0].role === 'admin' || users[0].role === 'owner';
+}
 
 let db: any = null;
 
@@ -19,6 +32,16 @@ async function getDb() {
 
 export async function GET() {
   try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const isAdminUser = await isAdmin(session);
+    if (!isAdminUser) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
+    }
+
     const database = await getDb();
     const now = new Date();
 
