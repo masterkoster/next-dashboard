@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import sqlite3 from 'sqlite3';
-import { open } from 'sqlite';
-import path from 'path';
 
 // Helper to check if user is admin or owner
 async function isAdmin(session: any): Promise<boolean> {
@@ -15,19 +12,6 @@ async function isAdmin(session: any): Promise<boolean> {
   
   if (!users || users.length === 0) return false;
   return users[0].role === 'admin' || users[0].role === 'owner';
-}
-
-let db: any = null;
-
-async function getDb() {
-  if (!db) {
-    const dbPath = path.join(process.cwd(), 'data', 'aviation_hub.db');
-    db = await open({
-      filename: dbPath,
-      driver: sqlite3.Database
-    });
-  }
-  return db;
 }
 
 export async function GET() {
@@ -42,68 +26,80 @@ export async function GET() {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
-    const database = await getDb();
-    const now = new Date();
+    // Get stats from SQL Server database
+    // Note: Some stats may not be available - we'll return what's available
+    
+    // Get total users
+    const userCountResult = await prisma.$queryRawUnsafe(`
+      SELECT COUNT(*) as total FROM [User]
+    `) as any[];
+    const userCount = Number(userCountResult[0]?.total || 0);
 
-    // Get fuel cache stats
-    const fuelStats = await database.all(`
-      SELECT 
-        COUNT(*) as total,
-        MAX(last_updated) as newest,
-        source_site
-      FROM airport_cache 
-      WHERE data_type = 'fuel'
-      GROUP BY source_site
-    `);
+    // Get total flight plans
+    const fpCountResult = await prisma.$queryRawUnsafe(`
+      SELECT COUNT(*) as total FROM [FlightPlan]
+    `) as any[];
+    const fpCount = Number(fpCountResult[0]?.total || 0);
 
-    // Get airport_fuel stats
-    const airportFuelStats = await database.get(`
-      SELECT 
-        COUNT(*) as total,
-        MAX(scraped_at) as newest
-      FROM airport_fuel
-    `);
+    // Get total groups
+    const groupCountResult = await prisma.$queryRawUnsafe(`
+      SELECT COUNT(*) as total FROM [FlyingGroup]
+    `) as any[];
+    const groupCount = Number(groupCountResult[0]?.total || 0);
 
-    // Get total airports count
-    const airportCount = await database.get(`
-      SELECT COUNT(*) as total FROM airports
-    `);
+    // Get total aircraft in clubs
+    const aircraftCountResult = await prisma.$queryRawUnsafe(`
+      SELECT COUNT(*) as total FROM [ClubAircraft]
+    `) as any[];
+    const aircraftCount = Number(aircraftCountResult[0]?.total || 0);
 
-    // Get aircraft cache stats
-    const aircraftStats = await database.get(`
-      SELECT 
-        COUNT(*) as total,
-        MAX(scraped_at) as newest
-      FROM aircraft_cache
-    `);
+    // Get error reports count
+    const errorCountResult = await prisma.$queryRawUnsafe(`
+      SELECT COUNT(*) as total FROM [ErrorReport] WHERE status = 'open'
+    `) as any[];
+    const openErrors = Number(errorCountResult[0]?.total || 0);
 
     const results = {
-      fuel: {
-        name: 'Fuel Prices',
-        description: 'Airport fuel prices from AirNav',
-        cachedCount: airportFuelStats?.total || 0,
-        lastUpdated: airportFuelStats?.newest || null,
-        source: 'AirNav.com scraping'
-      },
-      airports: {
-        name: 'Airports',
-        description: 'Airport database (FAA data)',
-        cachedCount: airportCount?.total || 0,
+      users: {
+        name: 'Users',
+        description: 'Registered users on the platform',
+        cachedCount: userCount,
         lastUpdated: null,
-        source: 'Static FAA data'
+        source: 'User database'
       },
-      aircraft: {
-        name: 'Aircraft Database',
-        description: 'GA aircraft registration data',
-        cachedCount: aircraftStats?.total || 0,
-        lastUpdated: aircraftStats?.newest || null,
-        source: 'FAA registration data'
+      flightPlans: {
+        name: 'Flight Plans',
+        description: 'Saved flight plans by users',
+        cachedCount: fpCount,
+        lastUpdated: null,
+        source: 'User data'
+      },
+      clubs: {
+        name: 'Flying Clubs',
+        description: 'Active flying clubs',
+        cachedCount: groupCount,
+        lastUpdated: null,
+        source: 'Club database'
+      },
+      clubAircraft: {
+        name: 'Club Aircraft',
+        description: 'Aircraft in flying clubs',
+        cachedCount: aircraftCount,
+        lastUpdated: null,
+        source: 'Club fleet data'
+      },
+      openErrors: {
+        name: 'Open Error Reports',
+        description: 'User-submitted bug reports',
+        cachedCount: openErrors,
+        lastUpdated: null,
+        source: 'Error tracking'
       }
     };
 
     return NextResponse.json(results);
   } catch (error) {
     console.error('Error fetching data status:', error);
-    return NextResponse.json({ error: 'Failed to fetch data status' }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch data status: ' + String(error) }, { status: 500 });
   }
 }
