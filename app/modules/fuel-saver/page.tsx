@@ -257,6 +257,10 @@ function FuelSaverContent() {
 
   // Weather for waypoints
   const [showWeather, setShowWeather] = useState(false);
+  const [showWeatherMap, setShowWeatherMap] = useState(false);
+  const [segmentWeather, setSegmentWeather] = useState<Record<number, { windSpeed: number; windDir: number; temp: number; impact: number }>>({});
+  const [routeWeather, setRouteWeather] = useState<any>(null);
+  const [loadingRouteWeather, setLoadingRouteWeather] = useState(false);
   const [waypointWeather, setWaypointWeather] = useState<Record<string, any>>({});
   const [weatherLoading, setWeatherLoading] = useState(false);
 
@@ -1249,6 +1253,39 @@ function FuelSaverContent() {
     setWeatherLoading(false);
   };
 
+  // Fetch route weather with segment calculations
+  const fetchRouteWeather = async () => {
+    if (waypoints.length < 2) return;
+    setLoadingRouteWeather(true);
+    
+    try {
+      const routePoints = waypoints.map(wp => ({
+        icao: wp.icao,
+        lat: wp.latitude,
+        lon: wp.longitude
+      }));
+      
+      const res = await fetch('/api/route-weather', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          waypoints: routePoints,
+          altitude: cruisingAlt,
+          aircraftTAS: selectedAircraft.speed
+        })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        setRouteWeather(data);
+      }
+    } catch (e) {
+      console.error('Route weather error:', e);
+    }
+    
+    setLoadingRouteWeather(false);
+  };
+
   // Calculate route statistics
   const routeStats = useMemo(() => {
     if (waypoints.length < 2) return null;
@@ -1865,6 +1902,46 @@ function FuelSaverContent() {
                       </div>
                     )}
                   </div>
+
+                  {/* Route Weather Impact Button */}
+                  {waypoints.length >= 2 && (
+                    <div className="mt-2 pt-2 border-t border-slate-600">
+                      <button
+                        onClick={fetchRouteWeather}
+                        disabled={loadingRouteWeather}
+                        className={`w-full text-xs px-2 py-1.5 rounded transition ${
+                          routeWeather
+                            ? 'bg-amber-600 hover:bg-amber-500 text-white'
+                            : 'bg-slate-600 hover:bg-slate-500 text-slate-200'
+                        }`}
+                      >
+                        {loadingRouteWeather ? '💨 Calculating...' : routeWeather ? '💨 Update Wind Impact' : '💨 Calculate Wind Impact'}
+                      </button>
+                      
+                      {routeWeather && (
+                        <div className="mt-2 space-y-1">
+                          <div className={`text-xs font-medium px-2 py-1 rounded ${
+                            routeWeather.summary.significant 
+                              ? routeWeather.summary.fuelImpactPercent > 0 
+                                ? 'bg-red-900/50 text-red-400'
+                                : 'bg-green-900/50 text-green-400'
+                              : 'bg-slate-700 text-slate-300'
+                          }`}>
+                            {routeWeather.summary.significant ? (
+                              routeWeather.summary.fuelImpactPercent > 0 
+                                ? `⚠️ +${routeWeather.summary.fuelImpactPercent}% fuel (${routeWeather.summary.fuelImpact} gal more)`
+                                : `✓ ${routeWeather.summary.fuelImpactPercent}% fuel saved (${Math.abs(routeWeather.summary.fuelImpact)} gal less)`
+                            ) : (
+                              `✓ Minimal wind impact (${routeWeather.summary.fuelImpactPercent}% change)`
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-500 px-1">
+                            GS: {routeWeather.summary.totalTimeWithWind}min vs {routeWeather.summary.totalTimeStillAir}min still air
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               ) : activeTab === 'e6b' ? (
                 /* E6B Calculator Tab */
