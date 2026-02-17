@@ -101,7 +101,11 @@ if (typeof window !== 'undefined') {
 }
 
 // Component to handle map move events and get map reference
-function MapEventHandler({ onBoundsChange, onMapReady }: { onBoundsChange: (bounds: any) => void; onMapReady?: (map: L.Map) => void }) {
+function MapEventHandler({ onBoundsChange, onMapReady, onMapClick }: { 
+  onBoundsChange: (bounds: any) => void; 
+  onMapReady?: (map: L.Map) => void;
+  onMapClick?: (e: any) => void;
+}) {
   const map = useMapEvents({
     moveend: (e: any) => {
       const bounds = e.target.getBounds();
@@ -111,6 +115,11 @@ function MapEventHandler({ onBoundsChange, onMapReady }: { onBoundsChange: (boun
         minLon: bounds.getWest(),
         maxLon: bounds.getEast()
       });
+    },
+    click: (e: any) => {
+      if (onMapClick) {
+        onMapClick(e);
+      }
     }
   });
   
@@ -245,50 +254,79 @@ export default function LeafletMap({
     });
   }, [showTerrain, terrainLayer]);
 
-  // State overlay styles - memoized for performance
-  const stateStyle = useMemo(() => ({
-    fillColor: 'transparent',
-    fillOpacity: 0,
-    color: '#94a3b8',
-    weight: 1,
-    opacity: 0.3,
+  // State bounds for click detection (no GeoJSON rendering!)
+  const stateBounds = useMemo(() => ({
+    AL: { minLat: 30.2, maxLat: 35, minLon: -88.5, maxLon: -84.9 },
+    AK: { minLat: 51.8, maxLat: 71.4, minLon: -180, maxLon: -130 },
+    AZ: { minLat: 31.3, maxLat: 37, minLon: -114.7, maxLon: -109 },
+    AR: { minLat: 33, maxLat: 36.5, minLon: -94.6, maxLon: -89.6 },
+    CA: { minLat: 32.5, maxLat: 42, minLon: -124.4, maxLon: -114.6 },
+    CO: { minLat: 37, maxLat: 41, minLon: -109.1, maxLon: -102 },
+    CT: { minLat: 41, maxLat: 42.1, minLon: -73.7, maxLon: -71.8 },
+    DE: { minLat: 38.5, maxLat: 39.8, minLon: -75.8, maxLon: -75 },
+    FL: { minLat: 24.5, maxLat: 31, minLon: -87.6, maxLon: -80 },
+    GA: { minLat: 30.4, maxLat: 35, minLon: -85.6, maxLon: -80.8 },
+    HI: { minLat: 18.9, maxLat: 22.5, minLon: -160.2, maxLon: -154.7 },
+    ID: { minLat: 42, maxLat: 49, minLon: -117.2, maxLon: -111 },
+    IL: { minLat: 37, maxLat: 42.5, minLon: -91.5, maxLon: -87 },
+    IN: { minLat: 38, maxLat: 41.8, minLon: -88.1, maxLon: -84.8 },
+    IA: { minLat: 40.4, maxLat: 43.5, minLon: -96.6, maxLon: -90.1 },
+    KS: { minLat: 37, maxLat: 40, minLon: -102.1, maxLon: -94.6 },
+    KY: { minLat: 36.5, maxLat: 39.2, minLon: -89.6, maxLon: -81.9 },
+    LA: { minLat: 29, maxLat: 33, minLon: -94.1, maxLon: -88.8 },
+    ME: { minLat: 43.1, maxLat: 47.5, minLon: -71.1, maxLon: -66.9 },
+    MD: { minLat: 37.9, maxLat: 39.7, minLon: -79.5, maxLon: -75 },
+    MA: { minLat: 41.2, maxLat: 42.9, minLon: -73.5, maxLon: -69.9 },
+    MI: { minLat: 41.7, maxLat: 48.2, minLon: -90.4, maxLon: -82.1 },
+    MN: { minLat: 43.5, maxLat: 49.4, minLon: -97.2, maxLon: -89.5 },
+    MS: { minLat: 30.2, maxLat: 35, minLon: -91.7, maxLon: -88.1 },
+    MO: { minLat: 36, maxLat: 40.6, minLon: -95.8, maxLon: -89.1 },
+    MT: { minLat: 44.4, maxLat: 49, minLon: -116, maxLon: -104 },
+    NE: { minLat: 40, maxLat: 43, minLon: -104.1, maxLon: -95.3 },
+    NV: { minLat: 35, maxLat: 42, minLon: -120, maxLon: -114 },
+    NH: { minLat: 42.7, maxLat: 45.3, minLon: -72.6, maxLon: -70.7 },
+    NJ: { minLat: 38.9, maxLat: 41.4, minLon: -75.6, maxLon: -73.9 },
+    NM: { minLat: 31.3, maxLat: 37, minLon: -109.1, maxLon: -103 },
+    NY: { minLat: 40.5, maxLat: 45, minLon: -79.8, maxLon: -71.8 },
+    NC: { minLat: 33.8, maxLat: 36.5, minLon: -84.3, maxLon: -75.4 },
+    ND: { minLat: 45.9, maxLat: 49, minLon: -104.1, maxLon: -96.6 },
+    OH: { minLat: 38.4, maxLat: 41.7, minLon: -84.8, maxLon: -80.5 },
+    OK: { minLat: 33.6, maxLat: 37, minLon: -103, maxLon: -94.4 },
+    OR: { minLat: 42, maxLat: 46.3, minLon: -124.6, maxLon: -116.5 },
+    PA: { minLat: 39.7, maxLat: 42.3, minLon: -80.5, maxLon: -74.7 },
+    RI: { minLat: 41.1, maxLat: 42, minLon: -71.9, maxLon: -71.1 },
+    SC: { minLat: 32, maxLat: 35.2, minLon: -83.4, maxLon: -78.5 },
+    SD: { minLat: 42.5, maxLat: 45.9, minLon: -104.1, maxLon: -96.4 },
+    TN: { minLat: 35, maxLat: 36.5, minLon: -90.3, maxLon: -81.6 },
+    TX: { minLat: 25.8, maxLat: 36.5, minLon: -106.7, maxLon: -93.5 },
+    UT: { minLat: 37, maxLat: 42, minLon: -114.1, maxLon: -109 },
+    VT: { minLat: 42.7, maxLat: 45, minLon: -73.5, maxLon: -71.5 },
+    VA: { minLat: 36.5, maxLat: 39.5, minLon: -83.7, maxLon: -75.2 },
+    WA: { minLat: 45.5, maxLat: 49, minLon: -124.8, maxLon: -116.9 },
+    WV: { minLat: 37.2, maxLat: 40.6, minLon: -82.6, maxLon: -77.7 },
+    WI: { minLat: 42.5, maxLat: 47.1, minLon: -92.9, maxLon: -86.8 },
+    WY: { minLat: 41, maxLat: 45, minLon: -111.1, maxLon: -104.1 },
+    DC: { minLat: 38.79, maxLat: 38.995, minLon: -77.119, maxLon: -76.909 },
   }), []);
 
-  const stateHoverStyle = useMemo(() => ({
-    fillColor: '#0ea5e9',
-    fillOpacity: 0.1,
-    color: '#38bdf8',
-    weight: 2,
-  }), []);
-
-  // Memoized event handler
-  const onEachState = useCallback((feature: any, layer: L.Layer) => {
-    const stateCode = feature.id;
-    const pathLayer = layer as L.Path;
+  // Handle map click for state detection
+  const handleMapClick = useCallback((e: { latlng: { lat: number; lng: number } }) => {
+    const { lat, lng } = e.latlng;
     
-    layer.on({
-      mouseover: () => {
-        setHoveredState(stateCode);
-        pathLayer.setStyle(stateHoverStyle);
-        const container = mapRef.current?.getContainer();
-        if (container) container.style.cursor = 'pointer';
-      },
-      mouseout: () => {
-        setHoveredState(null);
-        pathLayer.setStyle(stateStyle);
-        const container = mapRef.current?.getContainer();
-        if (container) container.style.cursor = '';
-      },
-      click: () => {
+    // Find which state contains this point
+    for (const [stateCode, bounds] of Object.entries(stateBounds)) {
+      if (lat >= bounds.minLat && lat <= bounds.maxLat && 
+          lng >= bounds.minLon && lng <= bounds.maxLon) {
         if (onStateClick && stateData) {
           const info = stateData[stateCode];
           if (info) {
             onStateClick(info);
+            return;
           }
         }
-      },
-    });
-  }, [stateData, onStateClick, stateStyle, stateHoverStyle]);
+      }
+    }
+  }, [stateBounds, stateData, onStateClick]);
 
   // Don't render on server
   if (!isClient) {
@@ -313,20 +351,10 @@ export default function LeafletMap({
       
       <MapEventHandler 
         onBoundsChange={handleBoundsChange} 
-        onMapReady={(map) => { mapRef.current = map; }} 
+        onMapReady={(map) => { mapRef.current = map; }}
+        onMapClick={handleMapClick}
       />
-      
-      {/* State Overlay */}
-      {showStateOverlay && usStatesGeoJson && GeoJSONComponent && (
-        <GeoJSONComponent
-          data={usStatesGeoJson}
-          style={(feature: any) => 
-            feature.id === hoveredState ? stateHoverStyle : stateStyle
-          }
-          onEachFeature={onEachState}
-        />
-      )}
-      
+
       {/* Airport markers - PERFORMANCE: limited to visible airports */}
       {visibleAirports.map(airport => (
         <AirportMarker
