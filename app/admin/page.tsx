@@ -141,16 +141,10 @@ export default function AdminDashboard() {
             🐛 Error Reports {stats?.openErrorReports ? `(${stats.openErrorReports})` : ''}
           </Link>
           <Link
-            href="/modules/fuel-saver"
+            href="/admin/data"
             className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition"
           >
-            ⛽ Fuel Saver
-          </Link>
-          <Link
-            href="/modules/flying-club"
-            className="bg-sky-600 hover:bg-sky-500 text-white px-4 py-2 rounded-lg font-medium transition"
-          >
-            ✈️ Flying Club
+            💾 Data Cache
           </Link>
         </div>
       </div>

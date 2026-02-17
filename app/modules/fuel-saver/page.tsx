@@ -1834,6 +1834,7 @@ function FuelSaverContent() {
               <div className="flex gap-1">
                 <button
                   onClick={() => {
+                    if (status === 'loading') return;
                     if (status !== 'authenticated') {
                       setAuthModalAction('load');
                       setAuthModalOpen(true);
@@ -1847,6 +1848,7 @@ function FuelSaverContent() {
                 </button>
                 <button
                   onClick={() => {
+                    if (status === 'loading') return;
                     if (status !== 'authenticated') {
                       setAuthModalAction('save');
                       setAuthModalOpen(true);
