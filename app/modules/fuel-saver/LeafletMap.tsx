@@ -77,8 +77,11 @@ interface LeafletMapProps {
   mapZoom: number;
   showTerrain?: boolean;
   showAirspaces?: boolean;
+  showStateOverlay?: boolean;
+  onStateClick?: (stateInfo: any) => void;
   baseLayer?: 'osm' | 'satellite' | 'terrain' | 'dark';
   onViewStateInfo?: (stateCode: string) => void;
+  performanceMode?: boolean;
 }
 
 // Component to handle map move events and get map reference
@@ -428,8 +431,11 @@ export default function LeafletMap({
   mapZoom,
   showTerrain = false,
   showAirspaces = false,
+  showStateOverlay = false,
+  onStateClick,
   baseLayer = 'osm',
-  onViewStateInfo
+  onViewStateInfo,
+  performanceMode = false
 }: LeafletMapProps) {
   const [terrainLayer, setTerrainLayer] = useState<L.TileLayer | null>(null);
   const mapRef = useRef<L.Map | null>(null);
