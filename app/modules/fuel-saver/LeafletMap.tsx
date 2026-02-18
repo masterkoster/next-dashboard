@@ -150,9 +150,11 @@ const AirportMarker = React.memo(function AirportMarker({
   const [details, setDetails] = useState<AirportDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [popupOpen, setPopupOpen] = useState(false);
+  const stateInfoTriggered = useRef(false);
 
   useEffect(() => {
     if (!popupOpen) return;
+    stateInfoTriggered.current = false;
     
     async function fetchDetails() {
       try {
@@ -160,6 +162,12 @@ const AirportMarker = React.memo(function AirportMarker({
         if (res.ok) {
           const data = await res.json();
           setDetails(data);
+          
+          // Auto-show state info when details load
+          if (data?.state && onViewStateInfo && !stateInfoTriggered.current) {
+            stateInfoTriggered.current = true;
+            onViewStateInfo(data.state);
+          }
         }
       } catch (e) {
         console.error('Error fetching airport details:', e);
@@ -167,7 +175,7 @@ const AirportMarker = React.memo(function AirportMarker({
       setLoading(false);
     }
     fetchDetails();
-  }, [airport.icao, popupOpen]);
+  }, [airport.icao, popupOpen, onViewStateInfo]);
 
   return (
     <CircleMarker
@@ -190,16 +198,6 @@ const AirportMarker = React.memo(function AirportMarker({
           {airport.iata && <span className="ml-2 text-slate-500">({airport.iata})</span>}
           <div className="font-medium text-sm">{airport.name}</div>
           {airport.city && <div className="text-xs text-slate-500">{airport.city}</div>}
-          
-          {/* State info button - only show if we have state data */}
-          {details?.state && onViewStateInfo && (
-            <button
-              onClick={() => details.state && onViewStateInfo(details.state)}
-              className="mt-2 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs font-medium border border-slate-300"
-            >
-              📍 View State Info
-            </button>
-          )}
           
           <button
             onClick={onClick}
