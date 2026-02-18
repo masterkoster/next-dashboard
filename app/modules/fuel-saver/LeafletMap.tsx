@@ -247,12 +247,12 @@ const AirportMarker = React.memo(function AirportMarker({
   return (
     <CircleMarker
       center={[airport.latitude, airport.longitude]}
-      radius={airport.type === 'large_airport' ? 6 : airport.type === 'medium_airport' ? 4 : 2}
+      radius={airport.type === 'large_airport' ? 10 : airport.type === 'medium_airport' ? 7 : 4}
       pathOptions={{
         color: getMarkerColor(airport.type),
         fillColor: getMarkerColor(airport.type),
-        fillOpacity: 0.7,
-        weight: 1
+        fillOpacity: 0.8,
+        weight: 2
       }}
       eventHandlers={{
         popupopen: () => setPopupOpen(true),
@@ -260,31 +260,104 @@ const AirportMarker = React.memo(function AirportMarker({
       }}
     >
       <Popup>
-        <div className="min-w-[150px] max-w-[180px] text-slate-900">
+        <div className="min-w-[180px] max-w-[220px] text-slate-900 text-sm">
           <strong className="text-lg">{airport.icao}</strong>
           {airport.iata && <span className="ml-2 text-slate-500">({airport.iata})</span>}
           <div className="font-medium text-sm">{airport.name}</div>
           {airport.city && <div className="text-xs text-slate-500">{airport.city}</div>}
           
-          <button
-            onClick={onClick}
-            className="mt-2 w-full bg-sky-500 hover:bg-sky-600 text-white px-2 py-1 rounded text-xs font-medium"
-          >
-            Add to Route
-          </button>
+          {/* Loading state */}
+          {loading && <div className="text-xs text-slate-400 mt-2">Loading details...</div>}
           
-          {/* Manual state info button as backup */}
-          <button
-            onClick={() => {
-              const stateCode = inferStateFromCoords(airport.latitude, airport.longitude);
-              if (stateCode && onViewStateInfo) {
-                onViewStateInfo(stateCode);
-              }
-            }}
-            className="mt-2 w-full bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium"
-          >
-            View State Info
-          </button>
+          {/* Airport Details */}
+          {details && (
+            <div className="mt-2 space-y-1 border-t border-slate-300 pt-2">
+              {/* Elevation */}
+              {details.elevation_ft && (
+                <div className="text-xs">
+                  <span className="text-slate-500">Elev:</span> {details.elevation_ft} ft
+                </div>
+              )}
+              
+              {/* Fuel Price */}
+              {details.fuel && (
+                <div className="text-xs">
+                  <span className="text-slate-500">100LL:</span>{' '}
+                  <span className="font-semibold text-emerald-600">
+                    ${details.fuel.price100ll.toFixed(2)}/gal
+                  </span>
+                  {details.fuel.source && (
+                    <span className="text-slate-400 text-[10px] ml-1">({details.fuel.source})</span>
+                  )}
+                </div>
+              )}
+              
+              {/* Jet A Price */}
+              {details.fuel?.priceJetA && (
+                <div className="text-xs">
+                  <span className="text-slate-500">JetA:</span>{' '}
+                  <span className="font-semibold text-emerald-600">
+                    ${details.fuel.priceJetA.toFixed(2)}/gal
+                  </span>
+                </div>
+              )}
+              
+              {/* Landing Fee */}
+              {details.landingFee && (
+                <div className="text-xs">
+                  <span className="text-slate-500">Landing:</span> ${details.landingFee.amount}
+                </div>
+              )}
+              
+              {/* Tower */}
+              {details.hasTower !== null && details.hasTower !== undefined && (
+                <div className="text-xs">
+                  <span className="text-slate-500">Tower:</span>{' '}
+                  {details.hasTower ? 'Yes' : 'No'}
+                </div>
+              )}
+              
+              {/* Runways */}
+              {details.runways && details.runways.length > 0 && (
+                <div className="text-xs">
+                  <span className="text-slate-500">RWY:</span>{' '}
+                  {details.runways.slice(0, 3).map((r: any) => r.he_ident).join(', ')}
+                  {details.runways.length > 3 && ` +${details.runways.length - 3}`}
+                </div>
+              )}
+              
+              {/* Frequencies */}
+              {details.frequencies && details.frequencies.length > 0 && (
+                <div className="text-xs">
+                  <span className="text-slate-500">Freq:</span>{' '}
+                  {details.frequencies[0]?.frequency_mhz} ({details.frequencies[0]?.type})
+                </div>
+              )}
+            </div>
+          )}
+          
+          {/* Action Buttons */}
+          <div className="mt-2 space-y-1">
+            <button
+              onClick={onClick}
+              className="w-full bg-sky-500 hover:bg-sky-600 text-white px-2 py-1 rounded text-xs font-medium"
+            >
+              Add to Route
+            </button>
+            
+            {/* Manual state info button as backup */}
+            <button
+              onClick={() => {
+                const stateCode = details?.state || inferStateFromCoords(airport.latitude, airport.longitude);
+                if (stateCode && onViewStateInfo) {
+                  onViewStateInfo(stateCode);
+                }
+              }}
+              className="w-full bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium"
+            >
+              View State Info
+            </button>
+          </div>
         </div>
       </Popup>
     </CircleMarker>
