@@ -154,42 +154,63 @@ const AirportMarker = React.memo(function AirportMarker({
 
   // Simple state inference from coordinates (fallback)
   const inferStateFromCoords = (lat: number, lon: number): string | null => {
-    // Very rough approximation based on lat/lon ranges
-    if (lat >= 42 && lon >= -84 && lon <= -82) return 'MI'; // Michigan (DTW area)
-    if (lat >= 40 && lon >= -75 && lon <= -73) return 'NY'; // New York
-    if (lat >= 33 && lon >= -85 && lon <= -80) return 'GA'; // Georgia
-    if (lat >= 34 && lon >= -85 && lon <= -83) return 'TN'; // Tennessee
-    if (lat >= 36 && lon >= -91 && lon <= -87) return 'IL'; // Illinois
-    if (lat >= 41 && lon >= -88 && lon <= -84) return 'IN'; // Indiana
-    if (lat >= 41 && lon >= -92 && lon <= -86) return 'OH'; // Ohio
-    if (lat >= 38 && lon >= -85 && lon <= -80) return 'OH'; // Ohio
-    if (lat >= 29 && lon >= -95 && lon <= -82) return 'FL'; // Florida area
+    // Rough approximation based on lat/lon ranges
+    if (lat >= 41.7 && lon >= -90.4 && lon <= -82.1) return 'MI'; // Michigan (DTW area)
+    if (lat >= 40.5 && lon >= -79.8 && lon <= -71.8) return 'NY'; // New York
+    if (lat >= 30.4 && lon >= -85.6 && lon <= -80.8) return 'GA'; // Georgia
+    if (lat >= 35 && lon >= -90.3 && lon <= -81.6) return 'TN'; // Tennessee
+    if (lat >= 36 && lon >= -91.5 && lon <= -87) return 'IL'; // Illinois
+    if (lat >= 38 && lon >= -88.1 && lon <= -84.8) return 'IN'; // Indiana
+    if (lat >= 38.4 && lon >= -84.8 && lon <= -80.5) return 'OH'; // Ohio
+    if (lat >= 29 && lon >= -95 && lon <= -81) return 'FL'; // Florida
     if (lat >= 30 && lon >= -90 && lon <= -85) return 'MS'; // Mississippi
-    if (lat >= 32 && lon >= -90 && lon <= -88) return 'LA'; // Louisiana
-    if (lat >= 33 && lon >= -95 && lon <= -89) return 'TX'; // Texas
-    if (lat >= 34 && lon >= -120 && lon <= -114) return 'AZ'; // Arizona
-    if (lat >= 32 && lon >= -125 && lon <= -114) return 'CA'; // California
-    if (lat >= 47 && lon >= -125 && lon <= -116) return 'WA'; // Washington
-    if (lat >= 45 && lon >= -125 && lon <= -116) return 'OR'; // Oregon
+    if (lat >= 29 && lon >= -94.1 && lon <= -88.8) return 'LA'; // Louisiana
+    if (lat >= 33 && lon >= -106.7 && lon <= -93.5) return 'TX'; // Texas
+    if (lat >= 31.3 && lon >= -114.7 && lon <= -109) return 'AZ'; // Arizona
+    if (lat >= 32.5 && lon >= -124.4 && lon <= -114.6) return 'CA'; // California
+    if (lat >= 45.5 && lon >= -124.8 && lon <= -116.9) return 'WA'; // Washington
+    if (lat >= 42 && lon >= -124.6 && lon <= -116.5) return 'OR'; // Oregon
     if (lat >= 43 && lon >= -117 && lon <= -111) return 'ID'; // Idaho
-    if (lat >= 37 && lon >= -109 && lon <= -102) return 'CO'; // Colorado
-    if (lat >= 36 && lon >= -114 && lon <= -109) return 'NV'; // Nevada
-    if (lat >= 41 && lon >= -115 && lon <= -109) return 'UT'; // Utah
-    if (lat >= 41 && lon >= -111 && lon <= -104) return 'WY'; // Wyoming
-    if (lat >= 45 && lon >= -116 && lon <= -104) return 'MT'; // Montana
-    if (lat >= 43 && lon >= -104 && lon <= -96) return 'ND'; // North Dakota
-    if (lat >= 40 && lon >= -104 && lon <= -95) return 'SD'; // South Dakota
-    if (lat >= 38 && lon >= -100 && lon <= -94) return 'NE'; // Nebraska
-    if (lat >= 37 && lon >= -100 && lon <= -94) return 'KS'; // Kansas
-    if (lat >= 36 && lon >= -103 && lon <= -94) return 'OK'; // Oklahoma
-    if (lat >= 33 && lon >= -103 && lon <= -94) return 'TX'; // Texas
-    if (lat >= 29 && lon >= -90 && lon <= -81) return 'FL'; // Florida
-    if (lat >= 35 && lon >= -85 && lon <= -81) return 'NC'; // North Carolina
-    if (lat >= 32 && lon >= -83 && lon <= -78) return 'SC'; // South Carolina
-    if (lat >= 30 && lon >= -82 && lon <= -80) return 'FL'; // Florida
-    if (lat >= 28 && lon >= -83 && lon <= -80) return 'FL'; // Florida
-    if (lat >= 25 && lon >= -83 && lon <= -80) return 'FL'; // Florida
-    // Add more as needed - this is a rough fallback
+    if (lat >= 37 && lon >= -109.1 && lon <= -102) return 'CO'; // Colorado
+    if (lat >= 35 && lon >= -120 && lon <= -114) return 'NV'; // Nevada
+    if (lat >= 37 && lon >= -114.1 && lon <= -109) return 'UT'; // Utah
+    if (lat >= 41 && lon >= -111.1 && lon <= -104.1) return 'WY'; // Wyoming
+    if (lat >= 44.4 && lon >= -116 && lon <= -104) return 'MT'; // Montana
+    if (lat >= 45.9 && lon >= -104.1 && lon <= -96.6) return 'ND'; // North Dakota
+    if (lat >= 42.5 && lon >= -104.1 && lon <= -96.4) return 'SD'; // South Dakota
+    if (lat >= 38 && lon >= -104.1 && lon <= -94.3) return 'NE'; // Nebraska
+    if (lat >= 37 && lon >= -102.1 && lon <= -94.6) return 'KS'; // Kansas
+    if (lat >= 33.6 && lon >= -103 && lon <= -94.4) return 'OK'; // Oklahoma
+    if (lat >= 33.8 && lon >= -84.3 && lon <= -75.4) return 'NC'; // North Carolina
+    if (lat >= 32 && lon >= -83.4 && lon <= -78.5) return 'SC'; // South Carolina
+    if (lat >= 36.5 && lon >= -83.7 && lon <= -75.2) return 'VA'; // Virginia
+    if (lat >= 36.5 && lon >= -89.6 && lon <= -81.9) return 'KY'; // Kentucky
+    if (lat >= 37.2 && lon >= -82.6 && lon <= -77.7) return 'WV'; // West Virginia
+    if (lat >= 39.7 && lon >= -80.5 && lon <= -74.7) return 'PA'; // Pennsylvania
+    if (lat >= 41 && lon >= -73.7 && lon <= -71.8) return 'CT'; // Connecticut
+    if (lat >= 41.2 && lon >= -73.5 && lon <= -69.9) return 'MA'; // Massachusetts
+    if (lat >= 42.7 && lon >= -72.6 && lon <= -70.7) return 'NH'; // New Hampshire
+    if (lat >= 43.1 && lon >= -71.1 && lon <= -66.9) return 'ME'; // Maine
+    if (lat >= 42.7 && lon >= -73.5 && lon <= -71.5) return 'VT'; // Vermont
+    if (lat >= 38.9 && lon >= -75.6 && lon <= -73.9) return 'NJ'; // New Jersey
+    if (lat >= 41.1 && lon >= -71.9 && lon <= -71.1) return 'RI'; // Rhode Island
+    if (lat >= 38.5 && lon >= -75.8 && lon <= -75) return 'DE'; // Delaware
+    if (lat >= 37.9 && lon >= -79.5 && lon <= -75) return 'MD'; // Maryland
+    if (lat >= 38.79 && lon >= -77.119 && lon <= -76.909) return 'DC'; // DC
+    if (lat >= 30.2 && lon >= -91.7 && lon <= -88.1) return 'MS'; // Mississippi
+    if (lat >= 30.2 && lon >= -88.5 && lon <= -84.9) return 'AL'; // Alabama
+    if (lat >= 33 && lon >= -94.6 && lon <= -89.6) return 'AR'; // Arkansas
+    if (lat >= 37 && lon >= -91.5 && lon <= -87) return 'IL'; // Illinois
+    if (lat >= 40.4 && lon >= -96.6 && lon <= -90.1) return 'IA'; // Iowa
+    if (lat >= 36 && lon >= -95.8 && lon <= -89.1) return 'MO'; // Missouri
+    if (lat >= 31.3 && lon >= -109.1 && lon <= -103) return 'NM'; // New Mexico
+    if (lat >= 42.5 && lon >= -92.9 && lon <= -86.8) return 'WI'; // Wisconsin
+    if (lat >= 43.5 && lon >= -97.2 && lon <= -89.5) return 'MN'; // Minnesota
+    // Alaska
+    if (lat >= 51.8 && lon >= -180 && lon <= -130) return 'AK';
+    // Hawaii
+    if (lat >= 18.9 && lon >= -160.2 && lon <= -154.7) return 'HI';
+    
     return null;
   };
 
@@ -204,10 +225,14 @@ const AirportMarker = React.memo(function AirportMarker({
           const data = await res.json();
           setDetails(data);
           
+          console.log('Airport details loaded:', airport.icao, 'state:', data.state);
+          
           // Auto-show state info when details load
           const stateCode = data?.state || inferStateFromCoords(airport.latitude, airport.longitude);
+          console.log('State code:', stateCode);
           if (stateCode && onViewStateInfo && !stateInfoTriggered.current) {
             stateInfoTriggered.current = true;
+            console.log('Triggering state info for:', stateCode);
             onViewStateInfo(stateCode);
           }
         }
@@ -246,6 +271,19 @@ const AirportMarker = React.memo(function AirportMarker({
             className="mt-2 w-full bg-sky-500 hover:bg-sky-600 text-white px-2 py-1 rounded text-xs font-medium"
           >
             Add to Route
+          </button>
+          
+          {/* Manual state info button as backup */}
+          <button
+            onClick={() => {
+              const stateCode = inferStateFromCoords(airport.latitude, airport.longitude);
+              if (stateCode && onViewStateInfo) {
+                onViewStateInfo(stateCode);
+              }
+            }}
+            className="mt-2 w-full bg-purple-500 hover:bg-purple-600 text-white px-2 py-1 rounded text-xs font-medium"
+          >
+            View State Info
           </button>
         </div>
       </Popup>
@@ -287,47 +325,61 @@ export default function LeafletMap({
     setIsClient(true);
   }, []);
 
-  // Filter visible airports based on zoom level - dynamic scaling
+  // Filter visible airports - always show large airports, scale others by zoom
   const visibleAirports = useMemo(() => {
     const zoom = mapRef.current?.getZoom() || mapZoom;
     
-    // Calculate max airports based on zoom (gradual increase)
-    // Zoom 0-3: 10 airports (very zoomed out)
-    // Zoom 4-5: 25 airports
-    // Zoom 6-7: 50 airports  
-    // Zoom 8-9: 100 airports
-    // Zoom 10+: all relevant airports in view
-    let maxAirports: number;
+    // Determine max small/medium airports based on zoom
+    let maxOtherAirports: number;
     if (zoom <= 3) {
-      maxAirports = 10;
+      maxOtherAirports = 5;
     } else if (zoom <= 5) {
-      maxAirports = 25;
+      maxOtherAirports = 15;
     } else if (zoom <= 7) {
-      maxAirports = 50;
+      maxOtherAirports = 30;
     } else if (zoom <= 9) {
-      maxAirports = 100;
+      maxOtherAirports = 60;
     } else {
-      maxAirports = 200; // Max at high zoom
+      maxOtherAirports = 150;
     }
     
-    // Performance mode caps at lower values
+    // Performance mode caps
     if (performanceMode) {
-      maxAirports = Math.min(maxAirports, 50);
+      maxOtherAirports = Math.min(maxOtherAirports, 30);
     }
     
     // Buffer around map bounds
-    const buffer = zoom < 5 ? 8 : zoom < 8 ? 5 : 3;
+    const buffer = zoom < 5 ? 10 : zoom < 8 ? 6 : 4;
     
-    if (!mapBounds) return airports.slice(0, maxAirports);
+    if (!mapBounds) {
+      // No bounds yet - show large airports + some others
+      const large = airports.filter(a => a.type === 'large_airport');
+      const others = airports.filter(a => a.type !== 'large_airport').slice(0, maxOtherAirports);
+      return [...large, ...others].slice(0, 100);
+    }
     
     const { minLat, maxLat, minLon, maxLon } = mapBounds;
     
-    return airports.filter(a => 
+    // Always include large airports in view
+    const largeInView = airports.filter(a => 
+      a.type === 'large_airport' &&
       a.latitude >= minLat - buffer && 
       a.latitude <= maxLat + buffer &&
       a.longitude >= minLon - buffer && 
       a.longitude <= maxLon + buffer
-    ).slice(0, maxAirports);
+    );
+    
+    // Filter other airports (medium, small, seaplane)
+    const othersInView = airports.filter(a => 
+      a.type !== 'large_airport' &&
+      a.latitude >= minLat - buffer && 
+      a.latitude <= maxLat + buffer &&
+      a.longitude >= minLon - buffer && 
+      a.longitude <= maxLon + buffer
+    ).slice(0, maxOtherAirports);
+    
+    // Combine large airports (always visible) + limited others
+    return [...largeInView, ...othersInView].slice(0, 100);
   }, [airports, mapBounds, mapZoom, performanceMode]);
 
   // Handle bounds change with debounce

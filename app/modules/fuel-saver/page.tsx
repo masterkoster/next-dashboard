@@ -227,8 +227,11 @@ function FuelSaverContent() {
   const handleViewStateInfo = useCallback(async (stateCode: string) => {
     if (!stateCode) return;
     
+    console.log('handleViewStateInfo called with:', stateCode);
+    
     // Check cache first
     if (stateCache[stateCode]) {
+      console.log('Using cached state info for:', stateCode);
       setSelectedStateInfo(stateCache[stateCode]);
       return;
     }
@@ -236,6 +239,8 @@ function FuelSaverContent() {
     // Lazy load state data
     const mod = await import('@/lib/stateData');
     const info = mod.stateData[stateCode];
+    
+    console.log('Loaded state info:', stateCode, info ? 'found' : 'not found');
     
     if (info) {
       // Manage cache: remove oldest if we have 4
