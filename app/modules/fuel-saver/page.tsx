@@ -2292,7 +2292,11 @@ function FuelSaverContent() {
                 <div className="absolute top-4 right-4 z-[1001]">
                   <PerformanceSettingsPanel onSettingsChange={setPerformanceSettings} />
                 </div>
-                <MapControls options={mapOptions} onOptionsChange={setMapOptions} />
+                <MapControls 
+                  options={mapOptions} 
+                  onOptionsChange={setMapOptions}
+                  onStateSelect={setSelectedStateInfo}
+                />
               </>
             )}
           </div>

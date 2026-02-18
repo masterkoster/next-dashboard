@@ -102,10 +102,9 @@ if (typeof window !== 'undefined') {
 }
 
 // Component to handle map move events and get map reference
-function MapEventHandler({ onBoundsChange, onMapReady, onMapClick }: { 
+function MapEventHandler({ onBoundsChange, onMapReady }: { 
   onBoundsChange: (bounds: any) => void; 
   onMapReady?: (map: L.Map) => void;
-  onMapClick?: (e: any) => void;
 }) {
   const map = useMapEvents({
     moveend: (e: any) => {
@@ -116,11 +115,6 @@ function MapEventHandler({ onBoundsChange, onMapReady, onMapClick }: {
         minLon: bounds.getWest(),
         maxLon: bounds.getEast()
       });
-    },
-    click: (e: any) => {
-      if (onMapClick) {
-        onMapClick(e);
-      }
     }
   });
   
@@ -362,7 +356,6 @@ export default function LeafletMap({
       <MapEventHandler 
         onBoundsChange={handleBoundsChange} 
         onMapReady={(map) => { mapRef.current = map; }}
-        onMapClick={handleMapClick}
       />
 
       {/* Airport markers - PERFORMANCE: limited to visible airports */}
