@@ -91,6 +91,7 @@ interface LeafletMapProps {
   showAirspaces?: boolean;
   showStateOverlay?: boolean;
   onStateClick?: (stateInfo: any) => void;
+  onViewStateInfo?: (stateCode: string) => void;
   baseLayer?: 'osm' | 'satellite' | 'terrain' | 'dark';
   performanceMode?: boolean;
 }
@@ -139,11 +140,35 @@ function getMarkerColor(type?: string) {
 // Memoized airport marker component
 const AirportMarker = React.memo(function AirportMarker({ 
   airport, 
-  onClick 
+  onClick,
+  onViewStateInfo 
 }: { 
   airport: Airport; 
   onClick: () => void;
+  onViewStateInfo?: (stateCode: string) => void;
 }) {
+  const [details, setDetails] = useState<AirportDetails | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [popupOpen, setPopupOpen] = useState(false);
+
+  useEffect(() => {
+    if (!popupOpen) return;
+    
+    async function fetchDetails() {
+      try {
+        const res = await fetch(`/api/airports/${airport.icao}`);
+        if (res.ok) {
+          const data = await res.json();
+          setDetails(data);
+        }
+      } catch (e) {
+        console.error('Error fetching airport details:', e);
+      }
+      setLoading(false);
+    }
+    fetchDetails();
+  }, [airport.icao, popupOpen]);
+
   return (
     <CircleMarker
       center={[airport.latitude, airport.longitude]}
@@ -154,6 +179,10 @@ const AirportMarker = React.memo(function AirportMarker({
         fillOpacity: 0.7,
         weight: 1
       }}
+      eventHandlers={{
+        popupopen: () => setPopupOpen(true),
+        popupclose: () => setPopupOpen(false)
+      }}
     >
       <Popup>
         <div className="min-w-[150px] max-w-[180px] text-slate-900">
@@ -161,6 +190,17 @@ const AirportMarker = React.memo(function AirportMarker({
           {airport.iata && <span className="ml-2 text-slate-500">({airport.iata})</span>}
           <div className="font-medium text-sm">{airport.name}</div>
           {airport.city && <div className="text-xs text-slate-500">{airport.city}</div>}
+          
+          {/* State info button - only show if we have state data */}
+          {details?.state && onViewStateInfo && (
+            <button
+              onClick={() => details.state && onViewStateInfo(details.state)}
+              className="mt-2 w-full bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 py-1 rounded text-xs font-medium border border-slate-300"
+            >
+              📍 View State Info
+            </button>
+          )}
+          
           <button
             onClick={onClick}
             className="mt-2 w-full bg-sky-500 hover:bg-sky-600 text-white px-2 py-1 rounded text-xs font-medium"
@@ -184,6 +224,7 @@ export default function LeafletMap({
   showTerrain = false,
   showStateOverlay = false,
   onStateClick,
+  onViewStateInfo,
   baseLayer = 'osm',
   performanceMode = false
 }: LeafletMapProps) {
@@ -364,6 +405,7 @@ export default function LeafletMap({
           key={airport.icao}
           airport={airport}
           onClick={() => onAirportClick(airport)}
+          onViewStateInfo={onViewStateInfo}
         />
       ))}
       

@@ -219,6 +219,43 @@ function FuelSaverContent() {
   // State info panel
   const [selectedStateInfo, setSelectedStateInfo] = useState<any>(null);
   
+  // LRU cache for state info (last 4 clicked)
+  const [stateCache, setStateCache] = useState<Record<string, any>>({});
+  const [stateCacheOrder, setStateCacheOrder] = useState<string[]>([]);
+  
+  // Handle view state info - lazy loads and caches
+  const handleViewStateInfo = useCallback(async (stateCode: string) => {
+    if (!stateCode) return;
+    
+    // Check cache first
+    if (stateCache[stateCode]) {
+      setSelectedStateInfo(stateCache[stateCode]);
+      return;
+    }
+    
+    // Lazy load state data
+    const mod = await import('@/lib/stateData');
+    const info = mod.stateData[stateCode];
+    
+    if (info) {
+      // Manage cache: remove oldest if we have 4
+      let newOrder = [...stateCacheOrder];
+      let newCache = { ...stateCache };
+      
+      if (newOrder.length >= 4) {
+        const oldest = newOrder.shift();
+        if (oldest) delete newCache[oldest];
+      }
+      
+      newOrder.push(stateCode);
+      newCache[stateCode] = info;
+      
+      setStateCacheOrder(newOrder);
+      setStateCache(newCache);
+      setSelectedStateInfo(info);
+    }
+  }, [stateCache, stateCacheOrder]);
+  
   // Performance settings
   const [performanceSettings, setPerformanceSettings] = useState<PerformanceSettings>(DEFAULT_SETTINGS);
   
@@ -2273,6 +2310,7 @@ function FuelSaverContent() {
                   showTerrain={performanceSettings.showTerrain}
                   showStateOverlay={mapOptions.showStatePrices}
                   onStateClick={setSelectedStateInfo}
+                  onViewStateInfo={handleViewStateInfo}
                   baseLayer={mapOptions.baseLayer}
                   performanceMode={mapOptions.performanceMode}
                 />
@@ -2295,7 +2333,6 @@ function FuelSaverContent() {
                 <MapControls 
                   options={mapOptions} 
                   onOptionsChange={setMapOptions}
-                  onStateSelect={setSelectedStateInfo}
                 />
               </>
             )}
