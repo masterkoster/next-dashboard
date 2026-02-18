@@ -14,6 +14,7 @@ export interface MapLayerOptions {
   showAirspaces: boolean;
   showFuelPrices: boolean;
   showStatePrices: boolean;
+  performanceMode: boolean;
 }
 
 interface MapControlsProps {
@@ -179,6 +180,15 @@ export function MapControls({ options, onOptionsChange }: MapControlsProps) {
                 />
                 <span className="text-sm">🏔️ Terrain</span>
               </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={options.performanceMode}
+                  onChange={() => toggleOption('performanceMode')}
+                  className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-green-500"
+                />
+                <span className="text-sm">⚡ Performance Mode</span>
+              </label>
             </div>
           </div>
         </div>
@@ -197,7 +207,8 @@ export const DEFAULT_MAP_OPTIONS: MapLayerOptions = {
   showTerrain: false,
   showAirspaces: false,
   showFuelPrices: true,
-  showStatePrices: true // ON by default
+  showStatePrices: true,
+  performanceMode: false // Off by default - turn ON for better performance
 };
 
 // Tile layer component for the map

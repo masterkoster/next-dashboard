@@ -2274,6 +2274,7 @@ function FuelSaverContent() {
                   showStateOverlay={mapOptions.showStatePrices}
                   onStateClick={setSelectedStateInfo}
                   baseLayer={mapOptions.baseLayer}
+                  performanceMode={mapOptions.performanceMode}
                 />
                 {selectedStateInfo && (
                   <StateInfoPanel

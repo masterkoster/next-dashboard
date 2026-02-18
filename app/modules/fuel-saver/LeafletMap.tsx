@@ -92,6 +92,7 @@ interface LeafletMapProps {
   showStateOverlay?: boolean;
   onStateClick?: (stateInfo: any) => void;
   baseLayer?: 'osm' | 'satellite' | 'terrain' | 'dark';
+  performanceMode?: boolean;
 }
 
 // Fix Leaflet icon issue
@@ -189,7 +190,8 @@ export default function LeafletMap({
   showTerrain = false,
   showStateOverlay = false,
   onStateClick,
-  baseLayer = 'osm'
+  baseLayer = 'osm',
+  performanceMode = false
 }: LeafletMapProps) {
   const [terrainLayer, setTerrainLayer] = useState<L.TileLayer | null>(null);
   const [hoveredState, setHoveredState] = useState<string | null>(null);
@@ -212,9 +214,17 @@ export default function LeafletMap({
 
   // Filter visible airports based on bounds - PERFORMANCE: only show airports in view
   const visibleAirports = useMemo(() => {
-    // Only show limited airports when zoomed out
+    // In performance mode, dramatically reduce airport count
     const zoom = mapRef.current?.getZoom() || mapZoom;
-    const maxAirports = zoom < 6 ? 50 : zoom < 8 ? 100 : 150;
+    
+    let maxAirports: number;
+    if (performanceMode) {
+      // Performance mode - very aggressive limits
+      maxAirports = zoom < 5 ? 10 : zoom < 7 ? 20 : zoom < 9 ? 40 : 60;
+    } else {
+      // Normal mode - still limited but more generous
+      maxAirports = zoom < 5 ? 30 : zoom < 7 ? 60 : zoom < 9 ? 100 : 150;
+    }
     
     if (!mapBounds) return airports.slice(0, maxAirports);
     
@@ -227,7 +237,7 @@ export default function LeafletMap({
       a.longitude >= minLon - buffer && 
       a.longitude <= maxLon + buffer
     ).slice(0, maxAirports);
-  }, [airports, mapBounds, mapZoom]);
+  }, [airports, mapBounds, mapZoom, performanceMode]);
 
   // Handle bounds change with debounce
   const handleBoundsChange = useCallback((bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number }) => {
