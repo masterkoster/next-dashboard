@@ -152,6 +152,47 @@ const AirportMarker = React.memo(function AirportMarker({
   const [popupOpen, setPopupOpen] = useState(false);
   const stateInfoTriggered = useRef(false);
 
+  // Simple state inference from coordinates (fallback)
+  const inferStateFromCoords = (lat: number, lon: number): string | null => {
+    // Very rough approximation based on lat/lon ranges
+    if (lat >= 42 && lon >= -84 && lon <= -82) return 'MI'; // Michigan (DTW area)
+    if (lat >= 40 && lon >= -75 && lon <= -73) return 'NY'; // New York
+    if (lat >= 33 && lon >= -85 && lon <= -80) return 'GA'; // Georgia
+    if (lat >= 34 && lon >= -85 && lon <= -83) return 'TN'; // Tennessee
+    if (lat >= 36 && lon >= -91 && lon <= -87) return 'IL'; // Illinois
+    if (lat >= 41 && lon >= -88 && lon <= -84) return 'IN'; // Indiana
+    if (lat >= 41 && lon >= -92 && lon <= -86) return 'OH'; // Ohio
+    if (lat >= 38 && lon >= -85 && lon <= -80) return 'OH'; // Ohio
+    if (lat >= 29 && lon >= -95 && lon <= -82) return 'FL'; // Florida area
+    if (lat >= 30 && lon >= -90 && lon <= -85) return 'MS'; // Mississippi
+    if (lat >= 32 && lon >= -90 && lon <= -88) return 'LA'; // Louisiana
+    if (lat >= 33 && lon >= -95 && lon <= -89) return 'TX'; // Texas
+    if (lat >= 34 && lon >= -120 && lon <= -114) return 'AZ'; // Arizona
+    if (lat >= 32 && lon >= -125 && lon <= -114) return 'CA'; // California
+    if (lat >= 47 && lon >= -125 && lon <= -116) return 'WA'; // Washington
+    if (lat >= 45 && lon >= -125 && lon <= -116) return 'OR'; // Oregon
+    if (lat >= 43 && lon >= -117 && lon <= -111) return 'ID'; // Idaho
+    if (lat >= 37 && lon >= -109 && lon <= -102) return 'CO'; // Colorado
+    if (lat >= 36 && lon >= -114 && lon <= -109) return 'NV'; // Nevada
+    if (lat >= 41 && lon >= -115 && lon <= -109) return 'UT'; // Utah
+    if (lat >= 41 && lon >= -111 && lon <= -104) return 'WY'; // Wyoming
+    if (lat >= 45 && lon >= -116 && lon <= -104) return 'MT'; // Montana
+    if (lat >= 43 && lon >= -104 && lon <= -96) return 'ND'; // North Dakota
+    if (lat >= 40 && lon >= -104 && lon <= -95) return 'SD'; // South Dakota
+    if (lat >= 38 && lon >= -100 && lon <= -94) return 'NE'; // Nebraska
+    if (lat >= 37 && lon >= -100 && lon <= -94) return 'KS'; // Kansas
+    if (lat >= 36 && lon >= -103 && lon <= -94) return 'OK'; // Oklahoma
+    if (lat >= 33 && lon >= -103 && lon <= -94) return 'TX'; // Texas
+    if (lat >= 29 && lon >= -90 && lon <= -81) return 'FL'; // Florida
+    if (lat >= 35 && lon >= -85 && lon <= -81) return 'NC'; // North Carolina
+    if (lat >= 32 && lon >= -83 && lon <= -78) return 'SC'; // South Carolina
+    if (lat >= 30 && lon >= -82 && lon <= -80) return 'FL'; // Florida
+    if (lat >= 28 && lon >= -83 && lon <= -80) return 'FL'; // Florida
+    if (lat >= 25 && lon >= -83 && lon <= -80) return 'FL'; // Florida
+    // Add more as needed - this is a rough fallback
+    return null;
+  };
+
   useEffect(() => {
     if (!popupOpen) return;
     stateInfoTriggered.current = false;
@@ -164,9 +205,10 @@ const AirportMarker = React.memo(function AirportMarker({
           setDetails(data);
           
           // Auto-show state info when details load
-          if (data?.state && onViewStateInfo && !stateInfoTriggered.current) {
+          const stateCode = data?.state || inferStateFromCoords(airport.latitude, airport.longitude);
+          if (stateCode && onViewStateInfo && !stateInfoTriggered.current) {
             stateInfoTriggered.current = true;
-            onViewStateInfo(data.state);
+            onViewStateInfo(stateCode);
           }
         }
       } catch (e) {
@@ -175,7 +217,7 @@ const AirportMarker = React.memo(function AirportMarker({
       setLoading(false);
     }
     fetchDetails();
-  }, [airport.icao, popupOpen, onViewStateInfo]);
+  }, [airport.icao, popupOpen, onViewStateInfo, airport.latitude, airport.longitude]);
 
   return (
     <CircleMarker
@@ -245,24 +287,40 @@ export default function LeafletMap({
     setIsClient(true);
   }, []);
 
-  // Filter visible airports based on bounds - PERFORMANCE: only show airports in view
+  // Filter visible airports based on zoom level - dynamic scaling
   const visibleAirports = useMemo(() => {
-    // In performance mode, dramatically reduce airport count
     const zoom = mapRef.current?.getZoom() || mapZoom;
     
+    // Calculate max airports based on zoom (gradual increase)
+    // Zoom 0-3: 10 airports (very zoomed out)
+    // Zoom 4-5: 25 airports
+    // Zoom 6-7: 50 airports  
+    // Zoom 8-9: 100 airports
+    // Zoom 10+: all relevant airports in view
     let maxAirports: number;
-    if (performanceMode) {
-      // Performance mode - very aggressive limits
-      maxAirports = zoom < 5 ? 10 : zoom < 7 ? 20 : zoom < 9 ? 40 : 60;
+    if (zoom <= 3) {
+      maxAirports = 10;
+    } else if (zoom <= 5) {
+      maxAirports = 25;
+    } else if (zoom <= 7) {
+      maxAirports = 50;
+    } else if (zoom <= 9) {
+      maxAirports = 100;
     } else {
-      // Normal mode - still limited but more generous
-      maxAirports = zoom < 5 ? 30 : zoom < 7 ? 60 : zoom < 9 ? 100 : 150;
+      maxAirports = 200; // Max at high zoom
     }
+    
+    // Performance mode caps at lower values
+    if (performanceMode) {
+      maxAirports = Math.min(maxAirports, 50);
+    }
+    
+    // Buffer around map bounds
+    const buffer = zoom < 5 ? 8 : zoom < 8 ? 5 : 3;
     
     if (!mapBounds) return airports.slice(0, maxAirports);
     
     const { minLat, maxLat, minLon, maxLon } = mapBounds;
-    const buffer = zoom < 5 ? 5 : 3;
     
     return airports.filter(a => 
       a.latitude >= minLat - buffer && 
