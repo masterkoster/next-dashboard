@@ -247,7 +247,7 @@ const AirportMarker = React.memo(function AirportMarker({
   return (
     <CircleMarker
       center={[airport.latitude, airport.longitude]}
-      radius={airport.type === 'large_airport' ? 10 : airport.type === 'medium_airport' ? 7 : 4}
+      radius={airport.type === 'large_airport' ? 8 : airport.type === 'medium_airport' ? 6 : 4}
       pathOptions={{
         color: getMarkerColor(airport.type),
         fillColor: getMarkerColor(airport.type),
@@ -330,7 +330,30 @@ const AirportMarker = React.memo(function AirportMarker({
               {details.frequencies && details.frequencies.length > 0 && (
                 <div className="text-xs">
                   <span className="text-slate-500">Freq:</span>{' '}
-                  {details.frequencies[0]?.frequency_mhz} ({details.frequencies[0]?.type})
+                  {details.frequencies.slice(0, 2).map((f: any, i: number) => (
+                    <span key={i} className="mr-2">{f.frequency_mhz} ({f.type})</span>
+                  ))}
+                </div>
+              )}
+              
+              {/* Attendance */}
+              {details.attendance && (
+                <div className="text-xs">
+                  <span className="text-slate-500">Attended:</span> {details.attendance}
+                </div>
+              )}
+              
+              {/* Phone */}
+              {details.phone && (
+                <div className="text-xs">
+                  <span className="text-slate-500">Phone:</span> {details.phone}
+                </div>
+              )}
+              
+              {/* Manager */}
+              {details.manager && (
+                <div className="text-xs">
+                  <span className="text-slate-500">Manager:</span> {details.manager}
                 </div>
               )}
             </div>
@@ -402,33 +425,33 @@ export default function LeafletMap({
   const visibleAirports = useMemo(() => {
     const zoom = mapRef.current?.getZoom() || mapZoom;
     
-    // Determine max small/medium airports based on zoom
+    // Determine max small/medium airports based on zoom - show more
     let maxOtherAirports: number;
     if (zoom <= 3) {
-      maxOtherAirports = 5;
-    } else if (zoom <= 5) {
       maxOtherAirports = 15;
+    } else if (zoom <= 5) {
+      maxOtherAirports = 40;
     } else if (zoom <= 7) {
-      maxOtherAirports = 30;
+      maxOtherAirports = 80;
     } else if (zoom <= 9) {
-      maxOtherAirports = 60;
-    } else {
       maxOtherAirports = 150;
+    } else {
+      maxOtherAirports = 300;
     }
     
     // Performance mode caps
     if (performanceMode) {
-      maxOtherAirports = Math.min(maxOtherAirports, 30);
+      maxOtherAirports = Math.min(maxOtherAirports, 50);
     }
     
-    // Buffer around map bounds
-    const buffer = zoom < 5 ? 10 : zoom < 8 ? 6 : 4;
+    // Smaller buffer to show more airports
+    const buffer = zoom < 5 ? 8 : zoom < 8 ? 4 : 2;
     
     if (!mapBounds) {
       // No bounds yet - show large airports + some others
       const large = airports.filter(a => a.type === 'large_airport');
       const others = airports.filter(a => a.type !== 'large_airport').slice(0, maxOtherAirports);
-      return [...large, ...others].slice(0, 100);
+      return [...large, ...others].slice(0, 200);
     }
     
     const { minLat, maxLat, minLon, maxLon } = mapBounds;
@@ -452,7 +475,7 @@ export default function LeafletMap({
     ).slice(0, maxOtherAirports);
     
     // Combine large airports (always visible) + limited others
-    return [...largeInView, ...othersInView].slice(0, 100);
+    return [...largeInView, ...othersInView].slice(0, 200);
   }, [airports, mapBounds, mapZoom, performanceMode]);
 
   // Handle bounds change with debounce
