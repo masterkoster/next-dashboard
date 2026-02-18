@@ -202,13 +202,13 @@ export const DEFAULT_MAP_OPTIONS: MapLayerOptions = {
   baseLayer: 'osm',
   showLarge: true,
   showMedium: true,
-  showSmall: false,
-  showSeaplane: false,
+  showSmall: true,
+  showSeaplane: true,
   showTerrain: false,
   showAirspaces: false,
   showFuelPrices: true,
   showStatePrices: true,
-  performanceMode: false // Off by default - turn ON for better performance
+  performanceMode: false
 };
 
 // Tile layer component for the map
