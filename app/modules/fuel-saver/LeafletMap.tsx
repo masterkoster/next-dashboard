@@ -247,7 +247,7 @@ const AirportMarker = React.memo(function AirportMarker({
   return (
     <CircleMarker
       center={[airport.latitude, airport.longitude]}
-      radius={airport.type === 'large_airport' ? 8 : airport.type === 'medium_airport' ? 6 : 4}
+      radius={airport.type === 'large_airport' ? 10 : airport.type === 'medium_airport' ? 7 : 4}
       pathOptions={{
         color: getMarkerColor(airport.type),
         fillColor: getMarkerColor(airport.type),
@@ -260,7 +260,7 @@ const AirportMarker = React.memo(function AirportMarker({
       }}
     >
       <Popup>
-        <div className="min-w-[180px] max-w-[220px] text-slate-900 text-sm">
+        <div className="min-w-[200px] max-w-[240px] text-slate-900 text-sm">
           <strong className="text-lg">{airport.icao}</strong>
           {airport.iata && <span className="ml-2 text-slate-500">({airport.iata})</span>}
           <div className="font-medium text-sm">{airport.name}</div>
@@ -275,64 +275,64 @@ const AirportMarker = React.memo(function AirportMarker({
               {/* Elevation */}
               {details.elevation_ft && (
                 <div className="text-xs">
-                  <span className="text-slate-500">Elev:</span> {details.elevation_ft} ft
-                </div>
-              )}
-              
-              {/* Fuel Price */}
-              {details.fuel && (
-                <div className="text-xs">
-                  <span className="text-slate-500">100LL:</span>{' '}
-                  <span className="font-semibold text-emerald-600">
-                    ${details.fuel.price100ll.toFixed(2)}/gal
-                  </span>
-                  {details.fuel.source && (
-                    <span className="text-slate-400 text-[10px] ml-1">({details.fuel.source})</span>
-                  )}
-                </div>
-              )}
-              
-              {/* Jet A Price */}
-              {details.fuel?.priceJetA && (
-                <div className="text-xs">
-                  <span className="text-slate-500">JetA:</span>{' '}
-                  <span className="font-semibold text-emerald-600">
-                    ${details.fuel.priceJetA.toFixed(2)}/gal
-                  </span>
-                </div>
-              )}
-              
-              {/* Landing Fee */}
-              {details.landingFee && (
-                <div className="text-xs">
-                  <span className="text-slate-500">Landing:</span> ${details.landingFee.amount}
-                </div>
-              )}
-              
-              {/* Tower */}
-              {details.hasTower !== null && details.hasTower !== undefined && (
-                <div className="text-xs">
-                  <span className="text-slate-500">Tower:</span>{' '}
-                  {details.hasTower ? 'Yes' : 'No'}
+                  <span className="text-slate-500">Elevation:</span> {details.elevation_ft} ft
                 </div>
               )}
               
               {/* Runways */}
               {details.runways && details.runways.length > 0 && (
                 <div className="text-xs">
-                  <span className="text-slate-500">RWY:</span>{' '}
-                  {details.runways.slice(0, 3).map((r: any) => r.he_ident).join(', ')}
-                  {details.runways.length > 3 && ` +${details.runways.length - 3}`}
+                  <span className="text-slate-500">Runways:</span>{' '}
+                  {details.runways.slice(0, 4).map((r: any, i: number) => (
+                    <span key={i} className="mr-1">
+                      {r.he_ident} ({r.length_ft?.toLocaleString() || '?'}ft {r.surface?.substring(0, 3)})
+                    </span>
+                  ))}
                 </div>
               )}
               
               {/* Frequencies */}
               {details.frequencies && details.frequencies.length > 0 && (
                 <div className="text-xs">
-                  <span className="text-slate-500">Freq:</span>{' '}
-                  {details.frequencies.slice(0, 2).map((f: any, i: number) => (
-                    <span key={i} className="mr-2">{f.frequency_mhz} ({f.type})</span>
-                  ))}
+                  <span className="text-slate-500">Freqs:</span>
+                  <div className="ml-2">
+                    {details.frequencies.slice(0, 4).map((f: any, i: number) => (
+                      <div key={i}>{f.frequency_mhz} {f.type} - {f.description}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Fuel Price */}
+              {details.fuel && (
+                <>
+                  <div className="text-xs font-semibold text-emerald-600">
+                    100LL: ${details.fuel.price100ll?.toFixed(2)}/gal
+                  </div>
+                  {details.fuel.lastReported && (
+                    <div className="text-xs text-slate-500">
+                      Updated: {details.fuel.lastReported}
+                    </div>
+                  )}
+                  {details.fuel.source && (
+                    <div className="text-xs text-slate-500">
+                      Source: {details.fuel.source === 'airnav' ? 'AirNav.com' : details.fuel.source}
+                    </div>
+                  )}
+                </>
+              )}
+              
+              {/* Landing Fee */}
+              {details.landingFee && (
+                <div className="text-xs">
+                  <span className="text-slate-500">Landing Fee:</span> ${details.landingFee.amount}
+                </div>
+              )}
+              
+              {/* Tower */}
+              {details.hasTower !== null && details.hasTower !== undefined && (
+                <div className="text-xs">
+                  <span className="text-slate-500">Tower:</span> {details.hasTower ? 'Yes' : 'No'}
                 </div>
               )}
               
@@ -349,13 +349,6 @@ const AirportMarker = React.memo(function AirportMarker({
                   <span className="text-slate-500">Phone:</span> {details.phone}
                 </div>
               )}
-              
-              {/* Manager */}
-              {details.manager && (
-                <div className="text-xs">
-                  <span className="text-slate-500">Manager:</span> {details.manager}
-                </div>
-              )}
             </div>
           )}
           
@@ -368,7 +361,7 @@ const AirportMarker = React.memo(function AirportMarker({
               Add to Route
             </button>
             
-            {/* Manual state info button as backup */}
+            {/* Manual state info button */}
             <button
               onClick={() => {
                 const stateCode = details?.state || inferStateFromCoords(airport.latitude, airport.longitude);
@@ -425,33 +418,33 @@ export default function LeafletMap({
   const visibleAirports = useMemo(() => {
     const zoom = mapRef.current?.getZoom() || mapZoom;
     
-    // Determine max small/medium airports based on zoom - show more
+    // Determine max small/medium airports based on zoom - fewer when zoomed out
     let maxOtherAirports: number;
     if (zoom <= 3) {
-      maxOtherAirports = 15;
+      maxOtherAirports = 5;
     } else if (zoom <= 5) {
-      maxOtherAirports = 40;
+      maxOtherAirports = 20;
     } else if (zoom <= 7) {
-      maxOtherAirports = 80;
+      maxOtherAirports = 50;
     } else if (zoom <= 9) {
-      maxOtherAirports = 150;
+      maxOtherAirports = 100;
     } else {
-      maxOtherAirports = 300;
+      maxOtherAirports = 200;
     }
     
     // Performance mode caps
     if (performanceMode) {
-      maxOtherAirports = Math.min(maxOtherAirports, 50);
+      maxOtherAirports = Math.min(maxOtherAirports, 30);
     }
     
-    // Smaller buffer to show more airports
-    const buffer = zoom < 5 ? 8 : zoom < 8 ? 4 : 2;
+    // Buffer around map bounds
+    const buffer = zoom < 5 ? 10 : zoom < 8 ? 6 : 4;
     
     if (!mapBounds) {
       // No bounds yet - show large airports + some others
       const large = airports.filter(a => a.type === 'large_airport');
       const others = airports.filter(a => a.type !== 'large_airport').slice(0, maxOtherAirports);
-      return [...large, ...others].slice(0, 200);
+      return [...large, ...others].slice(0, 100);
     }
     
     const { minLat, maxLat, minLon, maxLon } = mapBounds;
@@ -475,7 +468,7 @@ export default function LeafletMap({
     ).slice(0, maxOtherAirports);
     
     // Combine large airports (always visible) + limited others
-    return [...largeInView, ...othersInView].slice(0, 200);
+    return [...largeInView, ...othersInView].slice(0, 100);
   }, [airports, mapBounds, mapZoom, performanceMode]);
 
   // Handle bounds change with debounce
