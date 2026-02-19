@@ -438,6 +438,13 @@ function FuelSaverContent() {
   const isPro = userTier === 'pro' || isOwner;
   const isGuest = status === 'unauthenticated';
 
+  // Validation for save button
+  const canSave = waypoints.length >= 2 && 
+    (flightPlanName.trim() || 
+     callsign.trim() || 
+     pilotName.trim() || 
+     waypoints[0]?.icao);
+
   // Check if we should show the tier explainer on mount
   // Only show for guests (not logged in), not for free/pro/owner users
   useEffect(() => {
@@ -2751,8 +2758,8 @@ function FuelSaverContent() {
                       saveFlightPlan();
                     }
                   }}
-                  disabled={waypoints.length < 2}
-                  className="flex-1 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-600 text-white font-medium py-1.5 rounded text-xs"
+                  disabled={!canSave}
+                  className={`flex-1 font-medium py-1.5 rounded text-xs ${canSave ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-slate-600 text-slate-400 cursor-not-allowed'}`}
                 >
                   Save
                 </button>

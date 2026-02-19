@@ -30,10 +30,10 @@ export default async function DashboardPage() {
 
   const purchased = new Set(parsePurchasedModules(dbUser.purchasedModules));
   const availableModules = moduleCatalog.filter((module) =>
-    purchased.has(module.id),
+    !module.requiresPurchase || purchased.has(module.id),
   );
   const lockedModules = moduleCatalog.filter(
-    (module) => !purchased.has(module.id),
+    (module) => module.requiresPurchase && !purchased.has(module.id),
   );
 
   return (
