@@ -11,6 +11,8 @@ const modules = [
   { id: 'flying-club', label: 'Flying Club', href: '/modules/flying-club' },
   { id: 'fuel-saver', label: 'Fuel Saver', href: '/modules/fuel-saver' },
   { id: 'aperture', label: 'Aperture', href: '/modules/aperture' },
+  { id: 'e6b', label: 'E6B', href: '/modules/e6b' },
+  { id: 'training', label: 'Training', href: '/modules/training' },
 ];
 
 interface Invite {

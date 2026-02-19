@@ -23,12 +23,12 @@
      }
    }, []);
 
-    return (
+     return (
       <SessionProvider>
         <AuthModalProvider>
           <>
             {!isHomePage && <Navigation />}
-             <main>{children}</main>
+            <main className={isHomePage ? '' : 'pt-16'}>{children}</main>
             <OfflineBanner onSyncNow={() => setShowConflicts(true)} />
             <ConflictModal
              isOpen={showConflicts} 
