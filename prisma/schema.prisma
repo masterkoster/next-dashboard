@@ -46,6 +46,7 @@ model User {
   logbookEntries      LogbookEntry[]
   flightTracks        FlightTrack[]
   marketplaceListings MarketplaceListing[]
+  pilotProfile        PilotProfile?
 
   @@map("User")
 }
@@ -76,6 +77,23 @@ model MarketplaceListing {
 
   @@index([airportIcao], name: "idx_marketplace_airport")
   @@map("MarketplaceListing")
+}
+
+model PilotProfile {
+  id           String   @id @default(cuid()) @db.NVarChar(36)
+  userId       String   @unique @db.NVarChar(36)
+  homeAirport  String?  @db.NVarChar(10)
+  ratings      String?  @db.NVarChar(Max)
+  availability String?  @db.NVarChar(50)
+  aircraft     String?  @db.NVarChar(Max)
+  hours        Int?
+  bio          String?  @db.NVarChar(Max)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("PilotProfile")
 }
 
 model FlightTrack {

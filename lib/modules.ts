@@ -29,6 +29,13 @@ export const moduleCatalog: ModuleDefinition[] = [
     requiresPurchase: false,
   },
   {
+    id: "pilot-directory",
+    label: "Pilot Directory",
+    href: "/modules/pilot-directory",
+    description: "Discover nearby pilots, ratings, and availability",
+    requiresPurchase: false,
+  },
+  {
     id: "fuel-saver",
     label: "Fuel Saver",
     href: "/modules/fuel-saver",
