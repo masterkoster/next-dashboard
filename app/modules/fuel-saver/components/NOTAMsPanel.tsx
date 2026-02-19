@@ -49,8 +49,19 @@ export default function NotamsPanel({ waypoints, isPro = false }: NotamsPanelPro
     setError(null);
 
     try {
-      const icaos = waypoints.map(w => w.icao).join(',');
-      const res = await fetch(`/api/notams?icaos=${icaos}`);
+      // Only fetch NOTAMs for real US airports (starting with K)
+      const airportIcaos = waypoints
+        .map(w => w.icao)
+        .filter(icao => icao && icao.startsWith('K'))
+        .join(',');
+      
+      if (!airportIcaos) {
+        setNotams([]);
+        setLoading(false);
+        return;
+      }
+      
+      const res = await fetch(`/api/notams?icaos=${airportIcaos}`);
       
       if (!res.ok) {
         throw new Error('Failed to fetch NOTAMs');
