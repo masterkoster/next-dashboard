@@ -369,12 +369,10 @@ function FuelSaverContent() {
     
     if (planParam) {
       try {
-        // Decode base64 plan data
         const decoded = decodeURIComponent(atob(planParam));
         const planData = JSON.parse(decoded);
         
         if (planData.waypoints && Array.isArray(planData.waypoints)) {
-          // Convert to waypoints with sequence
           const loadedWaypoints = planData.waypoints.map((w: any, i: number) => ({
             ...w,
             id: `shared-${i}`,
@@ -389,8 +387,6 @@ function FuelSaverContent() {
           if (planData.name) {
             setFlightPlanName(planData.name);
           }
-          
-          console.log('Loaded shared flight plan:', planData.name);
         }
       } catch (e) {
         console.error('Error loading shared plan:', e);
@@ -2039,18 +2035,219 @@ function FuelSaverContent() {
                           <div className="text-[10px] text-slate-500 px-1">
                             GS: {routeWeather.summary.totalTimeWithWind}min vs {routeWeather.summary.totalTimeStillAir}min still air
                           </div>
+                        </div>
+                      )}
                     </div>
                   )}
+                </div>
+              ) : activeTab === 'e6b' ? (
+                /* E6B Calculator Tab */
+                <div className="p-3 space-y-4">
+                  <div className="text-sm font-semibold text-white">🧮 E6B Wind Correction</div>
                   
-                  {/* NOTAMs Panel - shown in sidebar when there are waypoints */}
-                  {waypoints.length > 0 && (
-                    <NotamsPanel 
-                      waypoints={waypoints} 
-                      isPro={isPro}
-                    />
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">True Airspeed (TAS)</label>
+                      <input
+                        type="number"
+                        value={e6bTAS}
+                        onChange={(e) => setE6bTAS(Number(e.target.value))}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Heading (°)</label>
+                      <input
+                        type="number"
+                        value={e6bHeading}
+                        onChange={(e) => setE6bHeading(Number(e.target.value))}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Wind From (°)</label>
+                        <input
+                          type="number"
+                          value={e6bWindDir}
+                          onChange={(e) => setE6bWindDir(Number(e.target.value))}
+                          className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Wind Speed (kts)</label>
+                        <input
+                          type="number"
+                          value={e6bWindspeed}
+                          onChange={(e) => setE6bWindspeed(Number(e.target.value))}
+                          className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                        />
+                      </div>
+                    </div>
+                    
+                    <button
+                      onClick={calculateE6B}
+                      className="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 rounded text-sm"
+                    >
+                      Calculate
+                    </button>
+                    
+                    {e6bResult && (
+                      <div className="bg-slate-700 rounded p-3 space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-slate-400 text-sm">Ground Speed:</span>
+                          <span className="text-white font-bold">{e6bResult.groundSpeed} kts</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400 text-sm">Track:</span>
+                          <span className="text-white font-bold">{e6bResult.track}°</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-slate-400 text-sm">Wind Correction:</span>
+                          <span className={`font-bold ${e6bResult.windCorrection > 0 ? 'text-amber-400' : e6bResult.windCorrection < 0 ? 'text-blue-400' : 'text-white'}`}>
+                            {e6bResult.windCorrection > 0 ? '+' : ''}{e6bResult.windCorrection}°
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="text-xs text-slate-500">
+                    Use weather data from your route to get wind info for accurate calculations.
+                  </div>
+                </div>
+              ) : (
+                /* Waypoints Tab */
+                <div className="p-1.5">
+                  {/* Weather Toggle */}
+                  <div className="flex items-center justify-between mb-2 px-1">
+                    <span className="text-xs text-slate-400">{waypoints.length} waypoints</span>
+                    <button
+                      onClick={() => {
+                        if (!showWeather) {
+                          fetchWaypointWeather();
+                        }
+                        setShowWeather(!showWeather);
+                      }}
+                      disabled={weatherLoading}
+                      className={`text-xs px-2 py-1 rounded transition ${
+                        showWeather 
+                          ? 'bg-sky-600 text-white' 
+                          : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                      }`}
+                    >
+                      {weatherLoading ? 'Loading...' : '🌤 Weather'}
+                    </button>
+                  </div>
+
+                  {waypoints.length === 0 ? (
+                    <div className="text-center py-2 text-slate-500 text-xs">
+                      <p>No waypoints</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {waypoints.map((wp, i) => {
+                        const legInfo = routeStats?.legs?.[i];
+                        
+                        return (
+                          <div key={wp.id} className="bg-slate-700 rounded p-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                <span className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-xs">
+                                  {i + 1}
+                                </span>
+                                <div>
+                                  <div className="font-medium text-white text-xs">{wp.icao}</div>
+                                  <div className="text-xs text-slate-400">{wp.city || wp.name}</div>
+                                </div>
+                              </div>
+                              <div className="flex gap-0.5">
+                                <button 
+                                  onClick={() => moveWaypoint(wp.id, 'up')}
+                                  disabled={i === 0}
+                                  className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-0.5"
+                                >↑</button>
+                                <button 
+                                  onClick={() => moveWaypoint(wp.id, 'down')}
+                                  disabled={i === waypoints.length - 1}
+                                  className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-0.5"
+                                >↓</button>
+                                <button 
+                                  onClick={() => removeWaypoint(wp.id)}
+                                  className="text-red-400 hover:text-red-300 text-xs p-0.5"
+                                >✕</button>
+                              </div>
+                            </div>
+                            
+                            {/* Leg stats - shows for all except last waypoint */}
+                            {legInfo && (
+                              <div className="mt-1 pt-1 border-t border-slate-600 flex justify-between text-xs">
+                                <span className="text-sky-400">→ {legInfo.to.icao}</span>
+                                <span className="text-amber-400">{Math.round(legInfo.distance)}NM</span>
+                                <span className="text-emerald-400">${legInfo.cost.toFixed(0)}</span>
+                              </div>
+                            )}
+
+                            {/* Weather info for this waypoint */}
+                            {showWeather && waypointWeather[wp.icao] && (
+                              <div className="mt-2 pt-2 border-t border-slate-600 text-xs space-y-1">
+                                <div className="flex justify-between">
+                                  <span className="text-slate-400">Flight Cat:</span>
+                                  <span className={`font-medium ${
+                                    waypointWeather[wp.icao].flightCategory === 'VFR' ? 'text-green-400' :
+                                    waypointWeather[wp.icao].flightCategory === 'MVFR' ? 'text-blue-400' :
+                                    waypointWeather[wp.icao].flightCategory === 'IFR' ? 'text-red-400' :
+                                    'text-purple-400'
+                                  }`}>
+                                    {waypointWeather[wp.icao].flightCategory || 'N/A'}
+                                  </span>
+                                </div>
+                                {waypointWeather[wp.icao].isForecast && (
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Type:</span>
+                                    <span className="text-amber-400 text-xs">☁️ Forecast</span>
+                                  </div>
+                                )}
+                                {waypointWeather[wp.icao].ws && (
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Wind:</span>
+                                    <span className="text-white">
+                                      {waypointWeather[wp.icao].ws.value}@{waypointWeather[wp.icao].wd?.value}°
+                                    </span>
+                                  </div>
+                                )}
+                                {waypointWeather[wp.icao].temp && (
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Temp:</span>
+                                    <span className="text-white">{waypointWeather[wp.icao].temp}°C</span>
+                                  </div>
+                                )}
+                                {waypointWeather[wp.icao].altimeter && (
+                                  <div className="flex justify-between">
+                                    <span className="text-slate-400">Alt:</span>
+                                    <span className="text-white">{(waypointWeather[wp.icao].altimeter / 100).toFixed(2)}"</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               )}
+              
+              {/* NOTAMs Panel - shown in sidebar when there are waypoints */}
+              {waypoints.length > 0 && (
+                <NotamsPanel 
+                  waypoints={waypoints} 
+                  isPro={isPro}
+                />
+              )}
+            </div>
 
             {/* Bottom Actions - Load/Save/Import */}
             <div className="p-2 border-t border-slate-700 bg-slate-800 flex-shrink-0 space-y-1">
@@ -2192,7 +2389,6 @@ function FuelSaverContent() {
                     }}
                   />
                 )}
-                
                 <div className="absolute top-4 right-4 z-[1001]">
                   <PerformanceSettingsPanel onSettingsChange={setPerformanceSettings} />
                 </div>
