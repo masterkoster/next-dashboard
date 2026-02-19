@@ -77,7 +77,7 @@ export default function LoginPage() {
                 htmlFor="username" 
                 className="block text-sm font-medium text-slate-300"
               >
-                Username or Email
+                Username
               </label>
               <input
                 id="username"
@@ -86,16 +86,13 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                placeholder="username or email"
+                placeholder="your username"
                 required
                 autoComplete="username"
                 autoFocus
                 aria-required="true"
-                aria-label="Username or email address"
+                aria-label="Username"
               />
-              <p className="mt-1 text-xs text-slate-500">
-                New users: login with your username. Old users: your email still works.
-              </p>
             </div>
 
             <div>

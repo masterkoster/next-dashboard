@@ -21,14 +21,15 @@ export default async function DashboardPage() {
 
   const dbUser = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { name: true, purchasedModules: true, credits: true, tier: true }
+    select: { name: true, purchasedModules: true, credits: true, tier: true, role: true }
   });
 
   if (!dbUser) {
     redirect("/login");
   }
 
-  const isProPlus = dbUser.tier === 'proplus';
+  const isAdmin = dbUser.role === 'admin' || dbUser.role === 'owner';
+  const isProPlus = dbUser.tier === 'proplus' || isAdmin;
   const purchased = new Set(parsePurchasedModules(dbUser.purchasedModules));
   const availableModules = moduleCatalog.filter((module) =>
     !module.requiresPurchase || purchased.has(module.id) || isProPlus,

@@ -61,15 +61,7 @@ export default function LandingPage() {
         {/* Background decoration */}
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-emerald-900/20 via-transparent to-transparent" />
         
-        {/* Header */}
-        <div className="absolute top-4 right-4 z-30">
-          <button
-            onClick={() => openLoginModal()}
-            className="rounded-lg bg-slate-800 hover:bg-slate-700 px-4 py-2 text-sm font-medium text-white transition border border-slate-700"
-          >
-            Log In
-          </button>
-        </div>
+
 
         {/* Animated Hero with fun plane */}
         <div className="relative h-[380px]">
@@ -121,34 +113,20 @@ export default function LandingPage() {
               Manage Your Club.
             </p>
             
-            <p className="text-slate-400 mb-6 text-center max-w-lg text-lg">
+            <p className="text-slate-400 mb-4 text-center max-w-lg text-lg">
               Quick flight planning that does the job.<br/>
               When you need more — ForeFlight&apos;s there.<br/>
               For quick planning — we&apos;re here.
             </p>
             
-            <div className="flex flex-wrap justify-center gap-4 mb-2">
-              <Link
-                href="/modules/fuel-saver"
-                className="rounded-xl bg-emerald-500 hover:bg-emerald-400 px-8 py-3 font-semibold text-white transition text-lg shadow-lg hover:shadow-emerald-500/25"
-              >
-                ⛽ Try Fuel Saver
-              </Link>
-              <Link
-                href="/modules/flying-club?demo=true"
-                className="rounded-xl bg-sky-500 hover:bg-sky-400 px-8 py-3 font-semibold text-white transition text-lg shadow-lg hover:shadow-sky-500/25"
-              >
-                ✈️ Try Flying Club
-              </Link>
-            </div>
             <button
               onClick={() => openLoginModal()}
-              className="text-slate-400 hover:text-white text-sm underline underline-offset-4"
+              className="text-sky-400 hover:text-sky-300 text-lg underline underline-offset-4 mb-2"
             >
               Log In
             </button>
-            <p className="text-slate-500 text-xs mt-2">
-              Start free — ready to try
+            <p className="text-slate-500 text-sm">
+              Ready to try a module? Just click on any below.
             </p>
           </div>
         </div>
