@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcrypt"
+import crypto from "crypto"
+import { sendVerificationEmail } from "@/lib/email"
 
 // Singleton pattern to prevent multiple instances
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined }
@@ -12,11 +14,20 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
+function generateUsername(name: string, email: string): string {
+  // Try to use name first, then email prefix
+  let base = name?.trim() || email.split('@')[0]
+  // Remove special chars, spaces
+  base = base.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
+  // Add random numbers if needed
+  return base + Math.floor(Math.random() * 1000)
+}
+
 export async function POST(request: Request) {
   try {
     console.log("Signup attempt")
     
-    const { name, email, password } = await request.json()
+    const { name, email, password, username: providedUsername } = await request.json()
     
     if (!email || !password) {
       return NextResponse.json(
@@ -25,40 +36,90 @@ export async function POST(request: Request) {
       )
     }
     
+    if (password.length < 6) {
+      return NextResponse.json(
+        { error: "Password must be at least 6 characters" },
+        { status: 400 }
+      )
+    }
+    
     const normalizedEmail = email.trim().toLowerCase()
+    const username = (providedUsername || generateUsername(name, email)).toLowerCase()
     
-    console.log("Checking existing user:", normalizedEmail)
+    console.log("Checking existing email:", normalizedEmail)
     
-    const existingUser = await prisma.user.findUnique({
+    // Check if email exists
+    const existingEmail = await prisma.user.findUnique({
       where: { email: normalizedEmail }
     })
     
-    if (existingUser) {
+    if (existingEmail) {
       return NextResponse.json(
         { error: "Email already exists" },
         { status: 400 }
       )
     }
     
+    // Check if username exists
+    console.log("Checking username:", username)
+    const existingUsername = await prisma.user.findUnique({
+      where: { username }
+    })
+    
+    if (existingUsername) {
+      // Generate a unique username
+      const uniqueUsername = username + Math.floor(Math.random() * 10000)
+      console.log("Username taken, using:", uniqueUsername)
+    }
+    
     console.log("Hashing password")
     const hashedPassword = await bcrypt.hash(password, 10)
     
-    console.log("Creating user")
+    // Generate verification token
+    const verifyToken = crypto.randomBytes(32).toString("hex")
+    const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
+    
+    const finalUsername = existingUsername ? username + Math.floor(Math.random() * 10000) : username
+    
+    console.log("Creating user with username:", finalUsername)
     const user = await prisma.user.create({
       data: {
-        name: name || normalizedEmail.split("@")[0],
+        username: finalUsername,
+        name: name || finalUsername,
         email: normalizedEmail,
         password: hashedPassword,
         purchasedModules: "[]",
-        credits: 10
+        credits: 10,
+        verifyToken,
+        verifyTokenExpiry,
+        // emailVerified is null by default (not verified)
       }
     })
     
     console.log("User created:", user.id)
     
+    // Send verification email
+    console.log("Sending verification email...")
+    const emailResult = await sendVerificationEmail(
+      normalizedEmail,
+      verifyToken,
+      user.name || finalUsername
+    )
+    
+    if (!emailResult.success) {
+      console.error("Failed to send verification email:", emailResult.error)
+      // Don't fail signup if email fails - user can resend later
+    }
+    
     return NextResponse.json({ 
       success: true, 
-      user: { id: user.id, email: user.email } 
+      user: { 
+        id: user.id, 
+        email: user.email,
+        username: user.username,
+        emailVerified: user.emailVerified
+      },
+      message: "Account created! Please check your email to verify your account."
     })
   } catch (error) {
     console.error("Signup error:", error)

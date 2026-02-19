@@ -22,23 +22,31 @@ export const authOptions: any = {
     CredentialsProvider({
       name: "credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        username: { label: "Username or Email", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials: any) {
-        console.log("Authorize called with:", credentials?.email)
+        console.log("Authorize called with:", credentials?.username)
         
-        if (!credentials?.email || !credentials?.password) {
+        if (!credentials?.username || !credentials?.password) {
           console.log("Missing credentials")
           return null
         }
         
         try {
-          const email = (credentials.email as string).trim().toLowerCase()
+          const input = (credentials.username as string).trim().toLowerCase()
           
-          const user: any = await prisma.user.findUnique({
-            where: { email }
+          // Try to find user by username first, then by email
+          let user: any = await prisma.user.findUnique({
+            where: { username: input }
           })
+          
+          // If not found by username, try email (for backward compatibility)
+          if (!user) {
+            user = await prisma.user.findUnique({
+              where: { email: input }
+            })
+          }
           
           console.log("User found:", !!user, "Has password:", !!user?.password)
           
@@ -70,7 +78,14 @@ export const authOptions: any = {
           
           if (!isValid) return null
           
-          return { id: user.id, email: user.email, name: user.name, role: user.role }
+          return { 
+            id: user.id, 
+            email: user.email, 
+            name: user.name,
+            username: user.username,
+            emailVerified: user.emailVerified,
+            role: user.role 
+          }
         } catch (error) {
           console.error("Authorize error:", error)
           throw error
@@ -101,6 +116,8 @@ export const authOptions: any = {
     async jwt({ token, user }: { token: any; user?: any }) {
       if (user) {
         token.id = user.id
+        token.username = user.username
+        token.emailVerified = user.emailVerified
         token.role = user.role
       }
       return token
@@ -108,6 +125,8 @@ export const authOptions: any = {
     async session({ session, token }: { session: any; token: any }) {
       if (session.user) {
         session.user.id = token.id
+        session.user.username = token.username
+        session.user.emailVerified = token.emailVerified
         session.user.role = token.role
       }
       return session
