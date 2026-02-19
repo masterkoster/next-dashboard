@@ -640,10 +640,10 @@ function FuelSaverContent() {
   const [e6bResult, setE6bResult] = useState<{ groundSpeed: number; windCorrection: number; track: number } | null>(null);
   
   const tabs = [
-    { id: 'details', label: 'Details' },
-    { id: 'waypoints', label: 'Route' },
-    { id: 'e6b', label: 'E6B' },
-    { id: 'info', label: 'Info' }
+    { id: 'details', label: '📋 Details' },
+    { id: 'waypoints', label: '📍 Route' },
+    { id: 'e6b', label: '🔧 Tools' },
+    { id: 'info', label: '🌤 Weather' }
   ];
   
   // E6B Wind Correction calculation
@@ -1922,7 +1922,7 @@ function FuelSaverContent() {
                   ‹
                 </button>
                 <div className="flex-1 flex overflow-hidden">
-                  {tabs.slice(tabIndex, tabIndex + 3).map((tab) => (
+                  {tabs.slice(tabIndex, tabIndex + 4).map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as 'details' | 'waypoints' | 'info' | 'e6b')}
@@ -1937,8 +1937,8 @@ function FuelSaverContent() {
                   ))}
                 </div>
                 <button
-                  onClick={() => setTabIndex(Math.min(tabs.length - 2, tabIndex + 1))}
-                  disabled={tabIndex >= tabs.length - 2}
+                  onClick={() => setTabIndex(Math.min(tabs.length - 3, tabIndex + 1))}
+                  disabled={tabIndex >= tabs.length - 3}
                   className="p-1.5 text-slate-400 disabled:opacity-30 hover:text-white"
                 >
                   ›
