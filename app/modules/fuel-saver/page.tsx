@@ -2254,10 +2254,10 @@ function FuelSaverContent() {
               {/* Trip Finder - always available */}
               <TripFinder 
                 airports={airports}
-                departureAirport={waypoints[0]}
+                waypoints={waypoints}
                 aircraft={selectedAircraft}
                 fuelPrices={fuelPrices}
-                onSelectAirport={(airport) => addWaypoint(airport)}
+                onAddWaypoint={(airport) => addWaypoint(airport)}
               />
             </div>
 
