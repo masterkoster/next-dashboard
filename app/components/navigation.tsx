@@ -12,6 +12,7 @@ const modules = [
   { id: 'e6b', label: 'E6B', href: '/modules/e6b' },
   { id: 'training', label: 'Training', href: '/modules/training' },
   { id: 'logbook', label: 'Logbook', href: '/modules/logbook' },
+  { id: 'proplus-dashboard', label: 'Pro+ Dashboard', href: '/modules/proplus-dashboard' },
 ];
 
 interface Invite {
