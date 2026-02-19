@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Waypoint, downloadGPX, downloadFPL, downloadJSON, downloadNavLog, FlightPlanData } from '../lib/exportUtils';
+import { Waypoint, downloadGPX, downloadFPL, downloadJSON, downloadNavLog, downloadNavLogPdf, FlightPlanData } from '../lib/exportUtils';
 
 interface ExportDropdownProps {
   waypoints: Waypoint[];
@@ -101,7 +101,28 @@ export default function ExportDropdown({
       },
       cruisingAltitude || 5500,
       fuelPrices,
-      detailed
+      detailed,
+      flightPlanName
+    );
+    setIsOpen(false);
+  };
+
+  const handleExportNavLogPdf = (detailed: boolean) => {
+    if (!aircraft || waypoints.length < 2) return;
+    downloadNavLogPdf(
+      waypoints,
+      {
+        name: aircraftType || aircraft.name,
+        speed: aircraft.speed,
+        burnRate: aircraft.burnRate,
+        fuelCapacity: aircraft.fuelCapacity
+      },
+      cruisingAltitude || 5500,
+      fuelPrices,
+      {
+        detailed,
+        planName: flightPlanName
+      }
     );
     setIsOpen(false);
   };
@@ -212,6 +233,34 @@ export default function ExportDropdown({
               <div className="flex-1 text-left">
                 <div>Nav Log (Detailed)</div>
                 <div className="text-xs text-slate-400">Wind, mag var, headings</div>
+              </div>
+            </button>
+
+            <div className="border-t border-slate-700 my-1" />
+
+            {/* Nav Log PDF - Basic */}
+            <button
+              onClick={() => handleExportNavLogPdf(false)}
+              disabled={waypoints.length < 2}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="text-lg">🖨️</span>
+              <div className="flex-1 text-left">
+                <div>Nav Log PDF</div>
+                <div className="text-xs text-slate-400">Shareable PDF export</div>
+              </div>
+            </button>
+
+            {/* Nav Log PDF - Detailed */}
+            <button
+              onClick={() => handleExportNavLogPdf(true)}
+              disabled={waypoints.length < 2}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="text-lg">🧾</span>
+              <div className="flex-1 text-left">
+                <div>Nav Log PDF (Detailed)</div>
+                <div className="text-xs text-slate-400">Headings, winds, costs</div>
               </div>
             </button>
 

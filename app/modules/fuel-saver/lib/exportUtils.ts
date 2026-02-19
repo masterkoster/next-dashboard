@@ -2,6 +2,8 @@
  * Magnetic variation utility
  */
 import { calculateMagneticVariation, trueToMagnetic } from './magneticVariation';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 /**
  * Calculate great circle distance in nautical miles
@@ -544,11 +546,13 @@ export function createNavLogData(
   aircraft: { name: string; speed: number; burnRate: number; fuelCapacity: number },
   cruisingAltitude: number,
   fuelPrices: Record<string, { price100ll: number | null }>,
-  windData: Record<string, { direction: number; speed: number }> = {} // Optional wind by waypoint
+  windData: Record<string, { direction: number; speed: number }> = {}, // Optional wind by waypoint
+  planName?: string
 ): NavLogData | null {
   if (waypoints.length < 2) return null;
 
-  const name = `Flight ${waypoints[0].icao} to ${waypoints[waypoints.length - 1].icao}`;
+  const derivedName = `Flight ${waypoints[0].icao} to ${waypoints[waypoints.length - 1].icao}`;
+  const name = planName?.trim()?.length ? planName.trim() : derivedName;
   const date = new Date().toLocaleDateString('en-US', { 
     year: 'numeric', 
     month: 'numeric', 
@@ -649,9 +653,10 @@ export function downloadNavLog(
   aircraft: { name: string; speed: number; burnRate: number; fuelCapacity: number },
   cruisingAltitude: number,
   fuelPrices: Record<string, { price100ll: number | null }>,
-  detailed: boolean = false
+  detailed: boolean = false,
+  planName?: string
 ): void {
-  const navLogData = createNavLogData(waypoints, aircraft, cruisingAltitude, fuelPrices);
+  const navLogData = createNavLogData(waypoints, aircraft, cruisingAltitude, fuelPrices, undefined, planName);
   if (!navLogData) return;
 
   const html = detailed ? generateDetailedNavLog(navLogData) : generateBasicNavLog(navLogData);
@@ -666,4 +671,121 @@ export function downloadNavLog(
       printWindow.print();
     };
   }
+}
+
+/**
+ * Download Nav Log as a styled PDF
+ */
+export function downloadNavLogPdf(
+  waypoints: Waypoint[],
+  aircraft: { name: string; speed: number; burnRate: number; fuelCapacity: number },
+  cruisingAltitude: number,
+  fuelPrices: Record<string, { price100ll: number | null }>,
+  options?: { detailed?: boolean; planName?: string }
+): void {
+  const navLogData = createNavLogData(
+    waypoints,
+    aircraft,
+    cruisingAltitude,
+    fuelPrices,
+    undefined,
+    options?.planName
+  );
+
+  if (!navLogData) return;
+
+  const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'letter' });
+  const margin = 14;
+  const lineHeight = 6;
+  const headingY = margin + 4;
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  doc.text(navLogData.name || 'Flight Plan Nav Log', margin, headingY);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  const metaLines = [
+    `Aircraft: ${navLogData.aircraft}`,
+    `Route: ${navLogData.departure} → ${navLogData.arrival}`,
+    `Altitude: ${cruisingAltitude.toLocaleString()} ft`,
+    `Date: ${navLogData.date}`
+  ];
+  metaLines.forEach((line, idx) => {
+    doc.text(line, margin, headingY + 10 + idx * lineHeight);
+  });
+
+  const tableHead = options?.detailed
+    ? [['Leg', 'Course°', 'True HDG°', 'Mag HDG°', 'GS (kt)', 'Dist (NM)', 'Time', 'Fuel (gal)', 'Cost ($)']]
+    : [['Leg', 'Course°', 'Dist (NM)', 'Time', 'Fuel (gal)', 'Cost ($)']];
+
+  const formatTime = (timeMinutes: number) => {
+    const hours = Math.floor(timeMinutes / 60);
+    const minutes = Math.round(timeMinutes % 60);
+    return `${hours}h ${minutes.toString().padStart(2, '0')}m`;
+  };
+
+  const tableBody = navLogData.legs.map((leg, index) => {
+    const legLabel = `${index + 1}. ${leg.from.icao} → ${leg.to.icao}`;
+    if (options?.detailed) {
+      return [
+        legLabel,
+        `${leg.course.toFixed(0)}`,
+        `${leg.trueHeading.toFixed(0)}`,
+        `${leg.magneticHeading.toFixed(0)}`,
+        `${leg.groundspeed.toFixed(0)}`,
+        `${leg.distance.toFixed(1)}`,
+        formatTime(leg.time),
+        `${leg.fuelWithReserves.toFixed(1)}`,
+        `$${leg.cost.toFixed(0)}`
+      ];
+    }
+
+    return [
+      legLabel,
+      `${leg.course.toFixed(0)}`,
+      `${leg.distance.toFixed(1)}`,
+      formatTime(leg.time),
+      `${leg.fuelWithReserves.toFixed(1)}`,
+      `$${leg.cost.toFixed(0)}`
+    ];
+  });
+
+  autoTable(doc, {
+    head: tableHead,
+    body: tableBody,
+    startY: headingY + 10 + metaLines.length * lineHeight + 4,
+    styles: { fontSize: 9, cellPadding: 3 },
+    headStyles: { fillColor: [15, 23, 42], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    columnStyles: {
+      0: { halign: 'left' }
+    }
+  });
+
+  const tableY = (doc as any).lastAutoTable?.finalY || 0;
+  const summaryY = tableY + 8;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.text('Summary', margin, summaryY);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+
+  const summaryLines = [
+    `Total Distance: ${navLogData.totalDistance.toFixed(1)} NM`,
+    `Estimated Time: ${formatTime(navLogData.totalTime)}`,
+    `Fuel Required: ${navLogData.totalFuel.toFixed(1)} gal`,
+    `Estimated Cost: $${navLogData.totalCost.toFixed(0)}`
+  ];
+
+  summaryLines.forEach((line, idx) => {
+    doc.text(line, margin, summaryY + 6 + idx * lineHeight);
+  });
+
+  doc.setFontSize(8);
+  doc.setTextColor(120);
+  doc.text('Generated by FuelSaver — For planning purposes only', margin, doc.internal.pageSize.getHeight() - margin);
+
+  const filenameBase = navLogData.name?.replace(/[^a-z0-9]/gi, '-').toLowerCase() || 'flight-plan';
+  doc.save(`${filenameBase}-navlog.pdf`);
 }
