@@ -14,6 +14,7 @@ export async function GET() {
       where: { id: session.user.id },
       select: { 
         tier: true,
+        role: true,
         subscriptionEnd: true,
         emailVerified: true,
       }
@@ -23,13 +24,19 @@ export async function GET() {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
+    // Admins and owners always have Pro+ access
+    const isAdmin = user.role === 'admin' || user.role === 'owner';
+    
     // Check if subscription is still valid
     const isSubscriptionValid = user.subscriptionEnd 
       ? new Date(user.subscriptionEnd) > new Date()
       : user.tier === 'free';
 
+    // Return proplus if user is admin/owner OR has valid proplus subscription
+    const effectiveTier = isAdmin || (user.tier === 'proplus' && isSubscriptionValid) ? 'proplus' : (isSubscriptionValid ? user.tier : 'free');
+
     return NextResponse.json({
-      tier: isSubscriptionValid ? user.tier : 'free',
+      tier: effectiveTier,
       subscriptionEnd: user.subscriptionEnd,
       emailVerified: user.emailVerified,
     });
