@@ -213,8 +213,26 @@ function FuelSaverContent() {
   const [loadingAirports, setLoadingAirports] = useState(false);
   const [mapBounds, setMapBounds] = useState({ minLat: 25, maxLat: 50, minLon: -130, maxLon: -65 });
   const [showAllAirports, setShowAllAirports] = useState(false);
+  const [showInternational, setShowInternational] = useState(false); // Show Canada/Mexico airports
   const [mapCenter, setMapCenter] = useState<[number, number]>([39.8283, -98.5795]);
   const [mapZoom, setMapZoom] = useState(5);
+  
+  // Geographic bounds for USA/Canada/Mexico (default restricted area)
+  const NORTH_AMERICA_BOUNDS = {
+    minLat: 15, maxLat: 72,  // Mexico to northern Canada
+    minLon: -180, maxLon: -50 // Include Alaska
+  };
+  
+  // Check if airport is in North America (USA, Canada, Mexico)
+  const isNorthAmerica = (airport: Airport) => {
+    const { latitude, longitude } = airport;
+    return (
+      latitude >= NORTH_AMERICA_BOUNDS.minLat &&
+      latitude <= NORTH_AMERICA_BOUNDS.maxLat &&
+      longitude >= NORTH_AMERICA_BOUNDS.minLon &&
+      longitude <= NORTH_AMERICA_BOUNDS.maxLon
+    );
+  };
   
   // Map layer options
   const [mapOptions, setMapOptions] = useState<MapLayerOptions>(DEFAULT_MAP_OPTIONS);
@@ -291,6 +309,9 @@ function FuelSaverContent() {
   const [waypoints, setWaypoints] = useState<Waypoint[]>([]);
   const [departureFuel, setDepartureFuel] = useState(100);
   const [selectedAircraft, setSelectedAircraft] = useState(AIRCRAFT_PROFILES[0]);
+  
+  // Drag and drop for leg reordering
+  const [draggedLegIndex, setDraggedLegIndex] = useState<number | null>(null);
   
   // Fuel data
   const [fuelPrices, setFuelPrices] = useState<Record<string, FuelPrice>>({});
@@ -717,7 +738,7 @@ function FuelSaverContent() {
       try {
         const sizeParam = showAllAirports ? 'seaplane' : 'medium';
         const res = await fetch(
-          `/api/airports/bounds?minLat=${mapBounds.minLat}&maxLat=${mapBounds.maxLat}&minLon=${mapBounds.minLon}&maxLon=${mapBounds.maxLon}&minSize=${sizeParam}&limit=100`
+          `/api/airports/bounds?minLat=${mapBounds.minLat}&maxLat=${mapBounds.maxLat}&minLon=${mapBounds.minLon}&maxLon=${mapBounds.maxLon}&minSize=${sizeParam}&limit=100&country=US`
         );
         const data = await res.json();
         if (data.airports && data.airports.length > 0) {
@@ -837,13 +858,16 @@ function FuelSaverContent() {
           a.icao.toUpperCase().includes(q) || a.iata?.toUpperCase().includes(q) || 
           a.name.toUpperCase().includes(q) || a.city?.toUpperCase().includes(q)
         );
-        // Combine and dedupe
+        // Combine and dedupe, then filter by region if international is disabled
         const combined = [...demoResults];
         const seen = new Set(combined.map(a => a.icao));
         for (const a of [...mapResults, ...cachedResults]) {
           if (!seen.has(a.icao)) {
-            seen.add(a.icao);
-            combined.push(a);
+            // Only include if in North America or international is enabled
+            if (showInternational || isNorthAmerica(a)) {
+              seen.add(a.icao);
+              combined.push(a);
+            }
           }
         }
         setSearchResults(combined.slice(0, 10));
@@ -853,7 +877,7 @@ function FuelSaverContent() {
       setSearchResults([]);
       setShowSearchResults(false);
     }
-  }, [airports, cachedAirports]);
+  }, [airports, cachedAirports, showInternational]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -2263,7 +2287,7 @@ function FuelSaverContent() {
                       <button
                         onClick={fitMapToWaypoints}
                         disabled={waypoints.length === 0}
-                        className="text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30"
+                        className="flex-1 text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30 min-w-[60px]"
                         title="Fit map to show all waypoints"
                       >
                         ⊙ Fit
@@ -2271,7 +2295,7 @@ function FuelSaverContent() {
                       <button
                         onClick={toggleRoundTrip}
                         disabled={waypoints.length < 2}
-                        className="text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30"
+                        className="flex-1 text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30 min-w-[60px]"
                         title={waypoints[0]?.icao === waypoints[waypoints.length-1]?.icao ? "Remove return leg" : "Add return leg"}
                       >
                         {waypoints[0]?.icao === waypoints[waypoints.length-1]?.icao ? '↩️ One-way' : '🔄 Round Trip'}
@@ -2279,7 +2303,7 @@ function FuelSaverContent() {
                       <button
                         onClick={optimizeRoute}
                         disabled={waypoints.length < 3}
-                        className="text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30"
+                        className="flex-1 text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30 min-w-[60px]"
                         title="Optimize route for shortest distance"
                       >
                         ⚡ Optimize
@@ -2511,10 +2535,13 @@ function FuelSaverContent() {
                 <LeafletMap
                   key={showPanel ? 'map-open' : 'map-closed'}
                   airports={airports.filter(a => {
+                    // Filter by airport type
                     if (a.type === 'large_airport' && !mapOptions.showLarge) return false;
                     if (a.type === 'medium_airport' && !mapOptions.showMedium) return false;
                     if (a.type === 'small_airport' && !mapOptions.showSmall) return false;
                     if (a.type === 'seaplane_base' && !mapOptions.showSeaplane) return false;
+                    // Filter by region - hide Canada/Mexico unless toggle is on
+                    if (!showInternational && !isNorthAmerica(a)) return false;
                     return true;
                   })}
                   waypoints={waypoints}
@@ -2545,9 +2572,21 @@ function FuelSaverContent() {
                     }}
                   />
                 )}
-                <div className="absolute top-4 right-4 z-[1001]">
-                  <PerformanceSettingsPanel onSettingsChange={setPerformanceSettings} />
+                {/* International Toggle - Hidden by default, shows Canada/Mexico */}
+                <div className="absolute top-4 left-4 z-[1001]">
+                  <button
+                    onClick={() => setShowInternational(!showInternational)}
+                    className={`px-2 py-1.5 text-xs rounded-lg shadow-lg border transition-colors ${
+                      showInternational 
+                        ? 'bg-emerald-600 border-emerald-500 text-white' 
+                        : 'bg-slate-800/90 border-slate-600 text-slate-300 hover:bg-slate-700'
+                    }`}
+                    title={showInternational ? 'Hiding Canada/Mexico airports' : 'Show Canada/Mexico airports'}
+                  >
+                    🌍 Intl {showInternational ? 'ON' : 'OFF'}
+                  </button>
                 </div>
+                <PerformanceSettingsPanel onSettingsChange={setPerformanceSettings} />
                 <MapControls 
                   options={mapOptions} 
                   onOptionsChange={setMapOptions}
@@ -2587,17 +2626,60 @@ function FuelSaverContent() {
                 </div>
               </div>
               
-              {/* Leg Breakdown */}
+              {/* Leg Breakdown - Drag and Drop */}
               {routeStats.legs.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-slate-700 flex gap-2 overflow-x-auto">
-                  {routeStats.legs.map((leg, i) => (
-                    <div key={i} className="flex-shrink-0 bg-slate-700 rounded px-3 py-2 text-xs">
-                      <span className="text-sky-400 font-medium">{leg.from.icao}</span>
-                      <span className="text-slate-500 mx-1">→</span>
-                      <span className="text-amber-400 font-medium">{leg.to.icao}</span>
-                      <div className="text-slate-400 mt-1">{Math.round(leg.distance)} NM • ${leg.cost.toFixed(0)}</div>
-                    </div>
-                  ))}
+                <div className="mt-3 pt-3 border-t border-slate-700 flex gap-2 overflow-x-auto pb-1">
+                  {routeStats.legs.map((leg, toIdx) => {
+                    const isDragging = draggedLegIndex === toIdx;
+                    const isDragOver = draggedLegIndex !== null && draggedLegIndex !== toIdx;
+                    
+                    return (
+                      <div
+                        key={toIdx}
+                        draggable
+                        onDragStart={(e) => {
+                          setDraggedLegIndex(toIdx);
+                          e.dataTransfer.effectAllowed = 'move';
+                          e.dataTransfer.setData('text/plain', String(toIdx));
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.dataTransfer.dropEffect = 'move';
+                        }}
+                        onDragEnter={(e) => {
+                          e.preventDefault();
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const fromIdx = draggedLegIndex;
+                          if (fromIdx !== null && fromIdx !== toIdx) {
+                            // When dropping leg fromIdx onto leg toIdx:
+                            // - Take waypoint at position fromIdx + 1 (destination of dragged leg)
+                            // - Move it to position toIdx + 1
+                            const newWaypoints = [...waypoints];
+                            const movedWp = newWaypoints[fromIdx + 1];
+                            newWaypoints.splice(fromIdx + 1, 1);
+                            newWaypoints.splice(toIdx + 1, 0, movedWp);
+                            setWaypoints(newWaypoints.map((w, idx) => ({ ...w, sequence: idx })));
+                          }
+                          setDraggedLegIndex(null);
+                        }}
+                        onDragEnd={() => setDraggedLegIndex(null)}
+                        className={`flex-shrink-0 bg-slate-700 rounded px-3 py-2 text-xs cursor-move select-none transition-all ${
+                          isDragging ? 'opacity-30 scale-95 ring-2 ring-sky-500' : 
+                          isDragOver ? 'ring-2 ring-amber-500 scale-105 bg-slate-600' : 
+                          'hover:bg-slate-600 hover:scale-105'
+                        }`}
+                        style={{ touchAction: 'none' }}
+                      >
+                        <span className="text-sky-400 font-medium">{leg.from.icao}</span>
+                        <span className="text-slate-500 mx-1">→</span>
+                        <span className="text-amber-400 font-medium">{leg.to.icao}</span>
+                        <div className="text-slate-400 mt-1">{Math.round(leg.distance)} NM • ${leg.cost.toFixed(0)}</div>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

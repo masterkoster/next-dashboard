@@ -49,7 +49,7 @@ const LAYERS = {
 };
 
 export function MapControls({ options, onOptionsChange }: MapControlsProps) {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   const toggleOption = (key: keyof MapLayerOptions) => {
     if (key === 'baseLayer') return;

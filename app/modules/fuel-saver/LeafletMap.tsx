@@ -474,28 +474,48 @@ export default function LeafletMap({
     return airports.filter(a => a.type !== 'seaplane_base');
   }, [airports]);
   
-  // Calculate marker size based on zoom - scales up more for medium/small when zoomed in
+  // Calculate marker size based on zoom - smaller airports stay small when zoomed out
   const getMarkerRadius = (type?: string) => {
     const zoomScale = Math.max(1, (currentZoom - 4) * 0.5);
     if (type === 'large_airport') {
       return 6 + zoomScale;
     } else if (type === 'medium_airport') {
-      return 4 + zoomScale * 1.5;
+      // Medium airports: smaller when zoomed out, larger when zoomed in
+      return currentZoom < 7 ? 3 : 3 + (zoomScale * 0.7);
     } else {
-      return 2 + zoomScale * 2;
+      // Small airports: stay small when zoomed out, only grow when very zoomed in
+      return currentZoom < 8 ? 1.5 : 1.5 + ((currentZoom - 7) * 0.8);
     }
   };
   
-  // Update zoom level
+  // Update zoom level and respond to center/zoom changes from parent
   useEffect(() => {
-    if (mapRef.current) {
-      const handleZoom = () => setCurrentZoom(mapRef.current!.getZoom());
-      mapRef.current.on('zoomend', handleZoom);
-      return () => {
-        mapRef.current?.off('zoomend', handleZoom);
-      };
-    }
-  }, []);
+    if (!mapRef.current) return;
+    
+    const handleZoom = () => setCurrentZoom(mapRef.current!.getZoom());
+    mapRef.current.on('zoomend', handleZoom);
+    
+    // Watch for center/zoom prop changes and update map view
+    const handleMoveEnd = () => {
+      const map = mapRef.current;
+      if (!map) return;
+      const newCenter = map.getCenter();
+      const newZoom = map.getZoom();
+      // Only update if significantly different to avoid loops
+      if (Math.abs(newCenter.lat - mapCenter[0]) > 0.001 || 
+          Math.abs(newCenter.lng - mapCenter[1]) > 0.001 ||
+          newZoom !== mapZoom) {
+        map.setView(mapCenter as [number, number], mapZoom, { animate: true });
+      }
+    };
+    
+    // Apply the center/zoom from props
+    mapRef.current.setView(mapCenter as [number, number], mapZoom, { animate: true });
+    
+    return () => {
+      mapRef.current?.off('zoomend', handleZoom);
+    };
+  }, [mapCenter, mapZoom]);
   
   // Toggle terrain layer based on setting
   useEffect(() => {

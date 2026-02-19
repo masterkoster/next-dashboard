@@ -22,17 +22,24 @@ export async function GET(request: Request) {
     const query = searchParams.get('q') || '';
     const limit = parseInt(searchParams.get('limit') || '20');
     const type = searchParams.get('type') || 'all'; // all, large, medium, small
+    const country = searchParams.get('country') || 'US'; // Default to US only
     
     const db = await getDb();
     
     let sql = `
       SELECT icao, iata, name, city, state, country, type, latitude, longitude, elevation_ft
       FROM airports
-      WHERE (icao LIKE ? OR iata LIKE ? OR name LIKE ? OR city LIKE ?)
+      WHERE country = ?
     `;
     
-    const searchTerm = `%${query}%`;
-    const params: any[] = [searchTerm, searchTerm, searchTerm, searchTerm];
+    const params: any[] = [country];
+    
+    // Add search filter if query provided
+    if (query) {
+      sql += ` AND (icao LIKE ? OR iata LIKE ? OR name LIKE ? OR city LIKE ?)`;
+      const searchTerm = `%${query}%`;
+      params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+    }
     
     // Filter by type
     if (type === 'large') {

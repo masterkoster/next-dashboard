@@ -16,7 +16,7 @@ async function getDb() {
   return db;
 }
 
-// GET /api/airports/bounds?minLat=30&maxLat=50&minLon=-120&maxLon=-70&minSize=small
+// GET /api/airports/bounds?minLat=30&maxLat=50&minLon=-120&maxLon=-70&minSize=small&country=US
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
@@ -28,16 +28,26 @@ export async function GET(request: Request) {
     const minSize = searchParams.get('minSize') || 'small'; // small, medium, large, heli, seaplane
     const limit = parseInt(searchParams.get('limit') || '200');
     const icao = searchParams.get('icao'); // Single airport lookup
+    const country = searchParams.get('country'); // Optional country filter
     
     const db = await getDb();
     
     // If single ICAO requested
     if (icao) {
-      const airport = await db.get(`
+      let sql = `
         SELECT icao, iata, name, city, country, latitude, longitude, type, elevation_ft
         FROM airports 
-        WHERE icao = ? OR iata = ?
-      `, [icao.toUpperCase(), icao.toUpperCase()]);
+        WHERE (icao = ? OR iata = ?)
+      `;
+      const params: any[] = [icao.toUpperCase(), icao.toUpperCase()];
+      
+      // Add country filter if specified
+      if (country) {
+        sql += ' AND country = ?';
+        params.push(country);
+      }
+      
+      const airport = await db.get(sql, params);
       
       if (airport) {
         return NextResponse.json(airport);
@@ -57,14 +67,24 @@ export async function GET(request: Request) {
     const allowedTypes = typeFilters[minSize] || typeFilters['small'];
     const typePlaceholders = allowedTypes.map(() => '?').join(',');
     
-    // Get airports in bounding box, ordered by size (larger first)
-    const airports = await db.all(`
+    // Build query with optional country filter
+    let sql = `
       SELECT icao, iata, name, city, country, latitude, longitude, type, elevation_ft
       FROM airports 
       WHERE latitude BETWEEN ? AND ?
         AND longitude BETWEEN ? AND ?
         AND type IN (${typePlaceholders})
         AND (is_closed IS NULL OR is_closed = 0)
+    `;
+    const params: any[] = [minLat, maxLat, minLon, maxLon, ...allowedTypes];
+    
+    // Add country filter if specified
+    if (country) {
+      sql += ' AND country = ?';
+      params.push(country);
+    }
+    
+    sql += `
       ORDER BY 
         CASE type 
           WHEN 'large_airport' THEN 1 
@@ -76,7 +96,10 @@ export async function GET(request: Request) {
         END,
         elevation_ft DESC
       LIMIT ?
-    `, [minLat, maxLat, minLon, maxLon, ...allowedTypes, limit]);
+    `;
+    params.push(limit);
+    
+    const airports = await db.all(sql, params);
     
     return NextResponse.json({
       airports,
