@@ -165,6 +165,40 @@ export default function LandingPage() {
               <li>✓ Handle billing</li>
             </ul>
           </Link>
+
+          {/* E6B Flight Computer */}
+          <Link href="/modules/e6b" className="group rounded-2xl border border-slate-700 bg-slate-800/50 p-6 hover:border-amber-500/50 hover:bg-slate-800 transition">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-4xl">🧮</span>
+              <div>
+                <h3 className="text-xl font-bold text-white">E6B Flight Computer</h3>
+                <p className="text-sm text-slate-400">Full aviation calculator</p>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm text-slate-400">
+              <li>✓ Wind correction & ground speed</li>
+              <li>✓ Fuel burn & endurance</li>
+              <li>✓ True airspeed from IAS</li>
+              <li>✓ Unit conversions (fuel, distance, altitude)</li>
+            </ul>
+          </Link>
+
+          {/* Training Tracker */}
+          <Link href="/modules/training" className="group rounded-2xl border border-slate-700 bg-slate-800/50 p-6 hover:border-purple-500/50 hover:bg-slate-800 transition">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-4xl">🎓</span>
+              <div>
+                <h3 className="text-xl font-bold text-white">Training Tracker</h3>
+                <p className="text-sm text-slate-400">Track your PPL progress</p>
+              </div>
+            </div>
+            <ul className="space-y-2 text-sm text-slate-400">
+              <li>✓ PPL requirements progress bars</li>
+              <li>✓ Track hours: solo, night, XC, instrument</li>
+              <li>✓ Milestone checkpoints</li>
+              <li>✓ Syncs across devices with account</li>
+            </ul>
+          </Link>
         </div>
       </div>
 
@@ -225,10 +259,10 @@ export default function LandingPage() {
             Start Free
           </Link>
           <Link
-            href="/signup"
+            href="/pricing"
             className="rounded-xl border border-slate-600 hover:bg-slate-800 px-6 py-2 font-semibold text-white transition"
           >
-            Create Account
+            View Pricing
           </Link>
         </div>
         
@@ -245,6 +279,10 @@ export default function LandingPage() {
       <footer className="border-t border-slate-800 py-6 text-center text-sm text-slate-600">
         <p>Built by a Dutch student. FAA data. No ads. No selling out.</p>
         <div className="flex justify-center gap-4 mt-3">
+          <Link href="/pricing" className="text-slate-500 hover:text-sky-400 transition">
+            Pricing
+          </Link>
+          <span className="text-slate-700">|</span>
           <button 
             onClick={() => {
               const desc = prompt('Describe the error:');
