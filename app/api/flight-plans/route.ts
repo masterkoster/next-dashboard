@@ -34,6 +34,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    // Check if email is verified
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { emailVerified: true, email: true }
+    });
+
+    if (!user?.emailVerified) {
+      return NextResponse.json({ 
+        error: 'Please verify your email before saving flight plans',
+        code: 'EMAIL_NOT_VERIFIED'
+      }, { status: 403 });
+    }
+
     const body = await request.json();
     
     const {
@@ -138,6 +151,19 @@ export async function PUT(request: Request) {
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    // Check if email is verified
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { emailVerified: true, email: true }
+    });
+
+    if (!user?.emailVerified) {
+      return NextResponse.json({ 
+        error: 'Please verify your email before saving flight plans',
+        code: 'EMAIL_NOT_VERIFIED'
+      }, { status: 403 });
     }
 
     const { searchParams } = new URL(request.url);

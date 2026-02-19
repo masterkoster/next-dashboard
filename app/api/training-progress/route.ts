@@ -7,21 +7,13 @@ const prisma = new PrismaClient();
 export async function GET() {
   const session = await auth();
   
-  if (!session?.user?.email) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
   try {
-    let user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     const progress = await prisma.trainingProgress.findUnique({
-      where: { userId: user.id },
+      where: { userId: session.user.id },
     });
 
     return NextResponse.json(progress || {
@@ -49,29 +41,34 @@ export async function GET() {
 export async function POST(request: Request) {
   const session = await auth();
   
-  if (!session?.user?.email) {
+  if (!session?.user?.id) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+  }
+
+  // Check if email is verified
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { emailVerified: true, email: true }
+  });
+
+  if (!user?.emailVerified) {
+    return NextResponse.json({ 
+      error: 'Please verify your email before saving progress',
+      code: 'EMAIL_NOT_VERIFIED'
+    }, { status: 403 });
   }
 
   try {
     const body = await request.json();
 
-    let user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
-    }
-
     const progress = await prisma.trainingProgress.upsert({
-      where: { userId: user.id },
+      where: { userId: session.user.id },
       update: {
         ...body,
         lastUpdated: new Date(),
       },
       create: {
-        userId: user.id,
+        userId: session.user.id,
         ...body,
         lastUpdated: new Date(),
       },
