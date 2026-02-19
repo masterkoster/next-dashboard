@@ -8,9 +8,7 @@ import { useAuthModal } from './AuthModalContext';
 
 const modules = [
   { id: 'flying-club', label: 'Flying Club', href: '/modules/flying-club' },
-  { id: 'marketplace', label: 'Marketplace', href: '/modules/marketplace' },
-  { id: 'pilot-directory', label: 'Pilot Directory', href: '/modules/pilot-directory' },
-  { id: 'pilot-overview', label: 'Pilot Overview', href: '/modules/pilot-overview', requiresProPlus: true },
+  { id: 'social', label: 'Social', href: '/modules/social' },
   { id: 'fuel-saver', label: 'Fuel Saver', href: '/modules/fuel-saver' },
   { id: 'e6b', label: 'E6B', href: '/modules/e6b' },
   { id: 'weather-radar', label: 'Weather Radar', href: '/modules/weather-radar' },

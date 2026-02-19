@@ -22,17 +22,10 @@ export const moduleCatalog: ModuleDefinition[] = [
     requiresPurchase: false,
   },
   {
-    id: "marketplace",
-    label: "Aircraft Marketplace",
-    href: "/modules/marketplace",
-    description: "Find aircraft partners, co-ownership opportunities, or buyers",
-    requiresPurchase: false,
-  },
-  {
-    id: "pilot-directory",
-    label: "Pilot Directory",
-    href: "/modules/pilot-directory",
-    description: "Discover nearby pilots, ratings, and availability",
+    id: "social",
+    label: "Social",
+    href: "/modules/social",
+    description: "Marketplace listings, pilot directory, and pilot overview",
     requiresPurchase: false,
   },
   {
