@@ -56,6 +56,9 @@ interface Booking {
   purpose: string | null;
   aircraft: Aircraft;
   groupName: string;
+  routeFrom?: string;
+  routeTo?: string;
+  pilotName?: string;
 }
 
 interface MaintenanceBlock {
@@ -93,7 +96,7 @@ export default function FlyingClubPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [maintenanceBlocks, setMaintenanceBlocks] = useState<MaintenanceBlock[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'aircraft' | 'flights' | 'maintenance' | 'billing' | 'members' | 'status'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'aircraft' | 'flights' | 'calendar' | 'maintenance' | 'billing' | 'members' | 'status'>('dashboard');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedGroup, setSelectedGroup] = useState<string>('all');
   const [hoveredBooking, setHoveredBooking] = useState<Booking | null>(null);
@@ -378,10 +381,10 @@ export default function FlyingClubPage() {
         
         {/* Tab Navigation */}
         <div className="flex gap-2 mb-6 border-b border-slate-700 overflow-x-auto">
-          {(['dashboard', 'bookings', 'aircraft', 'flights', 'status', 'maintenance', 'billing', 'members'] as const).map((tab) => (
+          {(['dashboard', 'bookings', 'aircraft', 'flights', 'calendar', 'status', 'maintenance', 'billing', 'members'] as const).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => setActiveTab(tab as any)}
               className={`px-4 py-3 font-medium transition-colors whitespace-nowrap ${
                 activeTab === tab
                   ? 'text-sky-400 border-b-2 border-sky-400'
@@ -392,11 +395,12 @@ export default function FlyingClubPage() {
               {tab === 'bookings' && '📅 '}
               {tab === 'aircraft' && '✈️ '}
               {tab === 'flights' && '🛫 '}
+              {tab === 'calendar' && '📆 '}
               {tab === 'status' && '📋 '}
               {tab === 'maintenance' && '🔧 '}
               {tab === 'billing' && '💰 '}
               {tab === 'members' && '👥 '}
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'calendar' ? 'Calendar' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -578,6 +582,10 @@ export default function FlyingClubPage() {
 
         {activeTab === 'flights' && (
           <FlightsList groups={groups} isDemoMode={isDemoMode} demoLogs={isDemoMode ? demoFlightLogs : undefined} demoParam={demoParam} />
+        )}
+
+        {activeTab === 'calendar' && (
+          <CalendarSyncTab bookings={filteredBookings} groups={groups} />
         )}
 
         {activeTab === 'maintenance' && (
@@ -983,6 +991,153 @@ function FlightsList({ groups, isDemoMode, demoLogs, demoParam }: { groups: Grou
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Calendar Sync Tab - Export bookings to Google Calendar or ICS
+function CalendarSyncTab({ bookings, groups }: { bookings: Booking[]; groups: Group[] }) {
+  const generateGoogleCalendarLink = (booking: Booking) => {
+    const startTime = new Date(booking.startTime);
+    const endTime = new Date(booking.endTime);
+    
+    const formatDate = (date: Date) => {
+      return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    };
+    
+    const title = `${booking.groupName}: ${booking.aircraft?.nNumber || booking.aircraft?.customName || 'Flight'}`;
+    const description = `
+Aircraft: ${booking.aircraft?.nNumber || 'N/A'}
+Route: ${booking.routeFrom || 'N/A'} → ${booking.routeTo || 'N/A'}
+Pilot: ${booking.pilotName || 'N/A'}
+${booking.purpose ? `Purpose: ${booking.purpose}` : ''}
+    `.trim();
+    
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: title,
+      dates: `${formatDate(startTime)}/${formatDate(endTime)}`,
+      details: description,
+    });
+    
+    window.open(`https://calendar.google.com/calendar/render?${params.toString()}`, '_blank');
+  };
+  
+  const generateICSFile = (booking: Booking) => {
+    const startTime = new Date(booking.startTime);
+    const endTime = new Date(booking.endTime);
+    
+    const formatICSDate = (date: Date) => {
+      return date.toISOString().replace(/[-:]/g, '').split('.')[0];
+    };
+    
+    const title = `${booking.groupName}: ${booking.aircraft?.nNumber || booking.aircraft?.customName || 'Flight'}`;
+    const description = `Aircraft: ${booking.aircraft?.nNumber || 'N/A'}\\nRoute: ${booking.routeFrom || 'N/A'} → ${booking.routeTo || 'N/A'}\\nPilot: ${booking.pilotName || 'N/A'}${booking.purpose ? `\\nPurpose: ${booking.purpose}` : ''}`;
+    
+    const icsContent = `BEGIN:VCALENDAR
+VERSION:2.0
+BEGIN:VEVENT
+DTSTART:${formatICSDate(startTime)}
+DTEND:${formatICSDate(endTime)}
+SUMMARY:${title}
+DESCRIPTION:${description}
+END:VEVENT
+END:VCALENDAR`;
+    
+    const blob = new Blob([icsContent], { type: 'text/calendar' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `flight-${booking.id}.ics`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+  };
+  
+  // Get all upcoming bookings sorted by date
+  const upcomingBookings = bookings
+    .filter(b => new Date(b.endTime) >= new Date())
+    .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
+  
+  const formatDateTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    });
+  };
+  
+  return (
+    <div className="space-y-6">
+      <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+        <h3 className="text-xl font-bold text-white mb-4">📆 Calendar Sync</h3>
+        <p className="text-slate-400 mb-4">
+          Export your club&apos;s bookings to your personal calendar. 
+          Choose individual flights or export all upcoming flights at once.
+        </p>
+        
+        {upcomingBookings.length === 0 ? (
+          <div className="text-center py-8 text-slate-500">
+            No upcoming bookings to export.
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {upcomingBookings.map((booking) => (
+              <div 
+                key={booking.id} 
+                className="flex items-center justify-between bg-slate-700/50 rounded-lg p-4"
+              >
+                <div>
+                  <div className="font-medium text-white">
+                    {booking.aircraft?.nNumber || booking.aircraft?.customName || 'Aircraft'}
+                  </div>
+                  <div className="text-sm text-slate-400">
+                    {booking.groupName} • {formatDateTime(booking.startTime)}
+                  </div>
+                  <div className="text-xs text-slate-500">
+                    {booking.routeFrom} → {booking.routeTo}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => generateGoogleCalendarLink(booking)}
+                    className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-2 rounded-lg text-sm"
+                  >
+                    📅 Google
+                  </button>
+                  <button
+                    onClick={() => generateICSFile(booking)}
+                    className="bg-slate-600 hover:bg-slate-500 text-white px-3 py-2 rounded-lg text-sm"
+                  >
+                    📥 ICS
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      {/* Quick Export All */}
+      {upcomingBookings.length > 1 && (
+        <div className="bg-slate-800 rounded-xl p-6 border border-slate-700">
+          <h4 className="font-semibold text-white mb-3">Quick Export All</h4>
+          <p className="text-sm text-slate-400 mb-4">
+            Export all {upcomingBookings.length} upcoming bookings at once.
+          </p>
+          <div className="flex gap-3">
+            <button
+              onClick={() => upcomingBookings.forEach(b => generateGoogleCalendarLink(b))}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm"
+            >
+              📅 Add All to Google Calendar
+            </button>
+          </div>
         </div>
       )}
     </div>

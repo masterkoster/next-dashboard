@@ -13,7 +13,6 @@ const modules = [
   { id: 'training', label: 'Training', href: '/modules/training' },
   { id: 'logbook', label: 'Logbook', href: '/modules/logbook', requiresProPlus: true },
   { id: 'weather-radar', label: 'Weather Radar', href: '/modules/weather-radar' },
-  { id: 'calendar-sync', label: 'Calendar Sync', href: '/modules/calendar-sync' },
   { id: 'proplus-dashboard', label: 'Pro+ Dashboard', href: '/modules/proplus-dashboard', requiresProPlus: true },
   { id: 'flight-playback', label: 'Flight Playback', href: '/modules/flight-playback', requiresProPlus: true },
 ];
