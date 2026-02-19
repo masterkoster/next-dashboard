@@ -1,11 +1,12 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 
-export default function VerifyEmailPage() {
+function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
@@ -133,12 +134,30 @@ export default function VerifyEmailPage() {
 
         {/* Help text */}
         <p className="text-center text-sm text-slate-500 mt-6">
-          Didn't receive an email? Check your spam folder or{' '}
+          Didn&apos;t receive an email? Check your spam folder or{' '}
           <button onClick={handleResend} className="text-emerald-400 hover:underline">
             request a new one
           </button>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-8 text-center">
+            <div className="text-6xl mb-6">📧</div>
+            <h1 className="text-2xl font-bold text-white mb-4">Loading...</h1>
+            <p className="text-slate-400">Please wait...</p>
+          </div>
+        </div>
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   );
 }
