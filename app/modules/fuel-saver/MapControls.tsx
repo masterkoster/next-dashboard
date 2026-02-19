@@ -203,7 +203,7 @@ export const DEFAULT_MAP_OPTIONS: MapLayerOptions = {
   showLarge: true,
   showMedium: true,
   showSmall: true,
-  showSeaplane: true,
+  showSeaplane: false,
   showTerrain: false,
   showAirspaces: false,
   showFuelPrices: true,

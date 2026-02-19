@@ -408,15 +408,22 @@ function AirportPopup({ airport, onAddToRoute, onViewStateInfo }: { airport: Air
         Add to Route
       </button>
       
-      {/* View State Info button */}
-      {onViewStateInfo && (
-        <button
-          onClick={handleViewStateInfo}
-          className="mt-2 w-full bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded text-sm font-medium"
-        >
-          View State Info
-        </button>
-      )}
+      {/* View State Info button - always show */}
+      <button
+        onClick={() => {
+          // Use state from details or infer from coordinates
+          let stateCode = details?.state;
+          if (!stateCode) {
+            stateCode = inferStateFromCoords(airport.latitude, airport.longitude);
+          }
+          if (stateCode && onViewStateInfo) {
+            onViewStateInfo(stateCode);
+          }
+        }}
+        className="mt-2 w-full bg-purple-500 hover:bg-purple-600 text-white px-3 py-2 rounded text-sm font-medium"
+      >
+        View State Info
+      </button>
     </div>
   );
 }
