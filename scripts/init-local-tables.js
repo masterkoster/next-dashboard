@@ -103,6 +103,37 @@ db.run(`
   else console.log('✓ flight_recordings table created');
 });
 
+// FBO Fees Table
+db.run(`
+  CREATE TABLE IF NOT EXISTS fbo_fees (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    icao TEXT NOT NULL,
+    fbo_name TEXT NOT NULL,
+    ramp_fee REAL,
+    overnight_fee REAL,
+    handling_fee REAL,
+    fuel_minimum REAL,
+    credit_card_fee REAL,
+    callahead_required INTEGER DEFAULT 0,
+    phone TEXT,
+    amenities TEXT,
+    last_updated TEXT DEFAULT CURRENT_TIMESTAMP,
+    source TEXT DEFAULT 'airnav',
+    UNIQUE(icao, fbo_name)
+  )
+`, (err) => {
+  if (err) console.error('Error creating fbo_fees:', err);
+  else console.log('✓ fbo_fees table created');
+});
+
+// Create index for faster lookups
+db.run(`
+  CREATE INDEX IF NOT EXISTS idx_fbo_icao ON fbo_fees(icao)
+`, (err) => {
+  if (err) console.error('Error creating fbo_fees index:', err);
+  else console.log('✓ fbo_fees index created');
+});
+
 db.close(() => {
   console.log('\n✅ All SQLite tables initialized successfully!');
 });

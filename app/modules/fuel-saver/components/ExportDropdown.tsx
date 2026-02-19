@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Waypoint, downloadGPX, downloadFPL, downloadJSON, FlightPlanData } from '../lib/exportUtils';
+import { Waypoint, downloadGPX, downloadFPL, downloadJSON, downloadNavLog, FlightPlanData } from '../lib/exportUtils';
 
 interface ExportDropdownProps {
   waypoints: Waypoint[];
@@ -9,6 +9,13 @@ interface ExportDropdownProps {
   aircraftType?: string;
   cruisingAltitude?: number;
   isPro?: boolean;
+  aircraft?: {
+    name: string;
+    speed: number;
+    burnRate: number;
+    fuelCapacity: number;
+  };
+  fuelPrices?: Record<string, { price100ll: number | null }>;
 }
 
 export default function ExportDropdown({ 
@@ -16,9 +23,12 @@ export default function ExportDropdown({
   flightPlanName, 
   aircraftType, 
   cruisingAltitude,
-  isPro = false 
+  isPro = false,
+  aircraft,
+  fuelPrices = {}
 }: ExportDropdownProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const [navLogDetail, setNavLogDetail] = useState<'basic' | 'detailed' | null>(null);
   const [copied, setCopied] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -77,6 +87,30 @@ export default function ExportDropdown({
     };
     downloadJSON(planData);
     setIsOpen(false);
+  };
+
+  const handleExportNavLog = (detailed: boolean) => {
+    if (!aircraft || waypoints.length < 2) return;
+    downloadNavLog(
+      waypoints,
+      {
+        name: aircraftType || aircraft.name,
+        speed: aircraft.speed,
+        burnRate: aircraft.burnRate,
+        fuelCapacity: aircraft.fuelCapacity
+      },
+      cruisingAltitude || 5500,
+      fuelPrices,
+      detailed
+    );
+    setIsOpen(false);
+  };
+
+  const showNavLogTooltip = (detailed: boolean) => {
+    if (detailed) {
+      return 'Includes magnetic variation, wind correction, VOR info, groundspeed - for serious IFR planning';
+    }
+    return 'Simple format with course, distance, time, fuel, cost - quick reference';
   };
 
   if (waypoints.length === 0) {
@@ -148,6 +182,36 @@ export default function ExportDropdown({
               <div className="flex-1 text-left">
                 <div>Export JSON</div>
                 <div className="text-xs text-slate-400">Backup & custom use</div>
+              </div>
+            </button>
+
+            <div className="border-t border-slate-700 my-1" />
+
+            {/* Nav Log - Basic */}
+            <button
+              onClick={() => handleExportNavLog(false)}
+              disabled={waypoints.length < 2}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={showNavLogTooltip(false)}
+            >
+              <span className="text-lg">📄</span>
+              <div className="flex-1 text-left">
+                <div>Nav Log (Basic)</div>
+                <div className="text-xs text-slate-400">Simple format</div>
+              </div>
+            </button>
+
+            {/* Nav Log - Detailed */}
+            <button
+              onClick={() => handleExportNavLog(true)}
+              disabled={waypoints.length < 2}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              title={showNavLogTooltip(true)}
+            >
+              <span className="text-lg">📊</span>
+              <div className="flex-1 text-left">
+                <div>Nav Log (Detailed)</div>
+                <div className="text-xs text-slate-400">Wind, mag var, headings</div>
               </div>
             </button>
 

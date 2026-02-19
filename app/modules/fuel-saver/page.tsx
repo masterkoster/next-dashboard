@@ -10,6 +10,7 @@ const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
 const StateInfoPanel = dynamic(() => import('./StateInfoPanel'), { ssr: false });
 const NotamsPanel = dynamic(() => import('./components/NOTAMsPanel'), { ssr: false });
 const ExportDropdown = dynamic(() => import('./components/ExportDropdown'), { ssr: false });
+const TripFinder = dynamic(() => import('./components/TripFinder'), { ssr: false });
 import { MapControls, DEFAULT_MAP_OPTIONS, MapTileLayer, MapLayerOptions } from './MapControls';
 import FlightPlayback from './FlightPlayback';
 import RangeRingCalculator from './RangeRing';
@@ -19,7 +20,7 @@ import UpgradeModal from './UpgradeModal';
 import TierExplainerModal from './TierExplainerModal';
 
 // Types
-interface Airport {
+export interface Airport {
   icao: string;
   iata?: string;
   name: string;
@@ -1729,6 +1730,8 @@ function FuelSaverContent() {
               aircraftType={selectedAircraft.name}
               cruisingAltitude={cruisingAlt}
               isPro={isPro}
+              aircraft={selectedAircraft}
+              fuelPrices={fuelPrices}
             />
           </div>
         </div>
@@ -2247,6 +2250,15 @@ function FuelSaverContent() {
                   isPro={isPro}
                 />
               )}
+
+              {/* Trip Finder - always available */}
+              <TripFinder 
+                airports={airports}
+                departureAirport={waypoints[0]}
+                aircraft={selectedAircraft}
+                fuelPrices={fuelPrices}
+                onSelectAirport={(airport) => addWaypoint(airport)}
+              />
             </div>
 
             {/* Bottom Actions - Load/Save/Import */}
