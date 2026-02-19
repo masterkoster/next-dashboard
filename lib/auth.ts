@@ -91,6 +91,7 @@ export const authOptions: any = {
             username: user.username,
             emailVerified: user.emailVerified,
             role: user.role,
+            tier: user.tier,
             rememberMe: rememberMe // Pass to JWT
           }
         } catch (error) {
@@ -152,6 +153,7 @@ export const authOptions: any = {
         token.username = user.username
         token.emailVerified = user.emailVerified
         token.role = user.role
+        token.tier = user.tier
         token.rememberMe = user.rememberMe
         
         // Set expiration based on rememberMe
@@ -174,6 +176,7 @@ export const authOptions: any = {
         session.user.username = token.username
         session.user.emailVerified = token.emailVerified
         session.user.role = token.role
+        session.user.tier = token.tier
         session.expires = token.exp ? new Date(token.exp * 1000).toISOString() : session.expires
       }
       return session

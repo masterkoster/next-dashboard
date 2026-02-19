@@ -11,11 +11,11 @@ const modules = [
   { id: 'fuel-saver', label: 'Fuel Saver', href: '/modules/fuel-saver' },
   { id: 'e6b', label: 'E6B', href: '/modules/e6b' },
   { id: 'training', label: 'Training', href: '/modules/training' },
-  { id: 'logbook', label: 'Logbook', href: '/modules/logbook' },
+  { id: 'logbook', label: 'Logbook', href: '/modules/logbook', requiresProPlus: true },
   { id: 'weather-radar', label: 'Weather Radar', href: '/modules/weather-radar' },
   { id: 'calendar-sync', label: 'Calendar Sync', href: '/modules/calendar-sync' },
-  { id: 'proplus-dashboard', label: 'Pro+ Dashboard', href: '/modules/proplus-dashboard' },
-  { id: 'flight-playback', label: 'Flight Playback', href: '/modules/flight-playback' },
+  { id: 'proplus-dashboard', label: 'Pro+ Dashboard', href: '/modules/proplus-dashboard', requiresProPlus: true },
+  { id: 'flight-playback', label: 'Flight Playback', href: '/modules/flight-playback', requiresProPlus: true },
 ];
 
 interface Invite {
@@ -34,6 +34,15 @@ export default function Navigation() {
   const { data: session } = useSession();
   const { openLoginModal } = useAuthModal();
   const isHomeOrDashboard = pathname === '/' || pathname === '/dashboard';
+  
+  // Check if user has Pro+ access
+  const userTier = session?.user?.tier;
+  const userRole = session?.user?.role;
+  const isProPlus = userTier === 'proplus' || userRole === 'admin' || userRole === 'owner';
+  
+  // Filter modules based on tier
+  const availableModules = modules.filter(m => !m.requiresProPlus || isProPlus);
+  
   const [showDropdown, setShowDropdown] = useState(false);
   const [showInviteDropdown, setShowInviteDropdown] = useState(false);
   const [pendingInvites, setPendingInvites] = useState<Invite[]>([]);
@@ -113,7 +122,7 @@ export default function Navigation() {
 
         {/* Module Links */}
         <div className="hidden md:flex items-center gap-1">
-          {modules.map((module) => (
+          {availableModules.map((module) => (
             <Link
               key={module.id}
               href={module.href}
@@ -282,7 +291,7 @@ export default function Navigation() {
       {/* Mobile menu dropdown */}
       <div className="border-t border-slate-800/60 md:hidden">
         <div className="flex overflow-x-auto px-4 py-2 gap-2">
-          {modules.map((module) => (
+          {availableModules.map((module) => (
             <Link
               key={module.id}
               href={module.href}
