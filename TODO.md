@@ -146,18 +146,23 @@ Each entry should have:
 
 ---
 
-## ⏸️ ON HOLD - Future Development
+## 🚧 IN PROGRESS
 
-### Nice to Have Features
+### Active Development
+- [x] Weather Radar Module
+  - Status: completed
+  - Priority: high
+  - Notes: Real-time precipitation radar with Leaflet map, layer controls, animation
+
 - [ ] Calendar Sync
-  - Status: on_hold
-  - Priority: low
-  - Notes: Google/Apple calendar integration - can add later
+  - Status: in_progress
+  - Priority: medium
+  - Notes: Google/Apple calendar integration for flight scheduling
 
 - [ ] Post-Flight Playback
-  - Status: on_hold
-  - Priority: low
-  - Notes: Store GPS points during flight, replay on map - complex feature
+  - Status: pending
+  - Priority: medium
+  - Notes: GPS track recording and replay on map
 
 ### Payment (Skipped for Now)
 - [ ] Stripe payment setup
