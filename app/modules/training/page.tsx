@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useSession, signIn } from 'next-auth/react';
+import VerificationBanner from '../../components/VerificationBanner';
 
 interface TrainingProgress {
   id: string;
@@ -144,6 +145,9 @@ export default function TrainingPage() {
   return (
     <div className="min-h-screen bg-slate-900 p-4">
       <div className="max-w-2xl mx-auto">
+        {/* Email Verification Banner */}
+        <VerificationBanner email={session?.user?.email} />
+
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">🎓 Training Progress</h1>
