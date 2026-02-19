@@ -18,6 +18,7 @@ import PerformanceSettingsPanel, { PerformanceSettings, DEFAULT_SETTINGS } from 
 import AuthModal from './AuthModal';
 import UpgradeModal from './UpgradeModal';
 import TierExplainerModal from './TierExplainerModal';
+import VerificationBanner from '../../components/VerificationBanner';
 
 // Types
 export interface Airport {
@@ -2017,6 +2018,13 @@ function FuelSaverContent() {
 
       {/* Main Content: Sidebar left, Map right */}
       <div className="flex-1 flex overflow-hidden relative">
+        {/* Email Verification Banner */}
+        {status === 'authenticated' && (
+          <div className="px-4 pt-2">
+            <VerificationBanner email={session?.user?.email} />
+          </div>
+        )}
+
         {/* Toggle Arrow Button */}
         <button
           onClick={() => setShowPanel(!showPanel)}
