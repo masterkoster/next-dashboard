@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { signOut, useSession } from 'next-auth/react';
 import { useAuthModal } from './AuthModalContext';
@@ -30,6 +30,7 @@ interface Invite {
 
 export default function Navigation() {
   const pathname = usePathname();
+  const router = useRouter();
   const { data: session } = useSession();
   const { openLoginModal } = useAuthModal();
   const isHomeOrDashboard = pathname === '/' || pathname === '/dashboard';
@@ -59,6 +60,17 @@ export default function Navigation() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        router.push('/search');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [router]);
 
   useEffect(() => {
     const fetchInvites = async () => {
@@ -138,6 +150,14 @@ export default function Navigation() {
 
         {/* Right side */}
         <div className="flex items-center gap-3">
+          <Link
+            href="/search"
+            className="hidden md:flex items-center gap-2 rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-300 hover:border-emerald-400 hover:text-white transition-colors"
+          >
+            <span className="text-base">🔍</span>
+            <span>Search</span>
+            <span className="text-xs text-slate-500 border border-slate-700 rounded px-1.5 py-0.5">Ctrl+K</span>
+          </Link>
           {/* Invitations Bell */}
           <div className="relative">
             <button
