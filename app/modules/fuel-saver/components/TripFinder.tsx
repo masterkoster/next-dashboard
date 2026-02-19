@@ -22,6 +22,18 @@ interface TripFinderProps {
   onClearWaypoints?: () => void;
 }
 
+// Fetch fuel price for an airport
+async function fetchFuelPrice(icao: string): Promise<number | null> {
+  try {
+    const res = await fetch(`/api/fuel?icao=${icao}`);
+    if (res.ok) {
+      const data = await res.json();
+      return data.average?.['100LL'] ? parseFloat(data.average['100LL']) : null;
+    }
+  } catch { /* ignore */ }
+  return null;
+}
+
 // Airport size classifications
 const AIRPORT_SIZES = {
   large: { label: '🏙️ Large', fee: 75 },
@@ -180,7 +192,7 @@ export default function TripFinder({
   };
 
   // ==================== CHEAPEST MODE ====================
-  const handleFindCheapestFuel = () => {
+  const handleFindCheapestFuel = async () => {
     if (!aircraft || waypoints.length < 2) return;
     
     setIsCalculating(true);
@@ -219,7 +231,15 @@ export default function TripFinder({
         .forEach(airport => {
           const distFromRoute = calculateDistance(routeLat, routeLon, airport.latitude, airport.longitude);
           if (distFromRoute <= maxDetour) {
-            const fuelPrice = fuelPrices[airport.icao]?.price100ll;
+            // Try to get fuel price from prop, or fetch it
+            let fuelPrice = fuelPrices[airport.icao]?.price100ll;
+            
+            // Check if we already have this price cached
+            const cached = localStorage.getItem(`fuel_${airport.icao}`);
+            if (!fuelPrice && cached) {
+              fuelPrice = JSON.parse(cached).price100ll;
+            }
+            
             if (fuelPrice) {
               candidateStops.push({
                 airport,
