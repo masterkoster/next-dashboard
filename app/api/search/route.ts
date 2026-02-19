@@ -33,69 +33,79 @@ export async function GET(request: Request) {
 
 async function searchMarketplace(term: string) {
   const query = term.toLowerCase();
-  const listings = await prisma.marketplaceListing.findMany({
-    where: {
-      status: 'active',
-      OR: [
-        { title: { contains: query } },
-        { description: { contains: query } },
-        { aircraftType: { contains: query } },
-        { airportCity: { contains: query } },
-        { airportIcao: { contains: query } },
-      ],
-    },
-    select: {
-      id: true,
-      title: true,
-      description: true,
-      aircraftType: true,
-      airportIcao: true,
-      airportCity: true,
-      price: true,
-      type: true,
-      createdAt: true,
-    },
-    take: 6,
-  });
+  try {
+    const listings = await prisma.marketplaceListing.findMany({
+      where: {
+        status: 'active',
+        OR: [
+          { title: { contains: query } },
+          { description: { contains: query } },
+          { aircraftType: { contains: query } },
+          { airportCity: { contains: query } },
+          { airportIcao: { contains: query } },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        aircraftType: true,
+        airportIcao: true,
+        airportCity: true,
+        price: true,
+        type: true,
+        createdAt: true,
+      },
+      take: 6,
+    });
 
-  return listings.map((listing) => ({
-    ...listing,
-    typeLabel: listing.type,
-  }));
+    return listings.map((listing) => ({
+      ...listing,
+      typeLabel: listing.type,
+    }));
+  } catch (error) {
+    console.error('Marketplace search failed', error);
+    return [];
+  }
 }
 
 async function searchPilots(term: string) {
   const query = term.toLowerCase();
-  const profiles = await prisma.pilotProfile.findMany({
-    where: {
-      OR: [
-        { bio: { contains: query } },
-        { aircraft: { contains: query } },
-        { user: { name: { contains: query } } },
-        { user: { username: { contains: query } } },
-      ],
-    },
-    select: {
-      id: true,
-      homeAirport: true,
-      availability: true,
-      ratings: true,
-      bio: true,
-      user: {
-        select: {
-          id: true,
-          name: true,
-          username: true,
+  try {
+    const profiles = await prisma.pilotProfile.findMany({
+      where: {
+        OR: [
+          { bio: { contains: query } },
+          { aircraft: { contains: query } },
+          { user: { name: { contains: query } } },
+          { user: { username: { contains: query } } },
+        ],
+      },
+      select: {
+        id: true,
+        homeAirport: true,
+        availability: true,
+        ratings: true,
+        bio: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            username: true,
+          },
         },
       },
-    },
-    take: 6,
-  });
+      take: 6,
+    });
 
-  return profiles.map((profile) => ({
-    ...profile,
-    ratings: profile.ratings ? safeParseJSON(profile.ratings) : [],
-  }));
+    return profiles.map((profile) => ({
+      ...profile,
+      ratings: profile.ratings ? safeParseJSON(profile.ratings) : [],
+    }));
+  } catch (error) {
+    console.error('Pilot search failed', error);
+    return [];
+  }
 }
 
 async function searchFlightPlans(term: string, userId: string) {

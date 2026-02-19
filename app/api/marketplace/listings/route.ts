@@ -54,8 +54,48 @@ function safeParseJSON(value: string | null) {
   }
 }
 
+async function ensureMarketplaceTable() {
+  try {
+    // Create table if missing (Azure SQL / SQL Server)
+    await prisma.$executeRawUnsafe(`
+      IF OBJECT_ID('MarketplaceListing', 'U') IS NULL
+      BEGIN
+        CREATE TABLE MarketplaceListing (
+          id NVARCHAR(36) NOT NULL PRIMARY KEY,
+          userId NVARCHAR(36) NOT NULL,
+          type NVARCHAR(20) NOT NULL,
+          title NVARCHAR(200) NOT NULL,
+          description NVARCHAR(MAX) NULL,
+          aircraftType NVARCHAR(100) NOT NULL,
+          airportIcao NVARCHAR(10) NOT NULL,
+          airportName NVARCHAR(200) NULL,
+          airportCity NVARCHAR(200) NULL,
+          latitude FLOAT NULL,
+          longitude FLOAT NULL,
+          price INT NULL,
+          sharePercent INT NULL,
+          hours INT NULL,
+          contactMethod NVARCHAR(50) NULL,
+          contactValue NVARCHAR(200) NULL,
+          images NVARCHAR(MAX) NULL,
+          status NVARCHAR(20) NOT NULL DEFAULT('active'),
+          createdAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+          updatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+        );
+
+        CREATE INDEX idx_marketplace_airport ON MarketplaceListing(airportIcao);
+        CREATE INDEX idx_marketplace_status ON MarketplaceListing(status);
+      END
+    `);
+  } catch (error) {
+    // If permissions disallow DDL, queries below will return 500; log for visibility.
+    console.error('Failed to ensure MarketplaceListing table:', error);
+  }
+}
+
 export async function GET(request: Request) {
   try {
+    await ensureMarketplaceTable();
     const url = new URL(request.url);
     const type = url.searchParams.get('type');
     const airport = url.searchParams.get('airport');
@@ -72,10 +112,10 @@ export async function GET(request: Request) {
     if (query) {
       const search = query.trim();
       where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-        { aircraftType: { contains: search, mode: 'insensitive' } },
-        { airportCity: { contains: search, mode: 'insensitive' } },
+        { title: { contains: search } },
+        { description: { contains: search } },
+        { aircraftType: { contains: search } },
+        { airportCity: { contains: search } },
       ];
     }
 
@@ -97,6 +137,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    await ensureMarketplaceTable();
     const session = await auth();
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });

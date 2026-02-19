@@ -41,16 +41,29 @@ const DEMO_FEES: Record<string, number> = {
 export async function GET(request: Request, { params }: { params: Promise<{ icao: string }> }) {
   try {
     const { icao } = await params;
-    const icaoUpper = icao.toUpperCase();
+    let icaoUpper = icao.toUpperCase();
     
     const db = await getDb();
     
     // Get basic airport info
-    const airport = await db.get(`
+    let airport = await db.get(`
       SELECT icao, iata, name, type, latitude, longitude, elevation_ft, city, state, country
       FROM airports 
       WHERE icao = ?
     `, icaoUpper);
+
+    // If user passed IATA (e.g. DTW), resolve to ICAO (e.g. KDTW)
+    if (!airport && /^[A-Z0-9]{3}$/.test(icaoUpper)) {
+      airport = await db.get(`
+        SELECT icao, iata, name, type, latitude, longitude, elevation_ft, city, state, country
+        FROM airports
+        WHERE iata = ?
+      `, icaoUpper);
+
+      if (airport?.icao) {
+        icaoUpper = airport.icao.toUpperCase();
+      }
+    }
     
     if (!airport) {
       return NextResponse.json({ error: 'Airport not found' }, { status: 404 });

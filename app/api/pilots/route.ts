@@ -24,6 +24,7 @@ const PUBLIC_PROFILE_SELECT = {
 
 export async function GET(request: Request) {
   try {
+    await ensurePilotProfileTable();
     const url = new URL(request.url);
     const rating = url.searchParams.get('rating');
     const airport = url.searchParams.get('airport');
@@ -38,18 +39,18 @@ export async function GET(request: Request) {
       where.availability = availability;
     }
     if (rating) {
-      where.ratings = { contains: rating, mode: 'insensitive' };
+      where.ratings = { contains: rating };
     }
     if (query) {
       const term = query.trim();
       where.OR = [
-        { bio: { contains: term, mode: 'insensitive' } },
-        { aircraft: { contains: term, mode: 'insensitive' } },
+        { bio: { contains: term } },
+        { aircraft: { contains: term } },
         {
           user: {
             OR: [
-              { name: { contains: term, mode: 'insensitive' } },
-              { username: { contains: term, mode: 'insensitive' } },
+              { name: { contains: term } },
+              { username: { contains: term } },
             ],
           },
         },
@@ -69,6 +70,31 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Pilot directory GET failed', error);
     return NextResponse.json({ error: 'Failed to load pilot profiles' }, { status: 500 });
+  }
+}
+
+async function ensurePilotProfileTable() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      IF OBJECT_ID('PilotProfile', 'U') IS NULL
+      BEGIN
+        CREATE TABLE PilotProfile (
+          id NVARCHAR(36) NOT NULL PRIMARY KEY,
+          userId NVARCHAR(36) NOT NULL UNIQUE,
+          homeAirport NVARCHAR(10) NULL,
+          ratings NVARCHAR(MAX) NULL,
+          availability NVARCHAR(50) NULL,
+          aircraft NVARCHAR(MAX) NULL,
+          hours INT NULL,
+          bio NVARCHAR(MAX) NULL,
+          createdAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+          updatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+        );
+        CREATE INDEX idx_pilotprofile_homeAirport ON PilotProfile(homeAirport);
+      END
+    `);
+  } catch (error) {
+    console.error('Failed to ensure PilotProfile table:', error);
   }
 }
 

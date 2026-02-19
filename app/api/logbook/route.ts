@@ -11,13 +11,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Check if user has Pro+ tier
+    // Check if user has Pro+ tier (admins always allowed)
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { tier: true }
+      select: { tier: true, role: true }
     });
 
-    if (user?.tier !== 'proplus') {
+    const isAdmin = user?.role === 'admin' || user?.role === 'owner';
+    if (!isAdmin && user?.tier !== 'proplus') {
       return NextResponse.json({ 
         error: 'Pro+ subscription required',
         code: 'PROPLUS_REQUIRED'
@@ -45,10 +46,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    // Check if user has Pro+ tier
+    // Check if user has Pro+ tier (admins always allowed)
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { tier: true, emailVerified: true }
+      select: { tier: true, emailVerified: true, role: true }
     });
 
     if (!user?.emailVerified) {
@@ -58,7 +59,8 @@ export async function POST(request: Request) {
       }, { status: 403 });
     }
 
-    if (user?.tier !== 'proplus') {
+    const isAdmin = user?.role === 'admin' || user?.role === 'owner';
+    if (!isAdmin && user?.tier !== 'proplus') {
       return NextResponse.json({ 
         error: 'Pro+ subscription required',
         code: 'PROPLUS_REQUIRED'

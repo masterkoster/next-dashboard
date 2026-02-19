@@ -141,7 +141,7 @@ export default function AdminDashboard() {
             🐛 Error Reports {stats?.openErrorReports ? `(${stats.openErrorReports})` : ''}
           </Link>
           <Link
-            href="/admin/data"
+            href="/data-status"
             className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-medium transition"
           >
             💾 Data Cache

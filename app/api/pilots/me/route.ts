@@ -8,6 +8,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    await ensurePilotProfileTable();
     const profile = await prisma.pilotProfile.findUnique({
       where: { userId: session.user.id },
     });
@@ -30,6 +31,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    await ensurePilotProfileTable();
     const body = await request.json();
     const payload = validateProfilePayload(body);
     if (!payload.valid) {
@@ -58,6 +60,31 @@ export async function PUT(request: Request) {
   } catch (error) {
     console.error('Pilot profile PUT failed', error);
     return NextResponse.json({ error: 'Failed to save profile' }, { status: 500 });
+  }
+}
+
+async function ensurePilotProfileTable() {
+  try {
+    await prisma.$executeRawUnsafe(`
+      IF OBJECT_ID('PilotProfile', 'U') IS NULL
+      BEGIN
+        CREATE TABLE PilotProfile (
+          id NVARCHAR(36) NOT NULL PRIMARY KEY,
+          userId NVARCHAR(36) NOT NULL UNIQUE,
+          homeAirport NVARCHAR(10) NULL,
+          ratings NVARCHAR(MAX) NULL,
+          availability NVARCHAR(50) NULL,
+          aircraft NVARCHAR(MAX) NULL,
+          hours INT NULL,
+          bio NVARCHAR(MAX) NULL,
+          createdAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(),
+          updatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME()
+        );
+        CREATE INDEX idx_pilotprofile_homeAirport ON PilotProfile(homeAirport);
+      END
+    `);
+  } catch (error) {
+    console.error('Failed to ensure PilotProfile table:', error);
   }
 }
 
