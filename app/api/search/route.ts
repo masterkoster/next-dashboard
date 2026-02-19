@@ -69,10 +69,10 @@ async function searchPilots(term: string) {
   const profiles = await prisma.pilotProfile.findMany({
     where: {
       OR: [
-        { bio: { contains: query, mode: 'insensitive' } },
-        { aircraft: { contains: query, mode: 'insensitive' } },
-        { user: { name: { contains: query, mode: 'insensitive' } } },
-        { user: { username: { contains: query, mode: 'insensitive' } } },
+        { bio: { contains: query } },
+        { aircraft: { contains: query } },
+        { user: { name: { contains: query } } },
+        { user: { username: { contains: query } } },
       ],
     },
     select: {
