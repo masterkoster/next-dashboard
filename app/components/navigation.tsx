@@ -8,6 +8,7 @@ import { useAuthModal } from './AuthModalContext';
 
 const modules = [
   { id: 'flying-club', label: 'Flying Club', href: '/modules/flying-club' },
+  { id: 'marketplace', label: 'Marketplace', href: '/modules/marketplace' },
   { id: 'pilot-overview', label: 'Pilot Overview', href: '/modules/pilot-overview', requiresProPlus: true },
   { id: 'fuel-saver', label: 'Fuel Saver', href: '/modules/fuel-saver' },
   { id: 'e6b', label: 'E6B', href: '/modules/e6b' },

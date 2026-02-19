@@ -8,138 +8,167 @@ datasource db {
 }
 
 model User {
-  id               String    @id @default(uuid())
-  username         String    @unique @db.NVarChar(50)
-  email            String    @unique @db.NVarChar(255)
-  name             String?   @db.NVarChar(255)
-  purchasedModules String    @default("[]") @db.NVarChar(Max)
-  credits          Int       @default(0)
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  password         String?   @db.NVarChar(255)
-  
+  id               String   @id @default(uuid())
+  username         String   @unique @db.NVarChar(50)
+  email            String   @unique @db.NVarChar(255)
+  name             String?  @db.NVarChar(255)
+  purchasedModules String   @default("[]") @db.NVarChar(Max)
+  credits          Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  password         String?  @db.NVarChar(255)
+
   // Email verification
-  emailVerified    DateTime?
-  verifyToken      String?   @db.NVarChar(255)
+  emailVerified     DateTime?
+  verifyToken       String?   @db.NVarChar(255)
   verifyTokenExpiry DateTime?
-  
+
   // Password reset
   resetToken       String?   @db.NVarChar(255)
   resetTokenExpiry DateTime?
-  
+
   // Role for admin access
-  role            String   @default("user") @db.NVarChar(20) // user, admin, owner
-  
+  role String @default("user") @db.NVarChar(20) // user, admin, owner
+
   // Subscription fields
-  tier              String   @default("free") @db.NVarChar(20) // free, pro
-  stripeCustomerId  String?  @db.NVarChar(100)
-  stripeSubscriptionId String? @db.NVarChar(100)
-  subscriptionEnd   DateTime?
-  homeState         String?  @db.NVarChar(2) // User's home state for fuel tracking
-  
-  flightPlans      FlightPlan[]
-  memberships      GroupMember[]
-  aircraft         UserAircraft[]
-  documents        Document[]
-  errorReports     ErrorReport[]
-  trainingProgress TrainingProgress?
-  logbookEntries   LogbookEntry[]
-  flightTracks     FlightTrack[]
+  tier                 String    @default("free") @db.NVarChar(20) // free, pro
+  stripeCustomerId     String?   @db.NVarChar(100)
+  stripeSubscriptionId String?   @db.NVarChar(100)
+  subscriptionEnd      DateTime?
+  homeState            String?   @db.NVarChar(2) // User's home state for fuel tracking
+
+  flightPlans         FlightPlan[]
+  memberships         GroupMember[]
+  aircraft            UserAircraft[]
+  documents           Document[]
+  errorReports        ErrorReport[]
+  trainingProgress    TrainingProgress?
+  logbookEntries      LogbookEntry[]
+  flightTracks        FlightTrack[]
+  marketplaceListings MarketplaceListing[]
 
   @@map("User")
 }
 
+model MarketplaceListing {
+  id            String   @id @default(cuid()) @db.NVarChar(36)
+  userId        String   @db.NVarChar(36)
+  type          String   @default("FOR_SALE") @db.NVarChar(20)
+  title         String   @db.NVarChar(200)
+  description   String?  @db.NVarChar(Max)
+  aircraftType  String   @db.NVarChar(100)
+  airportIcao   String   @db.NVarChar(10)
+  airportName   String?  @db.NVarChar(200)
+  airportCity   String?  @db.NVarChar(200)
+  latitude      Float?
+  longitude     Float?
+  price         Int?
+  sharePercent  Int?
+  hours         Int?
+  contactMethod String?  @db.NVarChar(50)
+  contactValue  String?  @db.NVarChar(200)
+  images        String?  @db.NVarChar(Max)
+  status        String   @default("active") @db.NVarChar(20)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([airportIcao], name: "idx_marketplace_airport")
+  @@map("MarketplaceListing")
+}
+
 model FlightTrack {
-  id          String   @id @default(uuid()) @db.NVarChar(36)
-  userId      String   @db.NVarChar(36)
-  
+  id     String @id @default(uuid()) @db.NVarChar(36)
+  userId String @db.NVarChar(36)
+
   // Flight Info
-  name        String   @db.NVarChar(200)
-  date        DateTime
-  aircraft    String?  @db.NVarChar(100)
-  
+  name     String   @db.NVarChar(200)
+  date     DateTime
+  aircraft String?  @db.NVarChar(100)
+
   // Track Data (stored as JSON array of points)
   // Each point: { lat: number, lng: number, alt?: number, speed?: number, timestamp: string }
-  trackData   String   @db.NVarChar(Max)
-  
+  trackData String @db.NVarChar(Max)
+
   // Statistics
-  totalDistance Float  @default(0) // in nautical miles
-  maxAltitude   Float  @default(0) // in feet
-  maxSpeed      Float  @default(0) // in knots
-  duration      Float  @default(0) // in minutes
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+  totalDistance Float @default(0) // in nautical miles
+  maxAltitude   Float @default(0) // in feet
+  maxSpeed      Float @default(0) // in knots
+  duration      Float @default(0) // in minutes
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("FlightTrack")
 }
 
 model LogbookEntry {
-  id          String   @id @default(uuid()) @db.NVarChar(36)
-  userId      String   @db.NVarChar(36)
-  
+  id     String @id @default(uuid()) @db.NVarChar(36)
+  userId String @db.NVarChar(36)
+
   // Flight Details
-  date        DateTime
-  aircraft    String   @db.NVarChar(100)
-  routeFrom   String   @db.NVarChar(10)
-  routeTo     String   @db.NVarChar(10)
-  
+  date      DateTime
+  aircraft  String   @db.NVarChar(100)
+  routeFrom String   @db.NVarChar(10)
+  routeTo   String   @db.NVarChar(10)
+
   // Times (in hours, use Decimal for precision)
-  totalTime   Float    @default(0)
-  soloTime    Float    @default(0)
-  dualGiven   Float    @default(0)
-  dualReceived Float   @default(0)
-  nightTime   Float    @default(0)
-  instrumentTime Float @default(0)
+  totalTime        Float @default(0)
+  soloTime         Float @default(0)
+  dualGiven        Float @default(0)
+  dualReceived     Float @default(0)
+  nightTime        Float @default(0)
+  instrumentTime   Float @default(0)
   crossCountryTime Float @default(0)
-  
+
   // Landings
-  dayLandings  Int     @default(0)
-  nightLandings Int    @default(0)
-  
+  dayLandings   Int @default(0)
+  nightLandings Int @default(0)
+
   // Additional Info
-  remarks     String?  @db.NVarChar(Max)
-  instructor  String?  @db.NVarChar(100)
-  
+  remarks    String? @db.NVarChar(Max)
+  instructor String? @db.NVarChar(100)
+
   // Link to flight plan if applicable
   flightPlanId String? @db.NVarChar(36)
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("LogbookEntry")
 }
 
 model TrainingProgress {
-  id        String   @id @default(uuid()) @db.NVarChar(36)
-  userId    String   @unique @db.NVarChar(36)
-  
+  id     String @id @default(uuid()) @db.NVarChar(36)
+  userId String @unique @db.NVarChar(36)
+
   // Hours
-  totalHours          Int      @default(0)
-  soloHours            Int      @default(0)
-  nightHours           Int      @default(0)
-  instrumentHours      Int      @default(0)
-  crossCountryHours    Int      @default(0)
-  xcSoloHours          Int      @default(0)
-  dualGiven            Int      @default(0)
-  hoodHours            Int      @default(0)
-  
+  totalHours        Int @default(0)
+  soloHours         Int @default(0)
+  nightHours        Int @default(0)
+  instrumentHours   Int @default(0)
+  crossCountryHours Int @default(0)
+  xcSoloHours       Int @default(0)
+  dualGiven         Int @default(0)
+  hoodHours         Int @default(0)
+
   // Milestones
-  xcSoloDone                       Boolean @default(false)
-  nightSoloDone                    Boolean @default(false)
-  instrumentDone                   Boolean @default(false)
-  soloDone                         Boolean @default(false)
-  threeTakeoffsLandingsDone        Boolean @default(false)
-  threeNightTakeoffsLandingsDone   Boolean @default(false)
-  
+  xcSoloDone                     Boolean @default(false)
+  nightSoloDone                  Boolean @default(false)
+  instrumentDone                 Boolean @default(false)
+  soloDone                       Boolean @default(false)
+  threeTakeoffsLandingsDone      Boolean @default(false)
+  threeNightTakeoffsLandingsDone Boolean @default(false)
+
   lastUpdated DateTime @default(now())
-  
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@map("TrainingProgress")
 }
 
@@ -152,7 +181,7 @@ model UserAircraft {
   createdAt DateTime? @default(now(), map: "DF__UserAircr__creat__08B54D69")
   updatedAt DateTime? @default(now(), map: "DF__UserAircr__updat__09A971A2") @updatedAt
 
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("UserAircraft")
 }
@@ -256,8 +285,8 @@ model FlyingGroup {
   createdAt   DateTime? @default(now(), map: "DF__FlyingGro__creat__17036CC0")
   updatedAt   DateTime? @default(now(), map: "DF__FlyingGro__updat__17F790F9") @updatedAt
 
-  members     GroupMember[]
-  invites     Invite[]
+  members GroupMember[]
+  invites Invite[]
 
   @@map("FlyingGroup")
 }
@@ -269,8 +298,8 @@ model GroupMember {
   role     String?   @default("VIEWER", map: "DF__GroupMembe__role__1CBC4616") @db.NVarChar(20)
   joinedAt DateTime? @default(now(), map: "DF__GroupMemb__joine__1DB06A4F")
 
-  user     User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  group    FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  group FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@unique([userId, groupId])
   @@map("GroupMember")
@@ -286,7 +315,7 @@ model Invite {
   createdBy String    @db.NVarChar(36)
   createdAt DateTime? @default(now(), map: "DF__Invite__createdA__236943A5")
 
-  group     FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@map("Invite")
 }
@@ -382,8 +411,8 @@ model FlightPlan {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  waypoints     FlightPlanWaypoint[]
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  waypoints FlightPlanWaypoint[]
+  user      User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("FlightPlan")
 }
@@ -402,7 +431,7 @@ model FlightPlanWaypoint {
   flightType   String?  @db.NVarChar(10)
   createdAt    DateTime @default(now())
 
-  flightPlan   FlightPlan @relation(fields: [flightPlanId], references: [id], onDelete: Cascade)
+  flightPlan FlightPlan @relation(fields: [flightPlanId], references: [id], onDelete: Cascade)
 
   @@map("FlightPlanWaypoint")
 }
@@ -410,21 +439,21 @@ model FlightPlanWaypoint {
 // ============ CACHE TABLES ============
 
 model AirportCache {
-  icao          String   @id @db.NVarChar(10)
-  iata          String?  @db.NVarChar(3)
-  name          String   @db.NVarChar(255)
-  city          String?  @db.NVarChar(100)
-  state         String?  @db.NVarChar(50)
-  country       String?  @db.NVarChar(100)
-  latitude      Float
-  longitude     Float
-  elevation_ft  Int?
-  type          String   @db.NVarChar(50)  // large_airport, medium_airport, small_airport, seaplane_base, heliport
-  timezone      String?  @db.NVarChar(50)
-  hasTower      Boolean?
-  hasWeather    Boolean?
-  scraped_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  icao         String   @id @db.NVarChar(10)
+  iata         String?  @db.NVarChar(3)
+  name         String   @db.NVarChar(255)
+  city         String?  @db.NVarChar(100)
+  state        String?  @db.NVarChar(50)
+  country      String?  @db.NVarChar(100)
+  latitude     Float
+  longitude    Float
+  elevation_ft Int?
+  type         String   @db.NVarChar(50) // large_airport, medium_airport, small_airport, seaplane_base, heliport
+  timezone     String?  @db.NVarChar(50)
+  hasTower     Boolean?
+  hasWeather   Boolean?
+  scraped_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
 
   @@index([type])
   @@index([country, state])
@@ -432,55 +461,55 @@ model AirportCache {
 }
 
 model FuelPriceCache {
-  icao           String   @id @db.NVarChar(10)
-  price100ll     Decimal? @db.Decimal(6, 2)
-  priceJetA      Decimal? @db.Decimal(6, 2)
-  priceSulfar    Decimal? @db.Decimal(6, 2) // UL94
-  source         String?  @db.NVarChar(50)  // airnav, fuel100, own
-  source_url     String?  @db.NVarChar(500)
-  last_reported  DateTime?
-  attribution    String?  @db.NVarChar(255)
-  scraped_at     DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  icao          String    @id @db.NVarChar(10)
+  price100ll    Decimal?  @db.Decimal(6, 2)
+  priceJetA     Decimal?  @db.Decimal(6, 2)
+  priceSulfar   Decimal?  @db.Decimal(6, 2) // UL94
+  source        String?   @db.NVarChar(50) // airnav, fuel100, own
+  source_url    String?   @db.NVarChar(500)
+  last_reported DateTime?
+  attribution   String?   @db.NVarChar(255)
+  scraped_at    DateTime  @default(now())
+  updated_at    DateTime  @updatedAt
 
   @@index([price100ll])
   @@map("FuelPriceCache")
 }
 
 model AircraftCache {
-  id             Int      @id @default(autoincrement())
-  manufacturer   String   @db.NVarChar(100)
-  model          String   @db.NVarChar(200)
-  year           Int?
-  variant        String?  @db.NVarChar(100)
-  
+  id           Int     @id @default(autoincrement())
+  manufacturer String  @db.NVarChar(100)
+  model        String  @db.NVarChar(200)
+  year         Int?
+  variant      String? @db.NVarChar(100)
+
   // Engine specs
-  engine_type    String?  @db.NVarChar(50)  // Piston, Turbine, Jet
-  engine_count   Int?
-  fuel_type      String?  @db.NVarChar(50)  // 100LL, JetA, UL94, Mogas
-  fuel_capacity_gal Decimal? @db.Decimal(8, 2)
+  engine_type             String?  @db.NVarChar(50) // Piston, Turbine, Jet
+  engine_count            Int?
+  fuel_type               String?  @db.NVarChar(50) // 100LL, JetA, UL94, Mogas
+  fuel_capacity_gal       Decimal? @db.Decimal(8, 2)
   fuel_capacityusable_gal Decimal? @db.Decimal(8, 2)
-  
+
   // Performance - fuel saver relevant
-  cruise_speed_kts Int?  // Typical cruise speed
-  burn_rate_gph   Decimal? @db.Decimal(6, 2) // gallons per hour
-  range_nm        Int?  // Range with full tanks
+  cruise_speed_kts      Int? // Typical cruise speed
+  burn_rate_gph         Decimal? @db.Decimal(6, 2) // gallons per hour
+  range_nm              Int? // Range with full tanks
   range_with_reserve_nm Int? // Range with reserves (45min + 1hr)
-  
+
   // Weights
-  empty_weight_lbs Int?
+  empty_weight_lbs       Int?
   max_takeoff_weight_lbs Int?
   max_landing_weight_lbs Int?
-  
+
   // Useful for planning
-  pax_capacity   Int?
+  pax_capacity    Int?
   useful_load_lbs Int?
-  
+
   // Source
-  source_url     String?  @db.NVarChar(500)
-  is_verified    Boolean  @default(false)
-  scraped_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
+  source_url  String?  @db.NVarChar(500)
+  is_verified Boolean  @default(false)
+  scraped_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 
   @@index([manufacturer, model])
   @@index([fuel_type])
@@ -488,51 +517,51 @@ model AircraftCache {
 }
 
 model WeatherCache {
-  icao           String   @id @db.NVarChar(10)
-  station_type   String?  @db.NVarChar(20)  // METAR, TAF
-  raw_data       String   @db.NVarChar(Max)
-  parsed_data    String?  @db.NVarChar(Max) // JSON parsed
-  valid_from     DateTime
-  valid_until    DateTime
-  scraped_at     DateTime @default(now())
+  icao         String   @id @db.NVarChar(10)
+  station_type String?  @db.NVarChar(20) // METAR, TAF
+  raw_data     String   @db.NVarChar(Max)
+  parsed_data  String?  @db.NVarChar(Max) // JSON parsed
+  valid_from   DateTime
+  valid_until  DateTime
+  scraped_at   DateTime @default(now())
 
   @@index([valid_until])
   @@map("WeatherCache")
 }
 
 model Document {
-  id          String   @id @default(uuid()) @db.NVarChar(36)
-  userId      String   @db.NVarChar(36)
-  name        String   @db.NVarChar(255)
-  type        String   @db.NVarChar(50) // POH, insurance, registration, maintenance, other
-  fileUrl     String   @db.NVarChar(500)
+  id          String    @id @default(uuid()) @db.NVarChar(36)
+  userId      String    @db.NVarChar(36)
+  name        String    @db.NVarChar(255)
+  type        String    @db.NVarChar(50) // POH, insurance, registration, maintenance, other
+  fileUrl     String    @db.NVarChar(500)
   fileSize    Int?
-  mimeType    String?  @db.NVarChar(100)
-  description String?  @db.NVarChar(500)
+  mimeType    String?   @db.NVarChar(100)
+  description String?   @db.NVarChar(500)
   expiresAt   DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("Document")
 }
 
 model ErrorReport {
-  id          String   @id @default(uuid()) @db.NVarChar(36)
-  userId      String?  @db.NVarChar(36) // null if anonymous
-  email       String?  @db.NVarChar(255) // optional email for anonymous reports
-  title       String   @db.NVarChar(255)
-  description String   @db.NVarChar(Max)
-  stepsToReproduce String? @db.NVarChar(Max)
-  url         String?  @db.NVarChar(500) // page where error occurred
-  browser     String?  @db.NVarChar(100) // browser info
-  status      String   @default("open") @db.NVarChar(20) // open, in_progress, resolved, closed
-  resolution  String?  @db.NVarChar(Max)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(uuid()) @db.NVarChar(36)
+  userId           String?  @db.NVarChar(36) // null if anonymous
+  email            String?  @db.NVarChar(255) // optional email for anonymous reports
+  title            String   @db.NVarChar(255)
+  description      String   @db.NVarChar(Max)
+  stepsToReproduce String?  @db.NVarChar(Max)
+  url              String?  @db.NVarChar(500) // page where error occurred
+  browser          String?  @db.NVarChar(100) // browser info
+  status           String   @default("open") @db.NVarChar(20) // open, in_progress, resolved, closed
+  resolution       String?  @db.NVarChar(Max)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("ErrorReport")
 }

@@ -22,6 +22,13 @@ export const moduleCatalog: ModuleDefinition[] = [
     requiresPurchase: false,
   },
   {
+    id: "marketplace",
+    label: "Aircraft Marketplace",
+    href: "/modules/marketplace",
+    description: "Find aircraft partners, co-ownership opportunities, or buyers",
+    requiresPurchase: false,
+  },
+  {
     id: "fuel-saver",
     label: "Fuel Saver",
     href: "/modules/fuel-saver",
