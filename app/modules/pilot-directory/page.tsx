@@ -33,6 +33,42 @@ const initialProfileState = {
   ratings: [] as string[],
 };
 
+const DEMO_PROFILES: PilotProfile[] = [
+  {
+    id: 'demo-1',
+    userId: 'demo-user',
+    homeAirport: 'KAPA',
+    ratings: ['PPL', 'Instrument'],
+    availability: 'Weekends',
+    aircraft: 'C172S, PA-28',
+    hours: 320,
+    bio: 'Weekend IFR currency runs and cross-country trips.',
+    user: { id: 'demo-user', name: 'Liam Carter', username: 'liamc', email: 'liam@example.com', tier: 'pro' },
+  },
+  {
+    id: 'demo-2',
+    userId: 'demo-user',
+    homeAirport: 'KDAL',
+    ratings: ['Commercial', 'CFI'],
+    availability: 'Weekdays',
+    aircraft: 'SR22, C182T',
+    hours: 1450,
+    bio: 'Looking for safety pilots and ferry opportunities.',
+    user: { id: 'demo-user', name: 'Sofia Nguyen', username: 'sofiaflys', email: 'sofia@example.com', tier: 'proplus' },
+  },
+  {
+    id: 'demo-3',
+    userId: 'demo-user',
+    homeAirport: 'KSMO',
+    ratings: ['Student'],
+    availability: 'Evenings',
+    aircraft: 'C152',
+    hours: 48,
+    bio: 'Student pilot building time. Happy to split time for practice.',
+    user: { id: 'demo-user', name: 'Marcus Reed', username: 'marcusreed', email: 'marcus@example.com', tier: 'free' },
+  },
+];
+
 export default function PilotDirectoryPage() {
   const { data: session, status } = useSession();
   const [profiles, setProfiles] = useState<PilotProfile[]>([]);
@@ -41,6 +77,10 @@ export default function PilotDirectoryPage() {
   const [myProfile, setMyProfile] = useState<typeof initialProfileState>(initialProfileState);
   const [profileLoading, setProfileLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
+  const [friends, setFriends] = useState<{ id: string }[]>([]);
+  const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<any[]>([]);
+  const [friendActionMessage, setFriendActionMessage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchProfiles();
@@ -49,6 +89,7 @@ export default function PilotDirectoryPage() {
   useEffect(() => {
     if (session?.user?.id) {
       fetchMyProfile();
+      loadFriendState();
     }
   }, [session]);
 
@@ -75,9 +116,11 @@ export default function PilotDirectoryPage() {
       if (filters.airport) params.set('airport', filters.airport.toUpperCase());
       const res = await fetch(`/api/pilots?${params.toString()}`);
       const data = await res.json();
-      setProfiles(data.profiles || []);
+      const nextProfiles = data.profiles || [];
+      setProfiles(nextProfiles.length ? nextProfiles : DEMO_PROFILES);
     } catch (error) {
       console.error('Failed to load pilot profiles', error);
+      setProfiles(DEMO_PROFILES);
     } finally {
       setLoading(false);
     }
@@ -101,6 +144,82 @@ export default function PilotDirectoryPage() {
       }
     } catch (error) {
       console.error('Failed to load personal profile', error);
+    }
+  }
+
+  async function loadFriendState() {
+    try {
+      const [friendsRes, requestsRes] = await Promise.all([
+        fetch('/api/friends'),
+        fetch('/api/friends/requests'),
+      ]);
+      const friendsData = await friendsRes.json();
+      const requestsData = await requestsRes.json();
+      setFriends(friendsData.friends || []);
+      setIncomingRequests(requestsData.incoming || []);
+      setOutgoingRequests(requestsData.outgoing || []);
+    } catch (error) {
+      console.error('Failed to load friend status', error);
+    }
+  }
+
+  async function sendFriendRequest(userId: string) {
+    try {
+      const res = await fetch('/api/friends/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientId: userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send request');
+      }
+      setFriendActionMessage('Friend request sent');
+      await loadFriendState();
+    } catch (error) {
+      console.error(error);
+      setFriendActionMessage(error instanceof Error ? error.message : 'Failed to send request');
+    }
+  }
+
+  async function respondToRequest(requestId: string, action: 'accept' | 'decline') {
+    try {
+      const res = await fetch(`/api/friends/requests/${requestId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to update request');
+      }
+      setFriendActionMessage(action === 'accept' ? 'Friend request accepted' : 'Friend request declined');
+      await loadFriendState();
+    } catch (error) {
+      console.error(error);
+      setFriendActionMessage(error instanceof Error ? error.message : 'Failed to update request');
+    }
+  }
+
+  async function openChatWithUser(userId: string) {
+    if (!session) {
+      signIn();
+      return;
+    }
+    try {
+      const res = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to start chat');
+      }
+      window.dispatchEvent(new CustomEvent('open-chat', { detail: { conversationId: data.conversationId } }));
+    } catch (error) {
+      console.error(error);
+      setFriendActionMessage(error instanceof Error ? error.message : 'Failed to start chat');
     }
   }
 
@@ -184,6 +303,11 @@ export default function PilotDirectoryPage() {
 
       <div className="max-w-6xl mx-auto px-4 py-6 grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
+          {friendActionMessage && (
+            <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm px-4 py-2 rounded-lg">
+              {friendActionMessage}
+            </div>
+          )}
           {loading ? (
             <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center text-slate-400">
               Loading pilot profiles…
@@ -210,6 +334,52 @@ export default function PilotDirectoryPage() {
                     ))}
                   </div>
                 </div>
+                {profile.user?.id && profile.user.id !== session?.user?.id && (
+                  (() => {
+                    const incomingRequest = incomingRequests.find((req) => req.requester?.id === profile.user?.id);
+                    const outgoingRequest = outgoingRequests.find((req) => req.recipient?.id === profile.user?.id);
+                    const isFriend = friends.some((friend) => friend.id === profile.user?.id);
+
+                    return (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {isFriend ? (
+                      <button
+                        onClick={() => openChatWithUser(profile.user!.id)}
+                        className="px-3 py-1 rounded-full text-xs bg-emerald-500/20 border border-emerald-400 text-emerald-200"
+                      >
+                        Chat
+                      </button>
+                    ) : outgoingRequest ? (
+                      <span className="px-3 py-1 rounded-full text-xs bg-slate-700 text-slate-300">
+                        Request Sent
+                      </span>
+                    ) : incomingRequest ? (
+                      <>
+                        <button
+                          onClick={() => respondToRequest(incomingRequest.id, 'accept')}
+                          className="px-3 py-1 rounded-full text-xs bg-emerald-500/20 border border-emerald-400 text-emerald-200"
+                        >
+                          Accept
+                        </button>
+                        <button
+                          onClick={() => respondToRequest(incomingRequest.id, 'decline')}
+                          className="px-3 py-1 rounded-full text-xs bg-slate-700 text-slate-300"
+                        >
+                          Decline
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={() => sendFriendRequest(profile.user!.id)}
+                        className="px-3 py-1 rounded-full text-xs bg-slate-700 text-slate-200"
+                      >
+                        Add Friend
+                      </button>
+                    )}
+                  </div>
+                  );
+                })()
+              )}
                 {profile.availability && (
                   <div className="text-xs text-emerald-300 mt-2">Available: {profile.availability}</div>
                 )}

@@ -61,6 +61,72 @@ interface AirportLookup {
   longitude?: number;
 }
 
+const DEMO_LISTINGS: MarketplaceListing[] = [
+  {
+    id: 'demo-1',
+    userId: 'demo-user',
+    type: 'FOR_SALE',
+    title: '1978 Piper Archer - Ready to Fly',
+    description: 'Well cared for, new paint, fresh annual, hangared in Denver.',
+    aircraftType: 'Piper PA-28-181',
+    airportIcao: 'KAPA',
+    airportName: 'Centennial Airport',
+    airportCity: 'Denver, CO',
+    latitude: 39.5701,
+    longitude: -104.8492,
+    price: 165000,
+    sharePercent: null,
+    hours: 4120,
+    contactMethod: 'email',
+    contactValue: 'owner@example.com',
+    status: 'ACTIVE',
+    createdAt: new Date().toISOString(),
+    user: { id: 'demo-user', name: 'Skyline Aviation', username: 'skyline', tier: 'pro' },
+  },
+  {
+    id: 'demo-2',
+    userId: 'demo-user',
+    type: 'SHARE_SELL',
+    title: 'C172 Partnership - 25% Share',
+    description: 'Equity partnership at KSDL. Great for weekend flyers.',
+    aircraftType: 'Cessna 172S G1000',
+    airportIcao: 'KSDL',
+    airportName: 'Scottsdale Airport',
+    airportCity: 'Scottsdale, AZ',
+    latitude: 33.6229,
+    longitude: -111.9113,
+    price: 45000,
+    sharePercent: 25,
+    hours: 2150,
+    contactMethod: 'sms',
+    contactValue: '(480) 555-0199',
+    status: 'ACTIVE',
+    createdAt: new Date().toISOString(),
+    user: { id: 'demo-user', name: 'Desert Flyers', username: 'desertflyers', tier: 'free' },
+  },
+  {
+    id: 'demo-3',
+    userId: 'demo-user',
+    type: 'SHARE_WANTED',
+    title: 'Looking for SR22 Partnership',
+    description: 'IFR-rated pilot seeking SR22 share around Tampa/Orlando.',
+    aircraftType: 'Cirrus SR22',
+    airportIcao: 'KTPA',
+    airportName: 'Tampa International',
+    airportCity: 'Tampa, FL',
+    latitude: 27.9755,
+    longitude: -82.5332,
+    price: null,
+    sharePercent: 20,
+    hours: null,
+    contactMethod: 'email',
+    contactValue: 'pilot@example.com',
+    status: 'ACTIVE',
+    createdAt: new Date().toISOString(),
+    user: { id: 'demo-user', name: 'Alex Rivera', username: 'aviatealex', tier: 'proplus' },
+  },
+];
+
 export default function MarketplacePage() {
   const { data: session, status } = useSession();
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
@@ -101,13 +167,44 @@ export default function MarketplacePage() {
         throw new Error('Failed to load listings');
       }
       const data = await res.json();
-      setListings(data.listings || []);
+      const rawListings = data.listings || [];
+      const hydratedListings = await hydrateListingLocations(rawListings);
+      setListings(hydratedListings.length ? hydratedListings : DEMO_LISTINGS);
     } catch (err) {
       console.error(err);
-      setError('Unable to load listings right now.');
+      setListings(DEMO_LISTINGS);
+      setError('Unable to load listings right now. Showing demo listings.');
     } finally {
       setLoading(false);
     }
+  }
+
+  async function hydrateListingLocations(rawListings: MarketplaceListing[]) {
+    const updatedListings = await Promise.all(
+      rawListings.map(async (listing) => {
+        if (typeof listing.latitude === 'number' && typeof listing.longitude === 'number') {
+          return listing;
+        }
+        if (!listing.airportIcao) return listing;
+        try {
+          const res = await fetch(`/api/airports/${listing.airportIcao.toUpperCase()}`);
+          if (!res.ok) return listing;
+          const data = await res.json();
+          return {
+            ...listing,
+            airportName: listing.airportName || data.name,
+            airportCity: listing.airportCity || data.city,
+            latitude: data.latitude ?? listing.latitude,
+            longitude: data.longitude ?? listing.longitude,
+          };
+        } catch (error) {
+          console.error('Failed to hydrate listing location', error);
+          return listing;
+        }
+      })
+    );
+
+    return updatedListings;
   }
 
   async function handleAirportLookup() {
@@ -144,6 +241,24 @@ export default function MarketplacePage() {
 
     setFormLoading(true);
     try {
+      let locationPayload = airportLookup;
+      if (!locationPayload && formData.airportIcao) {
+        try {
+          const res = await fetch(`/api/airports/${formData.airportIcao.toUpperCase()}`);
+          if (res.ok) {
+            const data = await res.json();
+            locationPayload = {
+              name: data.name,
+              city: data.city,
+              latitude: data.latitude,
+              longitude: data.longitude,
+            };
+          }
+        } catch (error) {
+          console.error('Failed to fetch airport location', error);
+        }
+      }
+
       const payload = {
         type: formData.type,
         title: formData.title,
@@ -155,10 +270,10 @@ export default function MarketplacePage() {
         description: formData.description,
         contactMethod: formData.contactMethod,
         contactValue: formData.contactValue,
-        airportName: airportLookup?.name,
-        airportCity: airportLookup?.city,
-        latitude: airportLookup?.latitude,
-        longitude: airportLookup?.longitude,
+        airportName: locationPayload?.name,
+        airportCity: locationPayload?.city,
+        latitude: locationPayload?.latitude,
+        longitude: locationPayload?.longitude,
       };
 
       const res = await fetch('/api/marketplace/listings', {

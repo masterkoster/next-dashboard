@@ -3,7 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { createNavLogPdfDoc, getNavLogExportHistory, StoredNavLogExport } from '../fuel-saver/lib/exportUtils';
+import { createNavLogPdfDoc, downloadNavLogPdf, getNavLogExportHistory, StoredNavLogExport } from '../fuel-saver/lib/exportUtils';
 
 // Import the existing components
 import CurrencyTracker from '../../components/CurrencyTracker';
@@ -228,6 +228,15 @@ interface LogbookEntry {
   remarks?: string;
 }
 
+interface CurrentFuelSaverPlan {
+  name?: string;
+  waypoints: Array<{ icao: string; name?: string; latitude: number; longitude: number }>;
+  aircraft: { name: string; speed: number; burnRate: number; fuelCapacity: number };
+  cruisingAltitude: number;
+  fuelPrices: Record<string, { price100ll: number | null }>;
+  updatedAt?: string;
+}
+
 function PilotOverviewContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -239,6 +248,7 @@ function PilotOverviewContent() {
   const [selectedExportId, setSelectedExportId] = useState<string | null>(null);
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [viewerLoading, setViewerLoading] = useState(false);
+  const [currentFuelPlan, setCurrentFuelPlan] = useState<CurrentFuelSaverPlan | null>(null);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -252,6 +262,33 @@ function PilotOverviewContent() {
     const handler = () => setNavLogExports(getNavLogExportHistory());
     window.addEventListener('navlog-exports-updated', handler);
     return () => window.removeEventListener('navlog-exports-updated', handler);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const loadCurrentPlan = () => {
+      try {
+        const raw = localStorage.getItem('fuelSaverCurrentPlan');
+        if (!raw) {
+          setCurrentFuelPlan(null);
+          return;
+        }
+        const parsed = JSON.parse(raw) as CurrentFuelSaverPlan;
+        if (!parsed?.waypoints || parsed.waypoints.length < 2) {
+          setCurrentFuelPlan(null);
+          return;
+        }
+        setCurrentFuelPlan(parsed);
+      } catch (error) {
+        console.error('Failed to load current Fuel Saver plan', error);
+        setCurrentFuelPlan(null);
+      }
+    };
+
+    loadCurrentPlan();
+    window.addEventListener('fuel-saver-plan-updated', loadCurrentPlan);
+    return () => window.removeEventListener('fuel-saver-plan-updated', loadCurrentPlan);
   }, []);
 
   const checkSubscription = async () => {
@@ -302,6 +339,17 @@ function PilotOverviewContent() {
     } catch (error) {
       console.error('Failed to download nav log export', error);
     }
+  };
+
+  const handleDownloadCurrentPlan = (detailed: boolean) => {
+    if (!currentFuelPlan) return;
+    downloadNavLogPdf(
+      currentFuelPlan.waypoints,
+      currentFuelPlan.aircraft,
+      currentFuelPlan.cruisingAltitude,
+      currentFuelPlan.fuelPrices,
+      { detailed, planName: currentFuelPlan.name }
+    );
   };
 
   const formatExportDate = (isoString: string) => {
@@ -546,6 +594,34 @@ function PilotOverviewContent() {
                 </p>
               </div>
             </div>
+
+            {currentFuelPlan && (
+              <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-white font-semibold">Current Fuel Saver Plan</div>
+                    <div className="text-xs text-slate-400">
+                      {currentFuelPlan.name || `${currentFuelPlan.waypoints[0].icao} → ${currentFuelPlan.waypoints[currentFuelPlan.waypoints.length - 1].icao}`}
+                    </div>
+                  </div>
+                  <span className="text-xs px-2 py-1 rounded-full border border-slate-600 text-slate-300">Live</span>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleDownloadCurrentPlan(false)}
+                    className="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-sm py-2 rounded-lg"
+                  >
+                    Download Basic
+                  </button>
+                  <button
+                    onClick={() => handleDownloadCurrentPlan(true)}
+                    className="flex-1 bg-emerald-500 hover:bg-emerald-400 text-white text-sm py-2 rounded-lg"
+                  >
+                    Download Detailed
+                  </button>
+                </div>
+              </div>
+            )}
 
             {navLogExports.length === 0 ? (
               <div className="bg-slate-800 border border-slate-700 rounded-xl p-10 text-center text-slate-400">

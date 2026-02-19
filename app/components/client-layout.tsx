@@ -8,6 +8,7 @@
  import ConflictModal from './conflicts-modal';
  import { AuthModalProvider } from './AuthModalContext';
  import LoginModal from './LoginModal';
+ import ChatWidget from './chat-widget';
 
  export default function ClientLayout({ children }: { children: React.ReactNode }) {
    const pathname = usePathname();
@@ -36,6 +37,7 @@
              onResolved={() => {}} 
            />
             <LoginModal />
+            <ChatWidget />
           </>
         </AuthModalProvider>
       </SessionProvider>

@@ -460,6 +460,8 @@ function FuelSaverContent() {
   
   // Demo plans flag
   const [demoPlansLoaded, setDemoPlansLoaded] = useState(false);
+
+  const CURRENT_PLAN_STORAGE_KEY = 'fuelSaverCurrentPlan';
   
   // Get URL params for loading a plan
   const searchParams = useSearchParams();
@@ -644,6 +646,45 @@ function FuelSaverContent() {
       localStorage.setItem('savedFlightPlans', JSON.stringify(plans));
     }
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    if (waypoints.length < 2) {
+      localStorage.removeItem(CURRENT_PLAN_STORAGE_KEY);
+      window.dispatchEvent(new CustomEvent('fuel-saver-plan-updated'));
+      return;
+    }
+
+    const relevantFuelPrices: Record<string, FuelPrice> = {};
+    waypoints.forEach((wp) => {
+      if (wp?.icao && fuelPrices[wp.icao]) {
+        relevantFuelPrices[wp.icao] = fuelPrices[wp.icao];
+      }
+    });
+
+    const currentPlan = {
+      name: flightPlanName?.trim() || undefined,
+      waypoints: waypoints.map((wp) => ({
+        icao: wp.icao,
+        name: wp.name,
+        latitude: wp.latitude,
+        longitude: wp.longitude,
+      })),
+      aircraft: {
+        name: selectedAircraft.name,
+        speed: selectedAircraft.speed,
+        burnRate: selectedAircraft.burnRate,
+        fuelCapacity: selectedAircraft.fuelCapacity,
+      },
+      cruisingAltitude: cruisingAlt,
+      fuelPrices: relevantFuelPrices,
+      updatedAt: new Date().toISOString(),
+    };
+
+    localStorage.setItem(CURRENT_PLAN_STORAGE_KEY, JSON.stringify(currentPlan));
+    window.dispatchEvent(new CustomEvent('fuel-saver-plan-updated'));
+  }, [waypoints, selectedAircraft, cruisingAlt, fuelPrices, flightPlanName]);
 
   // Demo flight plans for users who want to try it out
   const DEMO_FLIGHT_PLANS = [

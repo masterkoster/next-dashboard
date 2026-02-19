@@ -8,7 +8,7 @@ datasource db {
 }
 
 model User {
-  id               String   @id @default(uuid())
+  id               String   @id @default(uuid()) @db.NVarChar(36)
   username         String   @unique @db.NVarChar(50)
   email            String   @unique @db.NVarChar(255)
   name             String?  @db.NVarChar(255)
@@ -47,6 +47,10 @@ model User {
   flightTracks        FlightTrack[]
   marketplaceListings MarketplaceListing[]
   pilotProfile        PilotProfile?
+  friendRequestsSent     FriendRequest[]       @relation("FriendRequestRequester")
+  friendRequestsReceived FriendRequest[]       @relation("FriendRequestRecipient")
+  conversationParticipants ConversationParticipant[]
+  messages               Message[]
 
   @@map("User")
 }
@@ -94,6 +98,64 @@ model PilotProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("PilotProfile")
+}
+
+model FriendRequest {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  requesterId String   @db.NVarChar(36)
+  recipientId String   @db.NVarChar(36)
+  status      String   @default("pending") @db.NVarChar(20) // pending, accepted, declined, cancelled
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requester User @relation("FriendRequestRequester", fields: [requesterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  recipient User @relation("FriendRequestRecipient", fields: [recipientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([requesterId, recipientId])
+  @@index([recipientId, status])
+  @@index([requesterId, status])
+  @@map("FriendRequest")
+}
+
+model Conversation {
+  id        String   @id @default(uuid()) @db.NVarChar(36)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+
+  @@map("Conversation")
+}
+
+model ConversationParticipant {
+  id             String    @id @default(uuid()) @db.NVarChar(36)
+  conversationId String    @db.NVarChar(36)
+  userId         String    @db.NVarChar(36)
+  lastReadAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@map("ConversationParticipant")
+}
+
+model Message {
+  id             String   @id @default(uuid()) @db.NVarChar(36)
+  conversationId String   @db.NVarChar(36)
+  senderId       String   @db.NVarChar(36)
+  body           String   @db.NVarChar(Max)
+  createdAt      DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation(fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([conversationId, createdAt])
+  @@index([senderId])
+  @@map("Message")
 }
 
 model FlightTrack {
