@@ -34,8 +34,38 @@ model User {
   aircraft         UserAircraft[]
   documents        Document[]
   errorReports     ErrorReport[]
+  trainingProgress TrainingProgress?
 
   @@map("User")
+}
+
+model TrainingProgress {
+  id        String   @id @default(uuid()) @db.NVarChar(36)
+  userId    String   @unique @db.NVarChar(36)
+  
+  // Hours
+  totalHours          Int      @default(0)
+  soloHours            Int      @default(0)
+  nightHours           Int      @default(0)
+  instrumentHours      Int      @default(0)
+  crossCountryHours    Int      @default(0)
+  xcSoloHours          Int      @default(0)
+  dualGiven            Int      @default(0)
+  hoodHours            Int      @default(0)
+  
+  // Milestones
+  xcSoloDone                       Boolean @default(false)
+  nightSoloDone                    Boolean @default(false)
+  instrumentDone                   Boolean @default(false)
+  soloDone                         Boolean @default(false)
+  threeTakeoffsLandingsDone        Boolean @default(false)
+  threeNightTakeoffsLandingsDone   Boolean @default(false)
+  
+  lastUpdated DateTime @default(now())
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("TrainingProgress")
 }
 
 model UserAircraft {

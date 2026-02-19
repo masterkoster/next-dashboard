@@ -30,4 +30,16 @@ export const moduleCatalog: ModuleDefinition[] = [
     href: "/modules/fuel-saver",
     description: "Find cheapest fuel along your route",
   },
+  {
+    id: "e6b",
+    label: "E6B Flight Computer",
+    href: "/modules/e6b",
+    description: "Full aviation calculator - wind, fuel, conversions",
+  },
+  {
+    id: "training",
+    label: "Training Tracker",
+    href: "/modules/training",
+    description: "Track your PPL progress and requirements",
+  },
 ];
