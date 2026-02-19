@@ -8,12 +8,10 @@ import { useAuthModal } from './AuthModalContext';
 
 const modules = [
   { id: 'flying-club', label: 'Flying Club', href: '/modules/flying-club' },
+  { id: 'pilot-overview', label: 'Pilot Overview', href: '/modules/pilot-overview', requiresProPlus: true },
   { id: 'fuel-saver', label: 'Fuel Saver', href: '/modules/fuel-saver' },
   { id: 'e6b', label: 'E6B', href: '/modules/e6b' },
-  { id: 'training', label: 'Training', href: '/modules/training' },
-  { id: 'logbook', label: 'Logbook', href: '/modules/logbook', requiresProPlus: true },
   { id: 'weather-radar', label: 'Weather Radar', href: '/modules/weather-radar' },
-  { id: 'proplus-dashboard', label: 'Pro+ Dashboard', href: '/modules/proplus-dashboard', requiresProPlus: true },
   { id: 'flight-playback', label: 'Flight Playback', href: '/modules/flight-playback', requiresProPlus: true },
 ];
 

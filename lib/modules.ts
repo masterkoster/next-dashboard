@@ -8,25 +8,18 @@ export type ModuleDefinition = {
 
 export const moduleCatalog: ModuleDefinition[] = [
   {
-    id: "plane-carfax",
-    label: "Plane Carfax",
-    href: "/modules/plane-carfax",
-    description: "FAA registration history & ownership details",
+    id: "pilot-overview",
+    label: "Pilot Overview",
+    href: "/modules/pilot-overview",
+    description: "Logbook, training progress, currency tracking & analytics",
     requiresPurchase: true,
   },
   {
-    id: "plane-search",
-    label: "Plane Search",
-    href: "/modules/plane-search",
-    description: "Search & filter aircraft by model",
-    requiresPurchase: true,
-  },
-  {
-    id: "tailhistory",
-    label: "TailHistory",
-    href: "/modules/tailhistory",
-    description: "3D timeline of aircraft history",
-    requiresPurchase: true,
+    id: "flying-club",
+    label: "Flying Club",
+    href: "/modules/flying-club",
+    description: "Manage shared aircraft, bookings, members & billing",
+    requiresPurchase: false,
   },
   {
     id: "fuel-saver",
@@ -43,31 +36,10 @@ export const moduleCatalog: ModuleDefinition[] = [
     requiresPurchase: false,
   },
   {
-    id: "training",
-    label: "Training Tracker",
-    href: "/modules/training",
-    description: "Track your PPL progress and requirements",
-    requiresPurchase: false,
-  },
-  {
-    id: "logbook",
-    label: "Digital Logbook",
-    href: "/modules/logbook",
-    description: "Track flight hours with Pro+",
-    requiresPurchase: true,
-  },
-  {
     id: "weather-radar",
     label: "Weather Radar",
     href: "/modules/weather-radar",
     description: "Real-time precipitation and storm tracking",
-    requiresPurchase: false,
-  },
-  {
-    id: "calendar-sync",
-    label: "Calendar Sync",
-    href: "/modules/calendar-sync",
-    description: "Add flights to Google or Apple Calendar",
     requiresPurchase: false,
   },
   {
