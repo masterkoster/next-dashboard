@@ -185,25 +185,97 @@ async function getFuelPrice(icao: string): Promise<FuelPrice | undefined> {
   return undefined;
 }
 
-// Aircraft profiles with manufacturer and year (accurate specs)
+// Aircraft profiles with W&B data (arms in inches, weights in lbs)
 const AIRCRAFT_PROFILES = [
   // Cessna
-  { name: 'Cessna 172S (2022)', manufacturer: 'Cessna', year: 2022, fuelCapacity: 56, burnRate: 9.9, speed: 122, type: '100LL' },
-  { name: 'Cessna 182T (2020)', manufacturer: 'Cessna', year: 2020, fuelCapacity: 92, burnRate: 12.5, speed: 140, type: '100LL' },
-  { name: 'Cessna 208 Caravan (2020)', manufacturer: 'Cessna', year: 2020, fuelCapacity: 335, burnRate: 55, speed: 180, type: 'JET-A' },
+  { 
+    name: 'Cessna 172S (2022)', manufacturer: 'Cessna', year: 2022, 
+    fuelCapacity: 56, burnRate: 9.9, speed: 122, type: '100LL',
+    emptyWeight: 1689, emptyCG: 39.1, maxWeight: 2550,
+    arms: { frontSeats: 37.0, rearSeats: 73.0, baggage1: 95.0, baggage2: 123.0, fuel: 48.0 },
+    cgLimits: { forward: 35.0, aft: 47.3 }
+  },
+  { 
+    name: 'Cessna 182T (2020)', manufacturer: 'Cessna', year: 2020, 
+    fuelCapacity: 92, burnRate: 12.5, speed: 140, type: '100LL',
+    emptyWeight: 1710, emptyCG: 39.0, maxWeight: 3100,
+    arms: { frontSeats: 37.0, rearSeats: 73.0, baggage1: 95.0, baggage2: 123.0, fuel: 48.0 },
+    cgLimits: { forward: 35.0, aft: 47.3 }
+  },
+  { 
+    name: 'Cessna 208 Caravan (2020)', manufacturer: 'Cessna', year: 2020, 
+    fuelCapacity: 335, burnRate: 55, speed: 180, type: 'JET-A',
+    emptyWeight: 4520, emptyCG: 90.0, maxWeight: 8800,
+    arms: { frontSeats: 82.0, rearSeats: 118.0, baggage1: 150.0, fuel: 95.0 },
+    cgLimits: { forward: 75.0, aft: 120.0 }
+  },
   // Piper
-  { name: 'Piper Cherokee Six (2015)', manufacturer: 'Piper', year: 2015, fuelCapacity: 84, burnRate: 11, speed: 130, type: '100LL' },
-  { name: 'Piper Cherokee Six (2020)', manufacturer: 'Piper', year: 2020, fuelCapacity: 84, burnRate: 10.5, speed: 132, type: '100LL' },
-  { name: 'Piper Meridian (2021)', manufacturer: 'Piper', year: 2021, fuelCapacity: 242, burnRate: 40, speed: 240, type: 'JET-A' },
+  { 
+    name: 'Piper Cherokee Six (2015)', manufacturer: 'Piper', year: 2015, 
+    fuelCapacity: 84, burnRate: 11, speed: 130, type: '100LL',
+    emptyWeight: 1520, emptyCG: 35.5, maxWeight: 2800,
+    arms: { frontSeats: 32.5, rearSeats: 75.0, baggage1: 95.0, baggage2: 123.0, fuel: 47.0 },
+    cgLimits: { forward: 31.0, aft: 47.3 }
+  },
+  { 
+    name: 'Piper Cherokee Six (2020)', manufacturer: 'Piper', year: 2020, 
+    fuelCapacity: 84, burnRate: 10.5, speed: 132, type: '100LL',
+    emptyWeight: 1530, emptyCG: 35.5, maxWeight: 2800,
+    arms: { frontSeats: 32.5, rearSeats: 75.0, baggage1: 95.0, baggage2: 123.0, fuel: 47.0 },
+    cgLimits: { forward: 31.0, aft: 47.3 }
+  },
+  { 
+    name: 'Piper Meridian (2021)', manufacturer: 'Piper', year: 2021, 
+    fuelCapacity: 242, burnRate: 40, speed: 240, type: 'JET-A',
+    emptyWeight: 3200, emptyCG: 85.0, maxWeight: 5200,
+    arms: { frontSeats: 80.5, rearSeats: 118.0, baggage1: 150.0, fuel: 95.0 },
+    cgLimits: { forward: 75.0, aft: 93.0 }
+  },
   // Beechcraft
-  { name: 'Beechcraft Bonanza A36 (2018)', manufacturer: 'Beechcraft', year: 2018, fuelCapacity: 102, burnRate: 14, speed: 155, type: '100LL' },
-  { name: 'Beechcraft Bonanza A36 (2024)', manufacturer: 'Beechcraft', year: 2024, fuelCapacity: 102, burnRate: 13.5, speed: 158, type: '100LL' },
+  { 
+    name: 'Beechcraft Bonanza A36 (2018)', manufacturer: 'Beechcraft', year: 2018, 
+    fuelCapacity: 102, burnRate: 14, speed: 155, type: '100LL',
+    emptyWeight: 2550, emptyCG: 82.0, maxWeight: 3600,
+    arms: { frontSeats: 82.5, rearSeats: 95.0, baggage1: 122.0, fuel: 95.0 },
+    cgLimits: { forward: 77.0, aft: 93.0 }
+  },
+  { 
+    name: 'Beechcraft Bonanza A36 (2024)', manufacturer: 'Beechcraft', year: 2024, 
+    fuelCapacity: 102, burnRate: 13.5, speed: 158, type: '100LL',
+    emptyWeight: 2560, emptyCG: 82.0, maxWeight: 3600,
+    arms: { frontSeats: 82.5, rearSeats: 95.0, baggage1: 122.0, fuel: 95.0 },
+    cgLimits: { forward: 77.0, aft: 93.0 }
+  },
   // Diamond
-  { name: 'Diamond DA40 (2020)', manufacturer: 'Diamond', year: 2020, fuelCapacity: 58, burnRate: 9, speed: 140, type: '100LL' },
-  { name: 'Diamond DA40 (2024)', manufacturer: 'Diamond', year: 2024, fuelCapacity: 58, burnRate: 8.8, speed: 142, type: '100LL' },
+  { 
+    name: 'Diamond DA40 (2020)', manufacturer: 'Diamond', year: 2020, 
+    fuelCapacity: 58, burnRate: 9, speed: 140, type: '100LL',
+    emptyWeight: 1650, emptyCG: 93.0, maxWeight: 2700,
+    arms: { frontSeats: 85.0, rearSeats: 85.0, baggage1: 90.0, fuel: 90.0 },
+    cgLimits: { forward: 82.0, aft: 96.0 }
+  },
+  { 
+    name: 'Diamond DA40 (2024)', manufacturer: 'Diamond', year: 2024, 
+    fuelCapacity: 58, burnRate: 8.8, speed: 142, type: '100LL',
+    emptyWeight: 1660, emptyCG: 93.0, maxWeight: 2700,
+    arms: { frontSeats: 85.0, rearSeats: 85.0, baggage1: 90.0, fuel: 90.0 },
+    cgLimits: { forward: 82.0, aft: 96.0 }
+  },
   // Cirrus
-  { name: 'Cirrus SR22 (2019)', manufacturer: 'Cirrus', year: 2019, fuelCapacity: 92, burnRate: 13, speed: 155, type: '100LL' },
-  { name: 'Cirrus SR22 (2024)', manufacturer: 'Cirrus', year: 2024, fuelCapacity: 92, burnRate: 12.5, speed: 158, type: '100LL' },
+  { 
+    name: 'Cirrus SR22 (2019)', manufacturer: 'Cirrus', year: 2019, 
+    fuelCapacity: 92, burnRate: 13, speed: 155, type: '100LL',
+    emptyWeight: 3400, emptyCG: 35.0, maxWeight: 3600,
+    arms: { frontSeats: 35.0, rearSeats: 66.0, baggage1: 86.0, baggage2: 86.0, fuel: 48.0 },
+    cgLimits: { forward: 33.0, aft: 47.3 }
+  },
+  { 
+    name: 'Cirrus SR22 (2024)', manufacturer: 'Cirrus', year: 2024, 
+    fuelCapacity: 92, burnRate: 12.5, speed: 158, type: '100LL',
+    emptyWeight: 3410, emptyCG: 35.0, maxWeight: 3600,
+    arms: { frontSeats: 35.0, rearSeats: 66.0, baggage1: 86.0, baggage2: 86.0, fuel: 48.0 },
+    cgLimits: { forward: 33.0, aft: 47.3 }
+  },
 ];
 
 function FuelSaverContent() {
@@ -629,7 +701,7 @@ function FuelSaverContent() {
   const [showPanel, setShowPanel] = useState(true);
   const [showOrientationWarning, setShowOrientationWarning] = useState(false);
   const [orientationDismissed, setOrientationDismissed] = useState(false);
-  const [activeTab, setActiveTab] = useState<'details' | 'waypoints' | 'info' | 'e6b'>('details');
+  const [activeTab, setActiveTab] = useState<'details' | 'waypoints' | 'wb' | 'info' | 'e6b'>('details');
   const [tabIndex, setTabIndex] = useState(0);
   
   // E6B Calculator state
@@ -639,9 +711,18 @@ function FuelSaverContent() {
   const [e6bTAS, setE6bTAS] = useState(120);
   const [e6bResult, setE6bResult] = useState<{ groundSpeed: number; windCorrection: number; track: number } | null>(null);
   
+  // Weight & Balance state
+  const [wbFrontPax, setWbFrontPax] = useState(170);
+  const [wbRearPax1, setWbRearPax1] = useState(170);
+  const [wbRearPax2, setWbRearPax2] = useState(0);
+  const [wbBaggage1, setWbBaggage1] = useState(0);
+  const [wbBaggage2, setWbBaggage2] = useState(0);
+  const [wbFuel, setWbFuel] = useState(40);
+  
   const tabs = [
     { id: 'details', label: '📋 Details' },
     { id: 'waypoints', label: '📍 Route' },
+    { id: 'wb', label: '⚖️ W&B' },
     { id: 'e6b', label: '🔧 Tools' },
     { id: 'info', label: '🌤 Weather' }
   ];
@@ -1922,7 +2003,7 @@ function FuelSaverContent() {
                   ‹
                 </button>
                 <div className="flex-1 flex overflow-hidden">
-                  {tabs.slice(tabIndex, tabIndex + 4).map((tab) => (
+                  {tabs.slice(tabIndex, tabIndex + 5).map((tab) => (
                     <button
                       key={tab.id}
                       onClick={() => setActiveTab(tab.id as 'details' | 'waypoints' | 'info' | 'e6b')}
@@ -2179,9 +2260,163 @@ function FuelSaverContent() {
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              ) : activeTab === 'e6b' ? (
+                    )}
+                  </div>
+                ) : activeTab === 'wb' ? (
+                  /* Weight & Balance Tab */
+                  <div className="p-2 space-y-3">
+                    <div className="text-sm font-semibold text-white">⚖️ Weight & Balance</div>
+                    
+                    {/* Aircraft Selection */}
+                    <div>
+                      <label className="block text-xs text-slate-400 mb-1">Aircraft</label>
+                      <select
+                        value={selectedAircraft.name}
+                        onChange={(e) => {
+                          const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
+                          if (ac) setSelectedAircraft(ac);
+                        }}
+                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                      >
+                        {[...new Set(AIRCRAFT_PROFILES.map(p => p.manufacturer))].map(mfr => (
+                          <optgroup key={mfr} label={mfr}>
+                            {AIRCRAFT_PROFILES.filter(p => p.manufacturer === mfr).map(p => (
+                              <option key={p.name} value={p.name}>{p.name}</option>
+                            ))}
+                          </optgroup>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Weight Inputs */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Front Seats (lbs)</label>
+                        <input
+                          type="number"
+                          value={wbFrontPax}
+                          onChange={(e) => setWbFrontPax(Number(e.target.value))}
+                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Rear Seat 1 (lbs)</label>
+                        <input
+                          type="number"
+                          value={wbRearPax1}
+                          onChange={(e) => setWbRearPax1(Number(e.target.value))}
+                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Rear Seat 2 (lbs)</label>
+                        <input
+                          type="number"
+                          value={wbRearPax2}
+                          onChange={(e) => setWbRearPax2(Number(e.target.value))}
+                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Baggage 1 (lbs)</label>
+                        <input
+                          type="number"
+                          value={wbBaggage1}
+                          onChange={(e) => setWbBaggage1(Number(e.target.value))}
+                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Baggage 2 (lbs)</label>
+                        <input
+                          type="number"
+                          value={wbBaggage2}
+                          onChange={(e) => setWbBaggage2(Number(e.target.value))}
+                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Fuel (gal)</label>
+                        <input
+                          type="number"
+                          value={wbFuel}
+                          onChange={(e) => setWbFuel(Number(e.target.value))}
+                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Calculate W&B */}
+                    {(() => {
+                      const ac = selectedAircraft;
+                      const fuelWeight = wbFuel * 6; // 6 lbs per gallon for 100LL
+                      const emptyMoment = ac.emptyWeight * ac.emptyCG;
+                      const frontMoment = wbFrontPax * (ac.arms?.frontSeats || 37);
+                      const rear1Moment = wbRearPax1 * (ac.arms?.rearSeats || 73);
+                      const rear2Moment = wbRearPax2 * (ac.arms?.rearSeats || 73);
+                      const bag1Moment = wbBaggage1 * (ac.arms?.baggage1 || 95);
+                      const bag2Moment = wbBaggage2 * (ac.arms?.baggage2 || 123);
+                      const fuelMoment = fuelWeight * (ac.arms?.fuel || 48);
+                      
+                      const totalWeight = ac.emptyWeight + wbFrontPax + wbRearPax1 + wbRearPax2 + wbBaggage1 + wbBaggage2 + fuelWeight;
+                      const totalMoment = emptyMoment + frontMoment + rear1Moment + rear2Moment + bag1Moment + bag2Moment + fuelMoment;
+                      const cg = totalMoment / totalWeight;
+                      const cgInLimits = cg >= (ac.cgLimits?.forward || 35) && cg <= (ac.cgLimits?.aft || 47.3);
+                      
+                      return (
+                        <div className="bg-slate-700 rounded p-3 space-y-2">
+                          {/* Weight Summary */}
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Empty:</span>
+                              <span className="text-white">{ac.emptyWeight} lbs</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Payload:</span>
+                              <span className="text-white">{wbFrontPax + wbRearPax1 + wbRearPax2 + wbBaggage1 + wbBaggage2} lbs</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-slate-400">Fuel:</span>
+                              <span className="text-white">{fuelWeight} lbs</span>
+                            </div>
+                            <div className="flex justify-between font-medium">
+                              <span className="text-slate-300">Total:</span>
+                              <span className={totalWeight > ac.maxWeight ? 'text-red-400' : 'text-white'}>{totalWeight} lbs</span>
+                            </div>
+                          </div>
+                          
+                          {/* CG Display */}
+                          <div className="pt-2 border-t border-slate-600">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="text-slate-400">CG:</span>
+                              <span className={cgInLimits ? 'text-emerald-400' : 'text-red-400'}>{cg.toFixed(1)}"</span>
+                            </div>
+                            <div className="h-2 bg-slate-600 rounded-full overflow-hidden">
+                              <div 
+                                className={`h-full transition-all ${cgInLimits ? 'bg-emerald-500' : 'bg-red-500'}`}
+                                style={{ 
+                                  width: `${Math.min(100, Math.max(0, ((cg - (ac.cgLimits?.forward || 35)) / ((ac.cgLimits?.aft || 47.3) - (ac.cgLimits?.forward || 35))) * 100))}%`,
+                                  marginLeft: `${Math.min(100, Math.max(0, ((cg - (ac.cgLimits?.forward || 35)) / ((ac.cgLimits?.aft || 47.3) - (ac.cgLimits?.forward || 35))) * 100))}%`
+                                }}
+                              />
+                            </div>
+                            <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+                              <span>{(ac.cgLimits?.forward || 35)}"</span>
+                              <span className={cgInLimits ? 'text-emerald-400' : 'text-red-400'}>
+                                {cgInLimits ? '✓ Within Limits' : '⚠️ Out of Limits'}
+                              </span>
+                              <span>{(ac.cgLimits?.aft || 47.3)}"</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    
+                    <div className="text-xs text-slate-500">
+                      Arms and limits based on POH data for selected aircraft.
+                    </div>
+                  </div>
+                ) : activeTab === 'e6b' ? (
                 /* E6B Calculator Tab */
                 <div className="p-3 space-y-4">
                   <div className="text-sm font-semibold text-white">🧮 E6B Wind Correction</div>

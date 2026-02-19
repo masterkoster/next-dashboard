@@ -48,13 +48,13 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-// Default aircraft profiles
+// Default aircraft profiles with W&B data
 const AIRCRAFT_PROFILES = [
-  { name: 'Cessna 172S', speed: 120, burnRate: 8.4, fuelCapacity: 56 },
-  { name: 'Cessna 182T', speed: 140, burnRate: 12, fuelCapacity: 88 },
-  { name: 'Cirrus SR22', speed: 155, burnRate: 14, fuelCapacity: 82 },
-  { name: 'Diamond DA40', speed: 140, burnRate: 10, fuelCapacity: 52 },
-  { name: 'Piper Archer', speed: 120, burnRate: 9, fuelCapacity: 48 },
+  { name: 'Cessna 172S', speed: 120, burnRate: 8.4, fuelCapacity: 56, emptyWeight: 1689, emptyCG: 39.1, maxWeight: 2550, arms: { frontSeats: 37.0, rearSeats: 73.0, baggage1: 95.0, baggage2: 123.0, fuel: 48.0 }, cgLimits: { forward: 35.0, aft: 47.3 } },
+  { name: 'Cessna 182T', speed: 140, burnRate: 12, fuelCapacity: 88, emptyWeight: 1710, emptyCG: 39.0, maxWeight: 3100, arms: { frontSeats: 37.0, rearSeats: 73.0, baggage1: 95.0, baggage2: 123.0, fuel: 48.0 }, cgLimits: { forward: 35.0, aft: 47.3 } },
+  { name: 'Cirrus SR22', speed: 155, burnRate: 14, fuelCapacity: 82, emptyWeight: 3400, emptyCG: 35.0, maxWeight: 3600, arms: { frontSeats: 35.0, rearSeats: 66.0, baggage1: 86.0, baggage2: 86.0, fuel: 48.0 }, cgLimits: { forward: 33.0, aft: 47.3 } },
+  { name: 'Diamond DA40', speed: 140, burnRate: 10, fuelCapacity: 52, emptyWeight: 1650, emptyCG: 93.0, maxWeight: 2700, arms: { frontSeats: 85.0, rearSeats: 85.0, baggage1: 90.0, fuel: 90.0 }, cgLimits: { forward: 82.0, aft: 96.0 } },
+  { name: 'Piper Archer', speed: 120, burnRate: 9, fuelCapacity: 48, emptyWeight: 1500, emptyCG: 35.0, maxWeight: 2550, arms: { frontSeats: 32.5, rearSeats: 75.0, baggage1: 95.0, fuel: 47.0 }, cgLimits: { forward: 31.0, aft: 47.3 } },
 ];
 
 export default function ViewTripPage() {
