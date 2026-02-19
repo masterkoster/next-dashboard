@@ -70,4 +70,11 @@ export const moduleCatalog: ModuleDefinition[] = [
     description: "Add flights to Google or Apple Calendar",
     requiresPurchase: false,
   },
+  {
+    id: "flight-playback",
+    label: "Flight Playback",
+    href: "/modules/flight-playback",
+    description: "Replay your flights on a map with track data",
+    requiresPurchase: true,
+  },
 ];

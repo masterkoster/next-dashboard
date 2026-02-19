@@ -15,6 +15,7 @@ const modules = [
   { id: 'weather-radar', label: 'Weather Radar', href: '/modules/weather-radar' },
   { id: 'calendar-sync', label: 'Calendar Sync', href: '/modules/calendar-sync' },
   { id: 'proplus-dashboard', label: 'Pro+ Dashboard', href: '/modules/proplus-dashboard' },
+  { id: 'flight-playback', label: 'Flight Playback', href: '/modules/flight-playback' },
 ];
 
 interface Invite {

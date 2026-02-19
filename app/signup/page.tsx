@@ -41,6 +41,18 @@ export default function SignupPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        // Check for existing email/username and auto-redirect to login
+        if (data.error?.toLowerCase().includes('email already exists')) {
+          setError("Email already registered. Redirecting to login...");
+          setTimeout(() => router.push('/login'), 2000);
+          setLoading(false);
+          return;
+        }
+        if (data.error?.toLowerCase().includes('username already taken')) {
+          setError("Username already taken. Please choose another.");
+          setLoading(false);
+          return;
+        }
         setError(data.error || "Something went wrong");
         setLoading(false);
         return;

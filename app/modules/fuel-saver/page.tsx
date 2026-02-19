@@ -2025,11 +2025,11 @@ function FuelSaverContent() {
           </div>
         )}
 
-        {/* Toggle Arrow Button */}
+        {/* Toggle Arrow Button - floats over the map */}
         <button
           onClick={() => setShowPanel(!showPanel)}
-          className="absolute left-0 top-1/2 -translate-y-1/2 z-30 bg-slate-700 hover:bg-slate-600 text-white px-2 py-4 rounded-r-lg text-sm transition-all lg:block hidden"
-          style={{ left: showPanel ? '320px' : '0px' }}
+          className="absolute top-1/2 -translate-y-1/2 z-30 bg-slate-700 hover:bg-slate-600 text-white px-2 py-4 rounded-r-lg text-sm transition-all lg:block hidden"
+          style={{ left: showPanel ? '308px' : '0px' }}
         >
           {showPanel ? '◀' : '▶'}
         </button>

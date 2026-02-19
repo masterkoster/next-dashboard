@@ -24,24 +24,45 @@ export default function WeatherRadarMap() {
   const [animationFrame, setAnimationFrame] = useState(0);
   const animationRef = useRef<NodeJS.Timeout | null>(null);
 
+  const radarLayerRef = useRef<L.TileLayer | null>(null);
+  const [radarTimestamps, setRadarTimestamps] = useState<number[]>([]);
+  const [currentFrame, setCurrentFrame] = useState(0);
+
+  // Fetch radar timestamps from RainViewer API
+  useEffect(() => {
+    const fetchRadarData = async () => {
+      try {
+        const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+        const data = await res.json();
+        if (data.radar && data.radar.past) {
+          const allTimestamps = [...data.radar.past, ...(data.radar.nowcast || [])];
+          setRadarTimestamps(allTimestamps.map((t: any) => t.time));
+        }
+      } catch (err) {
+        console.error('Failed to fetch radar data:', err);
+      }
+    };
+    fetchRadarData();
+  }, []);
+
   useEffect(() => {
     // Initialize map
     const map = L.map('weather-radar-map', {
       center: [39.8283, -98.5795], // Center of US
-      zoom: 5,
+      zoom: 6,
       zoomControl: true,
     });
 
     mapRef.current = map;
 
-    // Add base map layer (OpenStreetMap)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+    // Add dark base map for better radar visibility
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© CartoDB',
       maxZoom: 19,
     }).addTo(map);
 
-    // Add weather radar layer from RainViewer
-    addWeatherLayer(map, selectedLayer);
+    // Add weather radar layer
+    addRadarLayer(map);
 
     return () => {
       map.remove();
@@ -51,46 +72,41 @@ export default function WeatherRadarMap() {
     };
   }, []);
 
+  // Animate through radar frames
   useEffect(() => {
-    if (mapRef.current) {
-      // Clear existing weather layers
-      mapRef.current.eachLayer((layer) => {
-        if (layer instanceof L.TileLayer && layer.options.attribution?.includes('RainViewer')) {
-          mapRef.current?.removeLayer(layer);
-        }
-      });
-      
-      // Add new weather layer
-      addWeatherLayer(mapRef.current, selectedLayer);
+    if (isPlaying && radarTimestamps.length > 0) {
+      animationRef.current = setInterval(() => {
+        setCurrentFrame((prev) => (prev + 1) % radarTimestamps.length);
+      }, 500);
+    } else if (animationRef.current) {
+      clearInterval(animationRef.current);
     }
-  }, [selectedLayer]);
+    return () => {
+      if (animationRef.current) clearInterval(animationRef.current);
+    };
+  }, [isPlaying, radarTimestamps.length]);
 
-  const addWeatherLayer = (map: L.Map, layerType: string) => {
-    let tileUrl = '';
+  // Update radar layer when frame changes
+  useEffect(() => {
+    if (mapRef.current && radarTimestamps.length > 0 && radarLayerRef.current) {
+      const timestamp = radarTimestamps[currentFrame];
+      const newUrl = `https://tilecache.rainviewer.com/v2/radar/${timestamp}/{z}/{x}/{y}/2/1_1.png`;
+      radarLayerRef.current.setUrl(newUrl);
+    }
+  }, [currentFrame, radarTimestamps]);
+
+  const addRadarLayer = (map: L.Map) => {
+    if (radarTimestamps.length === 0) return;
     
-    switch (layerType) {
-      case 'precipitation':
-        // RainViewer precipitation radar
-        tileUrl = 'https://tilecache.rainviewer.com/v2/radar/nowcast_0b0c4d1f0b0c4d1f0b0c4d1f0b0c4d1f/{z}/{x}/{y}/2/1_1.png';
-        break;
-      case 'clouds':
-        // OpenWeatherMap clouds (free tier)
-        tileUrl = 'https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=YOUR_API_KEY';
-        break;
-      default:
-        tileUrl = 'https://tilecache.rainviewer.com/v2/radar/nowcast_0b0c4d1f0b0c4d1f0b0c4d1f0b0c4d1f/{z}/{x}/{y}/2/1_1.png';
-    }
-
-    // For now, use a demo approach with RainViewer
-    // In production, you'd want to fetch the actual latest timestamp
-    L.tileLayer(
-      'https://tilecache.rainviewer.com/v2/radar/1700000000/{z}/{x}/{y}/2/1_1.png',
-      {
-        attribution: 'Radar data © RainViewer',
-        opacity: 0.6,
-        maxZoom: 19,
-      }
-    ).addTo(map);
+    const timestamp = radarTimestamps[currentFrame] || radarTimestamps[0];
+    const tileUrl = `https://tilecache.rainviewer.com/v2/radar/${timestamp}/{z}/{x}/{y}/2/1_1.png`;
+    
+    radarLayerRef.current = L.tileLayer(tileUrl, {
+      attribution: 'Radar data © RainViewer',
+      opacity: 0.7,
+      maxZoom: 12,
+      zIndex: 500,
+    }).addTo(map);
   };
 
   const handlePlayAnimation = () => {

@@ -44,8 +44,36 @@ model User {
   errorReports     ErrorReport[]
   trainingProgress TrainingProgress?
   logbookEntries   LogbookEntry[]
+  flightTracks     FlightTrack[]
 
   @@map("User")
+}
+
+model FlightTrack {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  userId      String   @db.NVarChar(36)
+  
+  // Flight Info
+  name        String   @db.NVarChar(200)
+  date        DateTime
+  aircraft    String?  @db.NVarChar(100)
+  
+  // Track Data (stored as JSON array of points)
+  // Each point: { lat: number, lng: number, alt?: number, speed?: number, timestamp: string }
+  trackData   String   @db.NVarChar(Max)
+  
+  // Statistics
+  totalDistance Float  @default(0) // in nautical miles
+  maxAltitude   Float  @default(0) // in feet
+  maxSpeed      Float  @default(0) // in knots
+  duration      Float  @default(0) // in minutes
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("FlightTrack")
 }
 
 model LogbookEntry {

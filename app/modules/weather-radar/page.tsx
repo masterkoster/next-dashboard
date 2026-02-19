@@ -43,7 +43,7 @@ export default function WeatherRadarPage() {
       </div>
 
       {/* Map Container */}
-      <div className="h-[calc(100vh-80px)]">
+      <div className="h-[calc(100vh-80px)] overflow-hidden">
         <WeatherRadarMap />
       </div>
     </div>
