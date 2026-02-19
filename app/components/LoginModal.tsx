@@ -85,7 +85,17 @@ export default function LoginModal() {
         }
       }
     } else {
-      // Signup
+      // Signup - validate required fields
+      if (!username || username.length < 3) {
+        setError('Username is required (min 3 characters)');
+        setLoading(false);
+        return;
+      }
+      if (!email) {
+        setError('Email is required');
+        setLoading(false);
+        return;
+      }
       try {
         const res = await fetch('/api/auth/signup', {
           method: 'POST',
