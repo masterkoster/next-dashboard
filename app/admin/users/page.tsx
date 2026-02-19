@@ -318,6 +318,16 @@ export default function AdminUsersPage() {
                         >
                           Pro
                         </button>
+                        <button
+                          onClick={() => updateUserTier(selectedUser.id, 'proplus')}
+                          className={`px-3 py-1 rounded text-sm ${
+                            selectedUser.tier === 'proplus'
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-slate-700 text-slate-400 hover:bg-slate-600'
+                          }`}
+                        >
+                          Pro+
+                        </button>
                       </div>
                     </div>
                     <div>
