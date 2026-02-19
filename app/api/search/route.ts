@@ -104,10 +104,10 @@ async function searchFlightPlans(term: string, userId: string) {
     where: {
       userId,
       OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { route: { contains: query, mode: 'insensitive' } },
-        { departureIcao: { contains: query, mode: 'insensitive' } },
-        { arrivalIcao: { contains: query, mode: 'insensitive' } },
+        { name: { contains: query } },
+        { route: { contains: query } },
+        { departureIcao: { contains: query } },
+        { arrivalIcao: { contains: query } },
       ],
     },
     select: {
@@ -130,9 +130,9 @@ async function searchDocuments(term: string, userId: string) {
     where: {
       userId,
       OR: [
-        { name: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
-        { type: { contains: query, mode: 'insensitive' } },
+        { name: { contains: query } },
+        { description: { contains: query } },
+        { type: { contains: query } },
       ],
     },
     select: {

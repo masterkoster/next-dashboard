@@ -1425,6 +1425,61 @@ function MaintenanceList({ groups, isDemoMode, demoMaintenance }: { groups: Grou
     }
   }, []);
 
+  const complianceItems = useMemo(() => {
+    if (!groups || groups.length === 0) return [] as ComplianceItem[];
+    const now = new Date();
+    const items: ComplianceItem[] = [];
+
+    groups.forEach((group) => {
+      group.aircraft?.forEach((aircraft) => {
+        let notes: any = {};
+        if (aircraft.aircraftNotes) {
+          try {
+            notes = JSON.parse(aircraft.aircraftNotes);
+          } catch (err) {
+            console.error('Failed to parse aircraft notes for compliance', err);
+          }
+        }
+
+        DATE_COMPLIANCE_TASKS.forEach((task) => {
+          const value = notes?.[task.key];
+          if (!value) return;
+          const dueDate = new Date(value);
+          if (Number.isNaN(dueDate.getTime())) return;
+          const daysRemaining = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          items.push({
+            type: 'date',
+            key: task.key,
+            label: task.label,
+            aircraft,
+            dueDate,
+            daysRemaining,
+          });
+        });
+
+        HOUR_COMPLIANCE_TASKS.forEach((task) => {
+          const dueValue = Number(notes?.[task.key]);
+          const referenceValue = Number(notes?.[task.referenceKey || 'currentHobbs']);
+          if (Number.isNaN(dueValue) || Number.isNaN(referenceValue)) return;
+          items.push({
+            type: 'hours',
+            key: task.key,
+            label: task.label,
+            aircraft,
+            dueHours: dueValue,
+            remainingHours: Math.round(dueValue - referenceValue),
+          });
+        });
+      });
+    });
+
+    return items.sort((a, b) => {
+      const aMetric = a.type === 'date' ? (a.daysRemaining ?? 9999) : (a.remainingHours ?? 9999);
+      const bMetric = b.type === 'date' ? (b.daysRemaining ?? 9999) : (b.remainingHours ?? 9999);
+      return aMetric - bMetric;
+    });
+  }, [groups]);
+
   const getComplianceStatus = (item: ComplianceItem) => {
     if (item.type === 'date') {
       if (item.daysRemaining === undefined) return 'ok';
