@@ -663,8 +663,22 @@ function FuelSaverContent() {
     const cached = getCachedData<Airport[]>('allUSAirports');
     if (cached && cached.length > 0) {
       setCachedAirports(cached);
-      setAirports(cached.slice(0, 100));
+      // Load more airports initially so they're visible
+      setAirports(cached.slice(0, 300));
       setAllUSAirportsLoaded(true);
+      // Fit to show all airports
+      if (cached.length > 0) {
+        const lats = cached.slice(0, 300).map(a => a.latitude).filter(Boolean);
+        const lons = cached.slice(0, 300).map(a => a.longitude).filter(Boolean);
+        if (lats.length > 0) {
+          const minLat = Math.min(...lats);
+          const maxLat = Math.max(...lats);
+          const minLon = Math.min(...lons);
+          const maxLon = Math.max(...lons);
+          setMapCenter([(minLat + maxLat) / 2, (minLon + maxLon) / 2]);
+          setMapZoom(5);
+        }
+      }
       return;
     }
     
@@ -675,9 +689,20 @@ function FuelSaverContent() {
         if (data.airports) {
           const all = data.airports as Airport[];
           setCachedAirports(all);
-          setAirports(all.slice(0, 100));
+          setAirports(all.slice(0, 300));
           setCachedData('allUSAirports', all);
           setAllUSAirportsLoaded(true);
+          // Fit to show airports
+          const lats = all.slice(0, 300).map(a => a.latitude).filter(Boolean);
+          const lons = all.slice(0, 300).map(a => a.longitude).filter(Boolean);
+          if (lats.length > 0) {
+            const minLat = Math.min(...lats);
+            const maxLat = Math.max(...lats);
+            const minLon = Math.min(...lons);
+            const maxLon = Math.max(...lons);
+            setMapCenter([(minLat + maxLat) / 2, (minLon + maxLon) / 2]);
+            setMapZoom(5);
+          }
         }
       })
       .catch(console.error);
@@ -906,6 +931,95 @@ function FuelSaverContent() {
   // Remove waypoint
   const removeWaypoint = (id: string) => {
     setWaypoints(waypoints.filter(w => w.id !== id).map((w, i) => ({ ...w, sequence: i })));
+  };
+
+  // Optimize route for shortest total distance (simple nearest neighbor)
+  const optimizeRoute = () => {
+    if (waypoints.length <= 2) return;
+    
+    const unvisited = waypoints.slice(1, waypoints.length - 1); // Keep first and last
+    const optimized: Waypoint[] = [waypoints[0]];
+    
+    let current = waypoints[0];
+    while (unvisited.length > 0) {
+      let nearestIdx = 0;
+      let nearestDist = Infinity;
+      
+      unvisited.forEach((wp, idx) => {
+        const dist = calculateDistance(current.latitude, current.longitude, wp.latitude, wp.longitude);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestIdx = idx;
+        }
+      });
+      
+      const nearest = unvisited.splice(nearestIdx, 1)[0];
+      optimized.push(nearest);
+      current = nearest;
+    }
+    
+    optimized.push(waypoints[waypoints.length - 1]); // Add last
+    
+    setWaypoints(optimized.map((w, i) => ({ ...w, sequence: i })));
+  };
+
+  // Toggle round trip (add first airport to end, or remove if already there)
+  const toggleRoundTrip = () => {
+    const first = waypoints[0];
+    const last = waypoints[waypoints.length - 1];
+    
+    if (first.icao === last.icao) {
+      // Already round trip - remove duplicate
+      setWaypoints(waypoints.slice(0, -1).map((w, i) => ({ ...w, sequence: i })));
+    } else {
+      // Add first airport to end
+      const returnWp: Waypoint = {
+        ...first,
+        id: crypto.randomUUID(),
+        sequence: waypoints.length
+      };
+      setWaypoints([...waypoints, returnWp]);
+    }
+  };
+
+  // Fit map to show all waypoints
+  const fitMapToWaypoints = () => {
+    if (waypoints.length === 0) return;
+    if (waypoints.length === 1) {
+      setMapCenter([waypoints[0].latitude, waypoints[0].longitude]);
+      setMapZoom(10);
+      return;
+    }
+    
+    let minLat = Infinity, maxLat = -Infinity;
+    let minLon = Infinity, maxLon = -Infinity;
+    
+    waypoints.forEach(wp => {
+      minLat = Math.min(minLat, wp.latitude);
+      maxLat = Math.max(maxLat, wp.latitude);
+      minLon = Math.min(minLon, wp.longitude);
+      maxLon = Math.max(maxLon, wp.longitude);
+    });
+    
+    const centerLat = (minLat + maxLat) / 2;
+    const centerLon = (minLon + maxLon) / 2;
+    
+    setMapCenter([centerLat, centerLon]);
+    
+    // Calculate zoom to fit
+    const latDiff = maxLat - minLat;
+    const lonDiff = maxLon - minLon;
+    const maxDiff = Math.max(latDiff, lonDiff);
+    
+    let zoom = 8;
+    if (maxDiff < 0.5) zoom = 12;
+    else if (maxDiff < 1) zoom = 10;
+    else if (maxDiff < 2) zoom = 9;
+    else if (maxDiff < 5) zoom = 7;
+    else if (maxDiff < 10) zoom = 6;
+    else zoom = 5;
+    
+    setMapZoom(zoom);
   };
 
   // Move waypoint
@@ -2143,6 +2257,34 @@ function FuelSaverContent() {
                     >
                       {weatherLoading ? 'Loading...' : '🌤 Weather'}
                     </button>
+                    
+                    {/* Route buttons */}
+                    <div className="flex gap-1">
+                      <button
+                        onClick={fitMapToWaypoints}
+                        disabled={waypoints.length === 0}
+                        className="text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30"
+                        title="Fit map to show all waypoints"
+                      >
+                        ⊙ Fit
+                      </button>
+                      <button
+                        onClick={toggleRoundTrip}
+                        disabled={waypoints.length < 2}
+                        className="text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30"
+                        title={waypoints[0]?.icao === waypoints[waypoints.length-1]?.icao ? "Remove return leg" : "Add return leg"}
+                      >
+                        {waypoints[0]?.icao === waypoints[waypoints.length-1]?.icao ? '↩️ One-way' : '🔄 Round Trip'}
+                      </button>
+                      <button
+                        onClick={optimizeRoute}
+                        disabled={waypoints.length < 3}
+                        className="text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30"
+                        title="Optimize route for shortest distance"
+                      >
+                        ⚡ Optimize
+                      </button>
+                    </div>
                   </div>
 
                   {waypoints.length === 0 ? (
