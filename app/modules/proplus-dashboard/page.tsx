@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
-import CurrencyTracker from '../components/CurrencyTracker';
-import HourAnalytics from '../components/HourAnalytics';
+import CurrencyTracker from '../../components/CurrencyTracker';
+import HourAnalytics from '../../components/HourAnalytics';
 
 interface LogbookEntry {
   id: string;
