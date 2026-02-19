@@ -30,7 +30,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const result = await signIn("credentials", {
-      username, // Now uses username instead of email
+      username,
       password,
       redirect: false,
     });
@@ -55,22 +55,41 @@ export default function LoginPage() {
             <p className="mt-2 text-slate-400">Sign in to your account</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <form 
+            onSubmit={handleSubmit} 
+            className="mt-8 space-y-4"
+            autoComplete="on"
+          >
             {error && (
-              <div className="rounded-xl border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300">
+              <div 
+                className="rounded-xl border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300"
+                role="alert"
+                aria-live="polite"
+              >
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-300">Username or Email</label>
+              <label 
+                htmlFor="username" 
+                className="block text-sm font-medium text-slate-300"
+              >
+                Username or Email
+              </label>
               <input
+                id="username"
+                name="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 placeholder="username or email"
                 required
+                autoComplete="username"
+                autoFocus
+                aria-required="true"
+                aria-label="Username or email address"
               />
               <p className="mt-1 text-xs text-slate-500">
                 New users: login with your username. Old users: your email still works.
@@ -78,19 +97,33 @@ export default function LoginPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300">Password</label>
+              <label 
+                htmlFor="password" 
+                className="block text-sm font-medium text-slate-300"
+              >
+                Password
+              </label>
               <input
+                id="password"
+                name="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 placeholder="••••••••"
                 required
+                minLength={6}
+                autoComplete="current-password"
+                aria-required="true"
+                aria-label="Password"
               />
             </div>
 
             <div className="flex items-center justify-end">
-              <Link href="/forgot-password" className="text-sm text-emerald-400 hover:text-emerald-300">
+              <Link 
+                href="/forgot-password" 
+                className="text-sm text-emerald-400 hover:text-emerald-300"
+              >
                 Forgot password?
               </Link>
             </div>
@@ -99,6 +132,8 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition-all hover:bg-emerald-400 disabled:opacity-50"
+              aria-label={loading ? "Signing in" : "Sign in to your account"}
+              aria-busy={loading}
             >
               {loading ? "Signing in..." : "Sign In"}
             </button>
@@ -106,7 +141,10 @@ export default function LoginPage() {
 
           <p className="mt-6 text-center text-slate-400">
             Don&apos;t have an account?{" "}
-            <Link href="/signup" className="font-medium text-emerald-400 hover:text-emerald-300">
+            <Link 
+              href="/signup" 
+              className="font-medium text-emerald-400 hover:text-emerald-300"
+            >
               Sign up
             </Link>
           </p>

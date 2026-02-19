@@ -69,45 +69,72 @@ function ResetPasswordForm() {
         Enter your new password below.
       </p>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form 
+        onSubmit={handleSubmit} 
+        className="space-y-4"
+        autoComplete="on"
+      >
         <div>
-          <label htmlFor="newPassword" className="block text-sm font-medium text-slate-300 mb-1">
+          <label 
+            htmlFor="newPassword" 
+            className="block text-sm font-medium text-slate-300 mb-1"
+          >
             New Password
           </label>
           <input
             id="newPassword"
+            name="new-password"
             type="password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
             minLength={6}
+            autoComplete="new-password"
+            autoFocus
+            aria-required="true"
+            aria-label="New password - minimum 6 characters"
+            aria-describedby="new-password-help"
             className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
             placeholder="Enter new password"
           />
+          <p id="new-password-help" className="mt-1 text-xs text-slate-500">
+            Minimum 6 characters
+          </p>
         </div>
 
         <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-1">
+          <label 
+            htmlFor="confirmPassword" 
+            className="block text-sm font-medium text-slate-300 mb-1"
+          >
             Confirm New Password
           </label>
           <input
             id="confirmPassword"
+            name="confirm-password"
             type="password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
             minLength={6}
+            autoComplete="new-password"
+            aria-required="true"
+            aria-label="Confirm new password"
             className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-100 placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
             placeholder="Confirm new password"
           />
         </div>
 
         {message && (
-          <div className={`p-3 rounded-lg text-sm ${
-            message.type === 'success' 
-              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
-              : 'bg-red-500/20 text-red-400 border border-red-500/30'
-          }`}>
+          <div 
+            className={`p-3 rounded-lg text-sm ${
+              message.type === 'success' 
+                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' 
+                : 'bg-red-500/20 text-red-400 border border-red-500/30'
+            }`}
+            role="alert"
+            aria-live="polite"
+          >
             {message.text}
           </div>
         )}
@@ -116,13 +143,19 @@ function ResetPasswordForm() {
           type="submit"
           disabled={isLoading || !token}
           className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-emerald-950 hover:bg-emerald-400 disabled:opacity-50 transition-colors"
+          aria-label={isLoading ? "Resetting password" : "Reset password"}
+          aria-busy={isLoading}
+          aria-disabled={!token}
         >
           {isLoading ? 'Resetting...' : 'Reset Password'}
         </button>
       </form>
 
       <div className="mt-6 text-center">
-        <Link href="/login" className="text-sm text-slate-400 hover:text-slate-300">
+        <Link 
+          href="/login" 
+          className="text-sm text-slate-400 hover:text-slate-300"
+        >
           ← Back to Login
         </Link>
       </div>

@@ -32,7 +32,7 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           name, 
-          username: username || undefined, // Will be auto-generated if empty
+          username: username || undefined,
           email, 
           password 
         }),
@@ -47,7 +47,6 @@ export default function SignupPage() {
       }
 
       setCreated(true);
-      // Show success message, don't redirect immediately
     } catch {
       setError("Something went wrong");
       setLoading(false);
@@ -102,57 +101,102 @@ export default function SignupPage() {
             <p className="mt-2 text-slate-400">Get started with AviationHub</p>
           </div>
 
-          <form onSubmit={handleSubmit} className="mt-8 space-y-4">
+          <form 
+            onSubmit={handleSubmit} 
+            className="mt-8 space-y-4"
+            autoComplete="on"
+          >
             {error && (
-              <div className="rounded-xl border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300">
+              <div 
+                className="rounded-xl border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300"
+                role="alert"
+                aria-live="polite"
+              >
                 {error}
               </div>
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-300">Full Name</label>
+              <label 
+                htmlFor="fullName" 
+                className="block text-sm font-medium text-slate-300"
+              >
+                Full Name
+              </label>
               <input
+                id="fullName"
+                name="name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 placeholder="John Doe"
+                autoComplete="name"
+                autoFocus
+                aria-label="Full name"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300">
+              <label 
+                htmlFor="username" 
+                className="block text-sm font-medium text-slate-300"
+              >
                 Username <span className="text-slate-500">(optional)</span>
               </label>
               <input
+                id="username"
+                name="username"
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                placeholder="johndoe123 (auto-generated if empty)"
+                placeholder="johndoe123"
                 minLength={3}
                 maxLength={20}
+                pattern="[a-z0-9]+"
+                autoComplete="username"
+                aria-label="Username - letters and numbers only"
+                aria-describedby="username-help"
               />
-              <p className="mt-1 text-xs text-slate-500">
-                Letters and numbers only. You&apos;ll use this to log in.
+              <p id="username-help" className="mt-1 text-xs text-slate-500">
+                Letters and numbers only. Auto-generated if empty.
               </p>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300">Email</label>
+              <label 
+                htmlFor="email" 
+                className="block text-sm font-medium text-slate-300"
+              >
+                Email
+              </label>
               <input
+                id="email"
+                name="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 placeholder="you@example.com"
                 required
+                autoComplete="email"
+                aria-required="true"
+                aria-label="Email address"
+                inputMode="email"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300">Password</label>
+              <label 
+                htmlFor="password" 
+                className="block text-sm font-medium text-slate-300"
+              >
+                Password
+              </label>
               <input
+                id="password"
+                name="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -160,13 +204,23 @@ export default function SignupPage() {
                 placeholder="••••••••"
                 required
                 minLength={6}
+                autoComplete="new-password"
+                aria-required="true"
+                aria-label="Password - minimum 6 characters"
+                aria-describedby="password-help"
               />
+              <p id="password-help" className="mt-1 text-xs text-slate-500">
+                Minimum 6 characters
+              </p>
             </div>
 
             <button
               type="submit"
               disabled={loading || !agreedToTerms}
               className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition-all hover:bg-emerald-400 disabled:opacity-50"
+              aria-label={loading ? "Creating account" : "Create account"}
+              aria-busy={loading}
+              aria-disabled={!agreedToTerms}
             >
               {loading ? "Creating account..." : "Create Account"}
             </button>
@@ -178,6 +232,8 @@ export default function SignupPage() {
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
                   className="mt-0.5 w-4 h-4 rounded"
+                  aria-label="Agree to terms of use"
+                  aria-required="true"
                 />
                 <span>
                   I acknowledge that this software is a financial and administrative tool only. 
