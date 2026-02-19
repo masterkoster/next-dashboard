@@ -16,6 +16,7 @@ export interface MapLayerOptions {
   showStatePrices: boolean;
   showNotams: boolean;
   showTfrs: boolean;
+  showPireps: boolean;
   performanceMode: boolean;
 }
 
@@ -203,6 +204,15 @@ export function MapControls({ options, onOptionsChange }: MapControlsProps) {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
+                  checked={options.showPireps}
+                  onChange={() => toggleOption('showPireps')}
+                  className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-purple-500"
+                />
+                <span className="text-sm">🛩️ PIREPs</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
                   checked={options.performanceMode}
                   onChange={() => toggleOption('performanceMode')}
                   className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-green-500"
@@ -230,6 +240,7 @@ export const DEFAULT_MAP_OPTIONS: MapLayerOptions = {
   showStatePrices: true,
   showNotams: true,
   showTfrs: true,
+  showPireps: true,
   performanceMode: false
 };
 
