@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Waypoint, downloadGPX, downloadFPL, downloadJSON, downloadNavLog, downloadNavLogPdf, FlightPlanData } from '../lib/exportUtils';
+import { Waypoint, downloadGPX, downloadFPL, downloadJSON, downloadNavLog, downloadNavLogPdf, FlightPlanData, generateForeFlightDeepLink, generateGarminDeepLink } from '../lib/exportUtils';
 
 interface ExportDropdownProps {
   waypoints: Waypoint[];
@@ -127,6 +127,46 @@ export default function ExportDropdown({
     setIsOpen(false);
   };
 
+  const attemptDeepLink = (scheme: string, fallback?: string, label?: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      const ua = window.navigator.userAgent.toLowerCase();
+      const isMobile = /iphone|ipad|android/.test(ua);
+      if (isMobile) {
+        window.location.href = scheme;
+        return;
+      }
+      if (fallback) {
+        window.open(fallback, '_blank', 'noopener');
+      } else if (navigator?.clipboard) {
+        navigator.clipboard.writeText(scheme);
+      }
+      alert(`${label || 'Link'} opened. If nothing happened, paste the copied link into your device.`);
+    } catch (error) {
+      console.error('Deep link failed', error);
+      if (fallback) {
+        window.open(fallback, '_blank', 'noopener');
+      }
+    }
+  };
+
+  const handleOpenForeFlight = () => {
+    const link = generateForeFlightDeepLink(waypoints, {
+      planName: flightPlanName || 'Flight Plan',
+      altitude: cruisingAltitude || 5500,
+    });
+    if (!link) return;
+    attemptDeepLink(link.scheme, link.fallback, 'ForeFlight link');
+  };
+
+  const handleOpenGarmin = () => {
+    const link = generateGarminDeepLink(waypoints, {
+      planName: flightPlanName || 'Flight Plan',
+    });
+    if (!link) return;
+    attemptDeepLink(link.scheme, link.fallback, 'Garmin Pilot link');
+  };
+
   const showNavLogTooltip = (detailed: boolean) => {
     if (detailed) {
       return 'Includes magnetic variation, wind correction, VOR info, groundspeed - for serious IFR planning';
@@ -203,6 +243,33 @@ export default function ExportDropdown({
               <div className="flex-1 text-left">
                 <div>Export JSON</div>
                 <div className="text-xs text-slate-400">Backup & custom use</div>
+              </div>
+            </button>
+
+            <div className="border-t border-slate-700 my-1" />
+            <div className="px-4 py-1 text-xs uppercase tracking-wide text-slate-500">Send to EFB</div>
+
+            <button
+              onClick={handleOpenForeFlight}
+              disabled={waypoints.length < 2}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="text-lg">🛩️</span>
+              <div className="flex-1 text-left">
+                <div>Open in ForeFlight</div>
+                <div className="text-xs text-slate-400">Mobile devices launch automatically</div>
+              </div>
+            </button>
+
+            <button
+              onClick={handleOpenGarmin}
+              disabled={waypoints.length < 2}
+              className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-200 hover:bg-slate-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <span className="text-lg">🧭</span>
+              <div className="flex-1 text-left">
+                <div>Open in Garmin Pilot</div>
+                <div className="text-xs text-slate-400">Copies link on desktop</div>
               </div>
             </button>
 

@@ -842,3 +842,51 @@ export function getNavLogExportHistory(): StoredNavLogExport[] {
     return [];
   }
 }
+
+export interface DeepLinkResult {
+  scheme: string;
+  fallback?: string;
+}
+
+export function generateForeFlightDeepLink(
+  waypoints: Waypoint[],
+  options?: { planName?: string; altitude?: number }
+): DeepLinkResult | null {
+  const route = waypoints.filter((wp) => wp?.icao);
+  if (route.length < 2) return null;
+
+  const origin = route[0].icao;
+  const destination = route[route.length - 1].icao;
+  const intermediate = route.slice(1, -1).map((wp) => wp.icao).join('+');
+  const params = new URLSearchParams({
+    name: options?.planName || `${origin}-${destination}`,
+    origin,
+    destination,
+  });
+  if (intermediate) params.set('waypoints', intermediate);
+  if (options?.altitude) params.set('altitude', options.altitude.toString());
+
+  const scheme = `foreflight://route?${params.toString()}`;
+  const fallbackRoute = route.map((wp) => wp.icao).join('.');
+  const fallback = `https://plan.foreflight.com/plan?route=${encodeURIComponent(fallbackRoute)}`;
+  return { scheme, fallback };
+}
+
+export function generateGarminDeepLink(
+  waypoints: Waypoint[],
+  options?: { planName?: string }
+): DeepLinkResult | null {
+  const route = waypoints.filter((wp) => wp?.icao);
+  if (route.length < 2) return null;
+
+  const routeDots = route.map((wp) => wp.icao).join('..');
+  const schemeParams = new URLSearchParams({
+    route: routeDots,
+  });
+  if (options?.planName) {
+    schemeParams.set('name', options.planName);
+  }
+  const scheme = `garminpilot://flightPlan?${schemeParams.toString()}`;
+  const fallback = `https://fly.garmin.com/fpl/application?plan=${route.map((wp) => wp.icao).join(',')}`;
+  return { scheme, fallback };
+}
