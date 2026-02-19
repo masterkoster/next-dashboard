@@ -29,6 +29,13 @@ const demoNotams: Record<string, Array<{
   'KORD': [
     { id: '8', category: 'TFR', title: 'VIP MOVEMENT', description: 'TFR - Presidential movement', startDate: '2026-02-22', endDate: '2026-02-22' },
   ],
+  'KSEA': [
+    { id: '9', category: 'RUNWAY', title: 'RWY 16R/34L CLSD', description: 'Runway closed for maintenance', startDate: '2026-02-19', endDate: '2026-02-21' },
+    { id: '10', category: 'GENERAL', title: 'ARFF', description: 'Airport Rescue and Fire Fighting equipment testing', startDate: '2026-02-20', endDate: '2026-02-20' },
+  ],
+  'KAWO': [
+    { id: '11', category: 'GENERAL', title: 'PATRIOT', description: 'Practice Approaches - expect increased traffic', startDate: '2026-02-18', endDate: '2026-02-22' },
+  ],
 };
 
 // Default NOTAMs for unknown airports
