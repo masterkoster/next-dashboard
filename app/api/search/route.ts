@@ -37,11 +37,11 @@ async function searchMarketplace(term: string) {
     where: {
       status: 'active',
       OR: [
-        { title: { contains: query, mode: 'insensitive' } },
-        { description: { contains: query, mode: 'insensitive' } },
-        { aircraftType: { contains: query, mode: 'insensitive' } },
-        { airportCity: { contains: query, mode: 'insensitive' } },
-        { airportIcao: { contains: query, mode: 'insensitive' } },
+        { title: { contains: query } },
+        { description: { contains: query } },
+        { aircraftType: { contains: query } },
+        { airportCity: { contains: query } },
+        { airportIcao: { contains: query } },
       ],
     },
     select: {
