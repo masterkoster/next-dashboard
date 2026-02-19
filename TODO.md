@@ -130,13 +130,13 @@ Each entry should have:
   - Priority: high
   - Notes: Full logbook with stats, requires Pro+ tier, DB table created
 
-- [ ] Currency Tracking
-  - Status: pending
+- [x] Currency Tracking
+  - Status: completed
   - Priority: medium
-  - Notes: BFR, IPC, night currency (90 days), XC currency
+  - Notes: Component created, tracks 6 currency types with visual status
 
 - [ ] Hour Analytics
-  - Status: pending
+  - Status: in_progress
   - Priority: medium
   - Notes: Visual charts showing hours over time
 
