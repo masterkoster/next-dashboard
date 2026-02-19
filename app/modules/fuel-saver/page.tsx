@@ -2371,7 +2371,6 @@ function FuelSaverContent() {
                   mapZoom={mapZoom}
                   showTerrain={performanceSettings.showTerrain}
                   showStateOverlay={mapOptions.showStatePrices}
-                  showNotams={mapOptions.showNotams}
                   showTfrs={mapOptions.showTfrs}
                   showPireps={mapOptions.showPireps}
                   onStateClick={setSelectedStateInfo}

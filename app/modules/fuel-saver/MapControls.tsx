@@ -14,7 +14,6 @@ export interface MapLayerOptions {
   showAirspaces: boolean;
   showFuelPrices: boolean;
   showStatePrices: boolean;
-  showNotams: boolean;
   showTfrs: boolean;
   showPireps: boolean;
   performanceMode: boolean;
@@ -195,15 +194,6 @@ export function MapControls({ options, onOptionsChange }: MapControlsProps) {
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
-                  checked={options.showNotams}
-                  onChange={() => toggleOption('showNotams')}
-                  className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-orange-500"
-                />
-                <span className="text-sm">📋 NOTAMs</span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
                   checked={options.showPireps}
                   onChange={() => toggleOption('showPireps')}
                   className="w-4 h-4 rounded bg-slate-700 border-slate-600 text-purple-500"
@@ -238,7 +228,6 @@ export const DEFAULT_MAP_OPTIONS: MapLayerOptions = {
   showAirspaces: false,
   showFuelPrices: true,
   showStatePrices: true,
-  showNotams: true,
   showTfrs: true,
   showPireps: true,
   performanceMode: false
