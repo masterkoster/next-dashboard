@@ -78,11 +78,8 @@ export default function LoginModal() {
         setError('Invalid username or password');
       } else if (result?.ok) {
         closeModal();
-        if (redirectTo) {
-          router.push(redirectTo);
-        } else {
-          router.refresh();
-        }
+        // Use window.location for guaranteed redirect
+        window.location.href = '/dashboard';
       }
     } else {
       // Signup - validate required fields
