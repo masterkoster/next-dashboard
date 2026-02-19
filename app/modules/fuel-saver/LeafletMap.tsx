@@ -412,9 +412,9 @@ function AirportPopup({ airport, onAddToRoute, onViewStateInfo }: { airport: Air
       <button
         onClick={() => {
           // Use state from details or infer from coordinates
-          let stateCode = details?.state;
+          let stateCode: string | undefined = details?.state;
           if (!stateCode) {
-            stateCode = inferStateFromCoords(airport.latitude, airport.longitude);
+            stateCode = inferStateFromCoords(airport.latitude, airport.longitude) ?? undefined;
           }
           if (stateCode && onViewStateInfo) {
             onViewStateInfo(stateCode);

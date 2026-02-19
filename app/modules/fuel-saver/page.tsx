@@ -8,6 +8,8 @@ import dynamic from 'next/dynamic';
 // Dynamic imports for Leaflet components (no SSR)
 const LeafletMap = dynamic(() => import('./LeafletMap'), { ssr: false });
 const StateInfoPanel = dynamic(() => import('./StateInfoPanel'), { ssr: false });
+const NotamsPanel = dynamic(() => import('./components/NOTAMsPanel'), { ssr: false });
+const ExportDropdown = dynamic(() => import('./components/ExportDropdown'), { ssr: false });
 import { MapControls, DEFAULT_MAP_OPTIONS, MapTileLayer, MapLayerOptions } from './MapControls';
 import FlightPlayback from './FlightPlayback';
 import RangeRingCalculator from './RangeRing';
@@ -358,7 +360,45 @@ function FuelSaverContent() {
   // Get URL params for loading a plan
   const searchParams = useSearchParams();
   
-  // Load plan from URL param when plans are loaded
+  // Load plan from URL param (shared link)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const planParam = urlParams.get('plan');
+    
+    if (planParam) {
+      try {
+        // Decode base64 plan data
+        const decoded = decodeURIComponent(atob(planParam));
+        const planData = JSON.parse(decoded);
+        
+        if (planData.waypoints && Array.isArray(planData.waypoints)) {
+          // Convert to waypoints with sequence
+          const loadedWaypoints = planData.waypoints.map((w: any, i: number) => ({
+            ...w,
+            id: `shared-${i}`,
+            sequence: i
+          }));
+          setWaypoints(loadedWaypoints);
+          
+          if (loadedWaypoints.length > 0) {
+            setMapCenter([loadedWaypoints[0].latitude, loadedWaypoints[0].longitude]);
+          }
+          
+          if (planData.name) {
+            setFlightPlanName(planData.name);
+          }
+          
+          console.log('Loaded shared flight plan:', planData.name);
+        }
+      } catch (e) {
+        console.error('Error loading shared plan:', e);
+      }
+    }
+  }, []);
+   
+  // Load plan from URL param when plans are loaded (for database plans)
   useEffect(() => {
     const loadId = searchParams?.get('load');
     if (loadId && savedPlans.length > 0) {
@@ -1687,6 +1727,13 @@ function FuelSaverContent() {
             >
               <span>⛽</span> Find Cheap Fuel
             </button>
+            <ExportDropdown 
+              waypoints={waypoints}
+              flightPlanName={flightPlanName}
+              aircraftType={selectedAircraft.name}
+              cruisingAltitude={cruisingAlt}
+              isPro={isPro}
+            />
           </div>
         </div>
       </div>
@@ -2338,6 +2385,15 @@ function FuelSaverContent() {
                     }}
                   />
                 )}
+                
+                {/* NOTAMs Panel - shown when there are waypoints */}
+                {waypoints.length > 0 && (
+                  <NotamsPanel 
+                    waypoints={waypoints} 
+                    isPro={isPro}
+                  />
+                )}
+                
                 <div className="absolute top-4 right-4 z-[1001]">
                   <PerformanceSettingsPanel onSettingsChange={setPerformanceSettings} />
                 </div>
