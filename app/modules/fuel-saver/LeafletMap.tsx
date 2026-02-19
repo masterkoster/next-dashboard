@@ -78,6 +78,9 @@ interface LeafletMapProps {
   showTerrain?: boolean;
   showAirspaces?: boolean;
   showStateOverlay?: boolean;
+  showNotams?: boolean;
+  showTfrs?: boolean;
+  showPireps?: boolean;
   onStateClick?: (stateInfo: any) => void;
   baseLayer?: 'osm' | 'satellite' | 'terrain' | 'dark';
   onViewStateInfo?: (stateCode: string) => void;
@@ -439,12 +442,18 @@ export default function LeafletMap({
   showTerrain = false,
   showAirspaces = false,
   showStateOverlay = false,
+  showNotams = false,
+  showTfrs = false,
+  showPireps = false,
   onStateClick,
   baseLayer = 'osm',
   onViewStateInfo,
   performanceMode = false
 }: LeafletMapProps) {
   const [terrainLayer, setTerrainLayer] = useState<L.TileLayer | null>(null);
+  const [tfrs, setTfrs] = useState<any[]>([]);
+  const [pireps, setPireps] = useState<any[]>([]);
+  const [notams, setNotams] = useState<any[]>([]);
   const mapRef = useRef<L.Map | null>(null);
   const [currentZoom, setCurrentZoom] = useState(mapZoom);
   
@@ -505,6 +514,32 @@ export default function LeafletMap({
       }
     });
   }, [showTerrain, terrainLayer]);
+  
+  // Fetch TFRs when map bounds change and showTfrs is enabled
+  useEffect(() => {
+    if (!showTfrs || !mapRef.current) return;
+    
+    const bounds = mapRef.current.getBounds();
+    const boundsParam = `${bounds.getSouth()},${bounds.getNorth()},${bounds.getWest()},${bounds.getEast()}`;
+    
+    fetch(`/api/tfrs?bounds=${boundsParam}`)
+      .then(res => res.json())
+      .then(data => setTfrs(data.tfrs || []))
+      .catch(console.error);
+  }, [showTfrs, mapRef.current?.getBounds?.()]);
+  
+  // Fetch PIREPs when map bounds change and showPireps is enabled
+  useEffect(() => {
+    if (!showPireps || !mapRef.current) return;
+    
+    const bounds = mapRef.current.getBounds();
+    const boundsParam = `${bounds.getSouth()},${bounds.getNorth()},${bounds.getWest()},${bounds.getEast()}`;
+    
+    fetch(`/api/pireps?bounds=${boundsParam}`)
+      .then(res => res.json())
+      .then(data => setPireps(data.pireps || []))
+      .catch(console.error);
+  }, [showPireps, mapRef.current?.getBounds?.()]);
  
   return (
     <MapContainer
@@ -545,6 +580,73 @@ export default function LeafletMap({
           pathOptions={{ color: '#38bdf8', weight: 3, dashArray: '10, 5' }}
         />
       )}
+      
+      {/* TFR markers */}
+      {showTfrs && tfrs.map(tfr => (
+        <CircleMarker
+          key={tfr.id}
+          center={[tfr.latitude, tfr.longitude]}
+          radius={8}
+          pathOptions={{
+            color: '#ef4444',
+            fillColor: '#ef4444',
+            fillOpacity: 0.4,
+            weight: 2,
+            dashArray: '5, 5'
+          }}
+        >
+          <Popup>
+            <div className="text-slate-900 min-w-[150px]">
+              <strong className="text-red-600">🔴 TFR</strong>
+              <div className="font-medium">{tfr.title}</div>
+              <div className="text-sm">{tfr.description}</div>
+              <div className="text-xs text-slate-500 mt-1">
+                {tfr.type} - {tfr.facility}
+              </div>
+              <div className="text-xs text-slate-500">
+                Alt: {tfr.lowerAltitude} to {tfr.upperAltitude}
+              </div>
+              <div className="text-xs text-slate-500">
+                Radius: {tfr.radius} NM
+              </div>
+            </div>
+          </Popup>
+        </CircleMarker>
+      ))}
+      
+      {/* PIREP markers */}
+      {showPireps && pireps.map(pirep => (
+        <CircleMarker
+          key={pirep.id}
+          center={[pirep.latitude, pirep.longitude]}
+          radius={6}
+          pathOptions={{
+            color: pirep.turbulence !== 'NIL' ? '#f59e0b' : pirep.icing !== 'NIL' ? '#8b5cf6' : '#22c55e',
+            fillColor: pirep.turbulence !== 'NIL' ? '#f59e0b' : pirep.icing !== 'NIL' ? '#8b5cf6' : '#22c55e',
+            fillOpacity: 0.7,
+            weight: 2
+          }}
+        >
+          <Popup>
+            <div className="text-slate-900 min-w-[150px]">
+              <strong className="text-purple-600">🛩️ PIREP</strong>
+              <div className="text-sm font-medium">{pirep.aircraft} FL{pirep.flightLevel}</div>
+              {pirep.turbulence !== 'NIL' && (
+                <div className="text-amber-600">Turbulence: {pirep.turbulence}</div>
+              )}
+              {pirep.icing !== 'NIL' && (
+                <div className="text-purple-600">Icing: {pirep.icing}</div>
+              )}
+              <div className="text-xs text-slate-500 mt-1">
+                {pirep.windDirection}° @ {pirep.windSpeed} kts
+              </div>
+              <div className="text-xs text-slate-500">
+                Temp: {pirep.temperature}°C
+              </div>
+            </div>
+          </Popup>
+        </CircleMarker>
+      ))}
       
       {/* Waypoint markers */}
       {waypoints.map((wp, i) => (

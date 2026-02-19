@@ -71,7 +71,7 @@ const demoPireps = [
     turbulence: 'SEV',
     icing: 'NIL',
     temperature: 22,
-    windDirection: 090,
+    windDirection: 90,
     windSpeed: 15,
     time: '2026-02-18T17:00:00Z',
     latitude: 25.5,
