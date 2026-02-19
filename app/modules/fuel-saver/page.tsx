@@ -42,6 +42,7 @@ interface Waypoint {
   longitude: number;
   altitude?: number;
   sequence: number;
+  type?: string;
 }
 
 interface FuelPrice {
@@ -387,6 +388,7 @@ function FuelSaverContent() {
   
   // Fuel data
   const [fuelPrices, setFuelPrices] = useState<Record<string, FuelPrice>>({});
+  const [fboFeesData, setFboFeesData] = useState<Record<string, { fee25?: number; fee100?: number; landingFee?: number }>>({});
   
   // State prices will be calculated in LeafletMap component
   
@@ -571,6 +573,14 @@ function FuelSaverContent() {
           setFuelPrices(JSON.parse(saved));
         } catch (e) { console.error('Error loading fuel prices:', e); }
       }
+      
+      // Load FBO fees from localStorage
+      const savedFbo = localStorage.getItem('fboFees');
+      if (savedFbo) {
+        try {
+          setFboFeesData(JSON.parse(savedFbo));
+        } catch (e) { console.error('Error loading FBO fees:', e); }
+      }
     }
   }, []);
   
@@ -580,6 +590,13 @@ function FuelSaverContent() {
       localStorage.setItem('fuelPrices', JSON.stringify(fuelPrices));
     }
   }, [fuelPrices]);
+  
+  // Save FBO fees to localStorage when they change
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Object.keys(fboFeesData).length > 0) {
+      localStorage.setItem('fboFees', JSON.stringify(fboFeesData));
+    }
+  }, [fboFeesData]);
   
   // Load saved flight plans from localStorage on mount
   useEffect(() => {
@@ -718,6 +735,10 @@ function FuelSaverContent() {
   const [wbBaggage1, setWbBaggage1] = useState(0);
   const [wbBaggage2, setWbBaggage2] = useState(0);
   const [wbFuel, setWbFuel] = useState(40);
+  
+  // Total trip cost settings
+  const [includeLandingFees, setIncludeLandingFees] = useState(true);
+  const [includeFboFees, setIncludeFboFees] = useState(true);
   
   const tabs = [
     { id: 'details', label: '📋 Details' },
@@ -1015,7 +1036,8 @@ function FuelSaverContent() {
       state: (airport as any).state,
       latitude: airport.latitude,
       longitude: airport.longitude,
-      sequence: index ?? waypoints.length
+      sequence: index ?? waypoints.length,
+      type: airport.type
     };
     
     if (index !== undefined) {
@@ -1631,12 +1653,38 @@ function FuelSaverContent() {
     const fuelNeeded = flightHours * selectedAircraft.burnRate;
     const fuelWithReserves = fuelNeeded * 1.25; // 25% reserves
     
-    // Calculate estimated cost
-    let totalCost = 0;
+    // Calculate estimated cost - fuel only
+    let fuelCost = 0;
     for (const wp of waypoints) {
       const price = fuelPrices[wp.icao]?.price100ll || 6.50;
-      totalCost += price * (fuelWithReserves / waypoints.length);
+      fuelCost += price * (fuelWithReserves / waypoints.length);
     }
+    
+    // Calculate landing fees (based on airport size)
+    let landingFees = 0;
+    if (includeLandingFees) {
+      for (let i = 1; i < waypoints.length; i++) {
+        const wp = waypoints[i];
+        // Large airports: $50, Medium: $30, Small: $15
+        if (wp.type === 'large_airport') landingFees += 50;
+        else if (wp.type === 'medium_airport') landingFees += 30;
+        else landingFees += 15;
+      }
+    }
+    
+    // Calculate FBO fees (if enabled and available)
+    let fboFees = 0;
+    if (includeFboFees) {
+      for (let i = 1; i < waypoints.length; i++) {
+        const wp = waypoints[i];
+        if (fboFeesData[wp.icao]) {
+          fboFees += fboFeesData[wp.icao].fee25 || 0; // Use typical fee
+        }
+      }
+    }
+    
+    const totalCost = fuelCost + landingFees + fboFees;
+    const costPerPerson = soulsOnBoard > 1 ? totalCost / soulsOnBoard : totalCost;
     
     // Determine if fuel stops needed
     const fuelStops: Waypoint[] = [];
@@ -1656,11 +1704,15 @@ function FuelSaverContent() {
       flightHours: flightHours.toFixed(1),
       fuelNeeded: fuelWithReserves.toFixed(1),
       estimatedCost: totalCost.toFixed(0),
+      fuelCost: fuelCost.toFixed(0),
+      landingFees: landingFees,
+      fboFees: fboFees.toFixed(0),
+      costPerPerson: costPerPerson.toFixed(0),
       fuelStops,
       segments,
       legs
     };
-  }, [waypoints, selectedAircraft, departureFuel, fuelPrices]);
+  }, [waypoints, selectedAircraft, departureFuel, fuelPrices, includeLandingFees, includeFboFees, soulsOnBoard]);
 
   // Save flight plan
   const saveFlightPlan = async () => {
@@ -2833,9 +2885,31 @@ function FuelSaverContent() {
           {/* Bottom Stats Bar - Full Width */}
           {routeStats && (
             <div className="bg-slate-800 border-t border-slate-700 p-3 flex-shrink-0">
+              {/* Cost Settings Toggle */}
+              <div className="flex gap-2 mb-2">
+                <label className="flex items-center gap-1 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeLandingFees}
+                    onChange={(e) => setIncludeLandingFees(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className={includeLandingFees ? 'text-white' : 'text-slate-500'}>Landing</span>
+                </label>
+                <label className="flex items-center gap-1 text-xs cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeFboFees}
+                    onChange={(e) => setIncludeFboFees(e.target.checked)}
+                    className="rounded"
+                  />
+                  <span className={includeFboFees ? 'text-white' : 'text-slate-500'}>FBO</span>
+                </label>
+              </div>
+              
               <div className="flex items-center justify-between">
                 {/* Main Stats */}
-                <div className="flex gap-6">
+                <div className="flex gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-sky-400">{Math.round(routeStats.totalDistance)}</div>
                     <div className="text-xs text-slate-500 uppercase tracking-wider">NM</div>
@@ -2850,8 +2924,14 @@ function FuelSaverContent() {
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-emerald-400">${routeStats.estimatedCost}</div>
-                    <div className="text-xs text-slate-500 uppercase tracking-wider">Est. Cost</div>
+                    <div className="text-xs text-slate-500 uppercase tracking-wider">Total</div>
                   </div>
+                  {soulsOnBoard > 1 && (
+                    <div className="text-center">
+                      <div className="text-2xl font-bold text-cyan-400">${routeStats.costPerPerson}</div>
+                      <div className="text-xs text-slate-500 uppercase tracking-wider">Per Person</div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Aircraft Info */}
