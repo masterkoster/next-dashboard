@@ -56,4 +56,11 @@ export const moduleCatalog: ModuleDefinition[] = [
     description: "Track flight hours with Pro+",
     requiresPurchase: true,
   },
+  {
+    id: "weather-radar",
+    label: "Weather Radar",
+    href: "/modules/weather-radar",
+    description: "Real-time precipitation and storm tracking",
+    requiresPurchase: false,
+  },
 ];
