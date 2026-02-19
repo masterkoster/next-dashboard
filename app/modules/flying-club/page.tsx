@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
@@ -76,6 +76,36 @@ interface MaintenanceBlock {
   reportedDate: string;
   groupName?: string;
 }
+
+type ComplianceItem = {
+  type: 'date' | 'hours';
+  key: string;
+  label: string;
+  aircraft: Aircraft;
+  dueDate?: Date;
+  daysRemaining?: number;
+  dueHours?: number;
+  remainingHours?: number;
+};
+
+const DATE_COMPLIANCE_TASKS = [
+  { key: 'annualDate', label: 'Annual Inspection' },
+  { key: 'altimeterDue', label: 'Altimeter/Transponder' },
+  { key: 'eltBatteryDue', label: 'ELT Battery' },
+  { key: 'brakeFluidDue', label: 'Brake Fluid Change' },
+  { key: 'coolantDue', label: 'Coolant Service' },
+  { key: 'airworthinessCert', label: 'Airworthiness Certificate' },
+  { key: 'registrationExp', label: 'Registration Renewal' },
+  { key: 'insuranceExp', label: 'Insurance Renewal' },
+];
+
+const HOUR_COMPLIANCE_TASKS = [
+  { key: 'oilChangeDue', label: 'Oil Change', referenceKey: 'currentHobbs' },
+  { key: 'oilFilterDue', label: 'Oil Filter', referenceKey: 'currentHobbs' },
+  { key: 'fuelFilterDue', label: 'Fuel Filter', referenceKey: 'currentHobbs' },
+  { key: 'propOverhaulDue', label: 'Prop Overhaul', referenceKey: 'currentHobbs' },
+  { key: 'engineOverhaulDue', label: 'Engine Overhaul', referenceKey: 'currentHobbs' },
+];
 
 interface Member {
   userId: string;
@@ -188,6 +218,61 @@ export default function FlyingClubPage() {
         }
       });
   }, []);
+
+  const complianceItems = useMemo(() => {
+    if (!groups || groups.length === 0) return [] as ComplianceItem[];
+    const now = new Date();
+    const items: ComplianceItem[] = [];
+
+    groups.forEach((group) => {
+      group.aircraft?.forEach((aircraft) => {
+        let notes: any = {};
+        if (aircraft.aircraftNotes) {
+          try {
+            notes = JSON.parse(aircraft.aircraftNotes);
+          } catch (err) {
+            console.error('Failed to parse aircraft notes for compliance', err);
+          }
+        }
+
+        DATE_COMPLIANCE_TASKS.forEach((task) => {
+          const value = notes?.[task.key];
+          if (!value) return;
+          const dueDate = new Date(value);
+          if (Number.isNaN(dueDate.getTime())) return;
+          const daysRemaining = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          items.push({
+            type: 'date',
+            key: task.key,
+            label: task.label,
+            aircraft,
+            dueDate,
+            daysRemaining,
+          });
+        });
+
+        HOUR_COMPLIANCE_TASKS.forEach((task) => {
+          const dueValue = Number(notes?.[task.key]);
+          const referenceValue = Number(notes?.[task.referenceKey || 'currentHobbs']);
+          if (Number.isNaN(dueValue) || Number.isNaN(referenceValue)) return;
+          items.push({
+            type: 'hours',
+            key: task.key,
+            label: task.label,
+            aircraft,
+            dueHours: dueValue,
+            remainingHours: Math.round(dueValue - referenceValue),
+          });
+        });
+      });
+    });
+
+    return items.sort((a, b) => {
+      const aMetric = a.type === 'date' ? (a.daysRemaining ?? 9999) : (a.remainingHours ?? 9999);
+      const bMetric = b.type === 'date' ? (b.daysRemaining ?? 9999) : (b.remainingHours ?? 9999);
+      return aMetric - bMetric;
+    });
+  }, [groups]);
 
   const loadData = useCallback(async () => {
     // Skip if in demo mode
@@ -1326,6 +1411,53 @@ function MaintenanceList({ groups, isDemoMode, demoMaintenance }: { groups: Grou
   const [selectedAircraftId, setSelectedAircraftId] = useState('');
   const [formData, setFormData] = useState({ aircraftId: '', description: '', notes: '', isGrounded: false });
   const [fixData, setFixData] = useState({ notes: '', cost: '', isGrounded: false });
+  const [reminders, setReminders] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const stored = localStorage.getItem('maintenanceReminders');
+      if (stored) {
+        setReminders(JSON.parse(stored));
+      }
+    } catch (err) {
+      console.error('Failed to load maintenance reminders', err);
+    }
+  }, []);
+
+  const getComplianceStatus = (item: ComplianceItem) => {
+    if (item.type === 'date') {
+      if (item.daysRemaining === undefined) return 'ok';
+      if (item.daysRemaining < 0) return 'overdue';
+      if (item.daysRemaining <= 30) return 'soon';
+      if (item.daysRemaining <= 60) return 'warning';
+      return 'ok';
+    }
+    if (item.remainingHours === undefined) return 'ok';
+    if (item.remainingHours < 0) return 'overdue';
+    if (item.remainingHours <= 5) return 'soon';
+    if (item.remainingHours <= 15) return 'warning';
+    return 'ok';
+  };
+
+  const formatComplianceDetail = (item: ComplianceItem) => {
+    if (item.type === 'date') {
+      const dueText = item.dueDate ? item.dueDate.toLocaleDateString() : 'Unknown';
+      return `Due ${dueText} (${item.daysRemaining} days)`;
+    }
+    return `Due at ${item.dueHours?.toLocaleString() || '—'} hrs • ${item.remainingHours ?? 0} hrs remaining`;
+  };
+
+  const toggleReminder = (key: string) => {
+    setReminders((prev) => {
+      const exists = prev.includes(key);
+      const next = exists ? prev.filter((item) => item !== key) : [...prev, key];
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('maintenanceReminders', JSON.stringify(next));
+      }
+      return next;
+    });
+  };
 
   // Common pilot-fixable issues
   const pilotFixableIssues = [
@@ -1435,6 +1567,13 @@ function MaintenanceList({ groups, isDemoMode, demoMaintenance }: { groups: Grou
     }
   };
 
+  const groundedCount = maintenance.filter((m: any) => m.isGrounded).length;
+  const dueSoonCount = complianceItems.filter((item) => {
+    const status = getComplianceStatus(item);
+    return status === 'overdue' || status === 'soon' || status === 'warning';
+  }).length;
+  const reminderCount = reminders.length;
+
   // Show all maintenance if user has no groups or groups not loaded, otherwise filter by group
   let filteredMaintenance = maintenance;
   const userGroupIds = userGroups?.map((g: any) => g.id) || [];
@@ -1467,6 +1606,55 @@ function MaintenanceList({ groups, isDemoMode, demoMaintenance }: { groups: Grou
           </button>
         )}
       </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <StatCard title="Grounded Aircraft" value={groundedCount} tone="rose" subtitle="Currently unavailable" />
+        <StatCard title="Due Soon" value={dueSoonCount} tone="amber" subtitle="Inspections & timed tasks" />
+        <StatCard title="Reminders" value={reminderCount} tone="sky" subtitle="Custom alerts enabled" />
+      </div>
+
+      {complianceItems.length > 0 && (
+        <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+            <div>
+              <h3 className="text-white font-semibold">Upcoming Compliance</h3>
+              <p className="text-xs text-slate-400">Annuals, 100-hour checks, and oil changes across your fleet.</p>
+            </div>
+            <span className="text-xs text-slate-500">Tracking {complianceItems.length} tasks</span>
+          </div>
+          <div className="divide-y divide-slate-700">
+            {complianceItems.slice(0, 6).map((item) => {
+              const status = getComplianceStatus(item);
+              const reminderKey = `${item.aircraft.id}:${item.key}`;
+              const reminderActive = reminders.includes(reminderKey);
+              return (
+                <div key={reminderKey} className="py-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                  <div>
+                    <div className="text-white font-semibold">{item.label}</div>
+                    <div className="text-xs text-slate-400">
+                      {item.aircraft.nNumber || 'Aircraft'} • {item.aircraft.customName || item.aircraft.nickname || 'Club Aircraft'}
+                    </div>
+                    <div className="text-xs text-slate-500 mt-1">{formatComplianceDetail(item)}</div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={status} />
+                    <button
+                      onClick={() => toggleReminder(reminderKey)}
+                      className={`text-xs px-3 py-1 rounded-full border transition-colors ${
+                        reminderActive
+                          ? 'border-emerald-400 text-emerald-200 bg-emerald-500/10'
+                          : 'border-slate-600 text-slate-300 hover:border-emerald-400 hover:text-emerald-200'
+                      }`}
+                    >
+                      {reminderActive ? 'Reminder On' : 'Remind Me'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -1743,6 +1931,33 @@ function MaintenanceList({ groups, isDemoMode, demoMaintenance }: { groups: Grou
       )}
     </div>
   );
+}
+
+function StatCard({ title, value, subtitle, tone }: { title: string; value: number; subtitle?: string; tone?: 'rose' | 'amber' | 'sky' }) {
+  const toneMap: Record<string, { border: string; text: string; bg: string }> = {
+    rose: { border: 'border-rose-500/40', text: 'text-rose-300', bg: 'bg-rose-500/10' },
+    amber: { border: 'border-amber-500/40', text: 'text-amber-300', bg: 'bg-amber-500/10' },
+    sky: { border: 'border-sky-500/40', text: 'text-sky-300', bg: 'bg-sky-500/10' },
+  };
+  const colors = tone ? toneMap[tone] : toneMap.sky;
+  return (
+    <div className={`rounded-2xl border ${colors.border} ${colors.bg} px-4 py-3`}> 
+      <div className="text-xs uppercase text-slate-400">{title}</div>
+      <div className={`text-3xl font-bold ${colors.text}`}>{value}</div>
+      {subtitle && <div className="text-xs text-slate-400 mt-1">{subtitle}</div>}
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: 'overdue' | 'soon' | 'warning' | 'ok' }) {
+  const map: Record<string, { label: string; className: string }> = {
+    overdue: { label: 'Overdue', className: 'bg-rose-500/20 text-rose-300 border border-rose-500/40' },
+    soon: { label: '<30 days', className: 'bg-amber-500/20 text-amber-200 border border-amber-500/40' },
+    warning: { label: '<60 days', className: 'bg-yellow-500/10 text-yellow-100 border border-yellow-500/30' },
+    ok: { label: 'On Track', className: 'bg-emerald-500/10 text-emerald-200 border border-emerald-500/30' },
+  };
+  const data = map[status] || map.ok;
+  return <span className={`text-xs px-3 py-1 rounded-full ${data.className}`}>{data.label}</span>;
 }
 
 function BillingView({ groups, isDemoMode, demoBookings }: { groups: Group[]; isDemoMode?: boolean; demoBookings?: any[] }) {

@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { auth, prisma } from '@/lib/auth';
 
 const PUBLIC_LISTING_SELECT = {
@@ -32,12 +32,13 @@ const PUBLIC_LISTING_SELECT = {
 } as const;
 
 export async function GET(
-  _request: Request,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await context.params;
     const listing = await prisma.marketplaceListing.findUnique({
-      where: { id: params.id },
+      where: { id },
       select: PUBLIC_LISTING_SELECT,
     });
 
@@ -53,8 +54,8 @@ export async function GET(
 }
 
 export async function PUT(
-  request: Request,
-  { params }: { params: { id: string } }
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -62,8 +63,9 @@ export async function PUT(
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    const { id } = await context.params;
     const body = await request.json();
-    const listing = await prisma.marketplaceListing.findUnique({ where: { id: params.id } });
+    const listing = await prisma.marketplaceListing.findUnique({ where: { id } });
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
@@ -72,7 +74,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Not authorized to edit this listing' }, { status: 403 });
     }
 
-    const data: any = {};
+    const data: Record<string, unknown> = {};
     if (body.title) data.title = body.title.toString().slice(0, 200);
     if (body.description !== undefined) data.description = body.description.toString().slice(0, 2000);
     if (body.price !== undefined) data.price = normalizeInt(body.price);
@@ -80,7 +82,7 @@ export async function PUT(
     if (body.status) data.status = body.status.toString().toLowerCase() === 'inactive' ? 'inactive' : 'active';
 
     const updated = await prisma.marketplaceListing.update({
-      where: { id: params.id },
+      where: { id },
       data,
       select: PUBLIC_LISTING_SELECT,
     });
@@ -93,8 +95,8 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _request: Request,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -102,7 +104,8 @@ export async function DELETE(
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const listing = await prisma.marketplaceListing.findUnique({ where: { id: params.id } });
+    const { id } = await context.params;
+    const listing = await prisma.marketplaceListing.findUnique({ where: { id } });
     if (!listing) {
       return NextResponse.json({ error: 'Listing not found' }, { status: 404 });
     }
@@ -111,7 +114,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Not authorized to delete this listing' }, { status: 403 });
     }
 
-    await prisma.marketplaceListing.delete({ where: { id: params.id } });
+    await prisma.marketplaceListing.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Marketplace DELETE failed', error);
