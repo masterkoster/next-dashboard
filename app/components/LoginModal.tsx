@@ -29,6 +29,7 @@ export default function LoginModal() {
   const router = useRouter();
   
   const [mode, setMode] = useState<'login' | 'signup'>('login');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -38,6 +39,7 @@ export default function LoginModal() {
   // Reset form when modal opens/closes or mode changes
   useEffect(() => {
     if (isOpen) {
+      setUsername('');
       setEmail('');
       setPassword('');
       setName('');
@@ -65,7 +67,7 @@ export default function LoginModal() {
 
     if (mode === 'login') {
       const result = await signIn('credentials', {
-        email,
+        username,
         password,
         redirect: false,
       });
@@ -73,7 +75,7 @@ export default function LoginModal() {
       setLoading(false);
 
       if (result?.error) {
-        setError('Invalid email or password');
+        setError('Invalid username or password');
       } else if (result?.ok) {
         closeModal();
         if (redirectTo) {
@@ -88,7 +90,7 @@ export default function LoginModal() {
         const res = await fetch('/api/auth/signup', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password, name }),
+          body: JSON.stringify({ username, email, password, name }),
         });
 
         const data = await res.json();
@@ -97,9 +99,9 @@ export default function LoginModal() {
         if (!res.ok) {
           setError(data.error || 'Signup failed');
         } else {
-          // Auto-login after signup
+          // Auto-login after signup - use username
           const result = await signIn('credentials', {
-            email,
+            username,
             password,
             redirect: false,
           });
@@ -197,17 +199,47 @@ export default function LoginModal() {
             </div>
           )}
 
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-xl border border-slate-600 bg-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
-              placeholder="you@example.com"
-              required
-            />
-          </div>
+          {mode === 'signup' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
+                className="w-full rounded-xl border border-slate-600 bg-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+                placeholder="johndoe123"
+                required={mode === 'signup'}
+              />
+            </div>
+          )}
+
+          {mode === 'signup' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-slate-600 bg-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+                placeholder="you@example.com"
+                required
+              />
+            </div>
+          )}
+
+          {mode === 'login' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-1">Username</label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="w-full rounded-xl border border-slate-600 bg-slate-700 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none"
+                placeholder="your username"
+                required
+              />
+            </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-1">
