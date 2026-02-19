@@ -30,7 +30,7 @@ Each entry should have:
 - [x] Create /api/auth/verify-email route
   - Status: completed
   - Priority: high
-  - Notes: Handles token verification
+  - Notes: Handles token verification, redirects to welcome page
 
 - [x] Create /api/auth/resend-verification route
   - Status: completed
@@ -40,12 +40,17 @@ Each entry should have:
 - [x] Create /verify-email page
   - Status: completed
   - Priority: high
-  - Notes: Shows success/error states
+  - Notes: Shows error states, handles resend
+
+- [x] Create /welcome page
+  - Status: completed
+  - Priority: high
+  - Notes: Post-verification welcome with dashboard intro
 
 - [x] Update signup route - username, send verification email
   - Status: completed
   - Priority: high
-  - Notes: Auto-generates username if not provided
+  - Notes: Username now required, sends verification email
 
 - [x] Update forgot-password route - send actual email
   - Status: completed
@@ -55,7 +60,7 @@ Each entry should have:
 - [x] Update login/auth to use username instead of email
   - Status: completed
   - Priority: high
-  - Notes: Backward compatible with email
+  - Notes: Username is primary login method
 
 - [x] Block saves in flight-plans API for unverified users
   - Status: completed
@@ -82,42 +87,58 @@ Each entry should have:
   - Priority: high
   - Notes: 12 users migrated, all verified
 
+### Authentication Improvements
+- [x] Make username required (not optional)
+  - Status: completed
+  - Priority: high
+  - Notes: Schema updated, signup validates uniqueness
+
+- [x] Add persistent login (Remember Me)
+  - Status: completed
+  - Priority: high
+  - Notes: 30 days with secure cookies, sliding window
+
+- [x] Add CSRF protection
+  - Status: completed
+  - Priority: high
+  - Notes: Secure cookie configuration
+
+- [x] Add proper session security
+  - Status: completed
+  - Priority: high
+  - Notes: httpOnly, secure, sameSite cookies
+
 ---
 
 ## PENDING ⏳
 
 ### Pro+ Tier Features ($6.99/mo)
 
-- [ ] Add Pro+ tier to pricing page
-  - Status: pending
+- [x] Add Pro+ tier to pricing page
+  - Status: completed
   - Priority: high
-  - Notes: Position between Pro ($3.99) and potential higher tiers
+  - Notes: 3-tier pricing with Pro+ at $6.99
 
-- [ ] Update pricing comparison table
-  - Status: pending
+- [x] Update pricing comparison table
+  - Status: completed
   - Priority: high
-  - Notes: Show Free vs Pro vs Pro+ features
+  - Notes: Shows Free vs Pro vs Pro+ with all features
 
 #### Pro+ Specific Features:
-- [ ] Digital Logbook
-  - Status: pending
-  - Priority: medium
-  - Notes: Auto-log flights from saved plans, track totals by type
+- [x] Digital Logbook
+  - Status: completed
+  - Priority: high
+  - Notes: Full logbook with stats, requires Pro+ tier
 
 - [ ] Currency Tracking
   - Status: pending
   - Priority: medium
   - Notes: BFR, IPC, night currency (90 days), XC currency
 
-- [ ] Hour Analytics & Graphs
+- [ ] Hour Analytics
   - Status: pending
   - Priority: medium
-  - Notes: Visual charts showing hours over time, by type
-
-- [ ] Export to More Formats
-  - Status: pending
-  - Priority: low
-  - Notes: CSV, JSON, GPX already done - add more?
+  - Notes: Visual charts showing hours over time
 
 - [ ] Calendar Sync
   - Status: pending

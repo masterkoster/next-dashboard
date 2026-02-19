@@ -49,4 +49,11 @@ export const moduleCatalog: ModuleDefinition[] = [
     description: "Track your PPL progress and requirements",
     requiresPurchase: false,
   },
+  {
+    id: "logbook",
+    label: "Digital Logbook",
+    href: "/modules/logbook",
+    description: "Track flight hours with Pro+",
+    requiresPurchase: true,
+  },
 ];

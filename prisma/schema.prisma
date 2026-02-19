@@ -43,8 +43,47 @@ model User {
   documents        Document[]
   errorReports     ErrorReport[]
   trainingProgress TrainingProgress?
+  logbookEntries   LogbookEntry[]
 
   @@map("User")
+}
+
+model LogbookEntry {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  userId      String   @db.NVarChar(36)
+  
+  // Flight Details
+  date        DateTime
+  aircraft    String   @db.NVarChar(100)
+  routeFrom   String   @db.NVarChar(10)
+  routeTo     String   @db.NVarChar(10)
+  
+  // Times (in hours, use Decimal for precision)
+  totalTime   Float    @default(0)
+  soloTime    Float    @default(0)
+  dualGiven   Float    @default(0)
+  dualReceived Float   @default(0)
+  nightTime   Float    @default(0)
+  instrumentTime Float @default(0)
+  crossCountryTime Float @default(0)
+  
+  // Landings
+  dayLandings  Int     @default(0)
+  nightLandings Int    @default(0)
+  
+  // Additional Info
+  remarks     String?  @db.NVarChar(Max)
+  instructor  String?  @db.NVarChar(100)
+  
+  // Link to flight plan if applicable
+  flightPlanId String? @db.NVarChar(36)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("LogbookEntry")
 }
 
 model TrainingProgress {

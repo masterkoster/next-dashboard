@@ -11,6 +11,7 @@ const modules = [
   { id: 'fuel-saver', label: 'Fuel Saver', href: '/modules/fuel-saver' },
   { id: 'e6b', label: 'E6B', href: '/modules/e6b' },
   { id: 'training', label: 'Training', href: '/modules/training' },
+  { id: 'logbook', label: 'Logbook', href: '/modules/logbook' },
 ];
 
 interface Invite {
