@@ -128,7 +128,7 @@ Each entry should have:
 - [x] Digital Logbook
   - Status: completed
   - Priority: high
-  - Notes: Full logbook with stats, requires Pro+ tier
+  - Notes: Full logbook with stats, requires Pro+ tier, DB table created
 
 - [ ] Currency Tracking
   - Status: pending
@@ -149,6 +149,22 @@ Each entry should have:
   - Status: pending
   - Priority: low
   - Notes: Store GPS points during flight, replay on map
+
+### Payment Integration
+- [ ] Stripe payment setup
+  - Status: pending
+  - Priority: high
+  - Notes: Need Stripe account and API keys
+
+- [ ] Checkout flow
+  - Status: pending
+  - Priority: high
+  - Notes: Stripe Checkout or Elements
+
+- [ ] Webhook handling
+  - Status: pending
+  - Priority: high
+  - Notes: Handle successful payments, update user tier
 
 ---
 
