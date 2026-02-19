@@ -227,6 +227,12 @@ function FuelSaverContent() {
   const handleViewStateInfo = useCallback(async (stateCode: string) => {
     if (!stateCode) return;
     
+    // Only accept valid US state codes (2-letter abbreviations)
+    if (stateCode.length !== 2 || !/^[A-Z]{2}$/.test(stateCode)) {
+      console.log('Skipping non-US state:', stateCode);
+      return;
+    }
+    
     console.log('handleViewStateInfo called with:', stateCode);
     
     // Check cache first
