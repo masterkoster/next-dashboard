@@ -109,13 +109,12 @@ export default function TripsPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {trips.map((trip) => (
-              <Link 
-                key={trip.id}
-                href={`/modules/fuel-saver?load=${trip.id}`}
-                className="bg-slate-800 rounded-lg p-4 hover:bg-slate-750 transition-colors block"
-              >
+              <div key={trip.id} className="bg-slate-800 rounded-lg p-4 hover:bg-slate-750 transition-colors">
                 <div className="flex items-start justify-between">
-                  <div className="flex-1">
+                  <Link 
+                    href={`/modules/fuel-saver/view/${trip.id}`}
+                    className="flex-1 block"
+                  >
                     <h3 className="font-semibold text-lg">{trip.name || 'Untitled Trip'}</h3>
                     <div className="flex items-center gap-2 mt-1 text-slate-400 text-sm">
                       {trip.departureIcao && trip.arrivalIcao ? (
@@ -138,7 +137,7 @@ export default function TripsPage() {
                         Created {new Date(trip.createdAt).toLocaleDateString()}
                       </div>
                     )}
-                  </div>
+                  </Link>
                   <button 
                     onClick={(e) => handleDelete(trip.id, e)}
                     disabled={deletingId === trip.id}
@@ -156,7 +155,7 @@ export default function TripsPage() {
                     )}
                   </button>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
