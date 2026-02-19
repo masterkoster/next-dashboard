@@ -488,7 +488,7 @@ export default function LeafletMap({
         <CircleMarker
           key={airport.icao}
           center={[airport.latitude, airport.longitude]}
-          radius={airport.type === 'large_airport' ? 8 : airport.type === 'medium_airport' ? 6 : 4}
+          radius={airport.type === 'large_airport' ? 6 : airport.type === 'medium_airport' ? 4 : 2}
           pathOptions={{
             color: getMarkerColor(airport.type),
             fillColor: getMarkerColor(airport.type),
