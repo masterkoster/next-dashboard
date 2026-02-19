@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { MapContainer, TileLayer, Popup, Polyline, CircleMarker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -439,6 +439,7 @@ export default function LeafletMap({
 }: LeafletMapProps) {
   const [terrainLayer, setTerrainLayer] = useState<L.TileLayer | null>(null);
   const mapRef = useRef<L.Map | null>(null);
+  const [currentZoom, setCurrentZoom] = useState(mapZoom);
   
   // Base layer URLs
   const baseLayers = {
@@ -447,6 +448,34 @@ export default function LeafletMap({
     terrain: { url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', attribution: '&copy; OpenTopoMap' },
     dark: { url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', attribution: '&copy; CartoDB' }
   };
+  
+  // Filter out seaplanes automatically
+  const filteredAirports = useMemo(() => {
+    return airports.filter(a => a.type !== 'seaplane_base');
+  }, [airports]);
+  
+  // Calculate marker size based on zoom - scales up more for medium/small when zoomed in
+  const getMarkerRadius = (type?: string) => {
+    const zoomScale = Math.max(1, (currentZoom - 4) * 0.5);
+    if (type === 'large_airport') {
+      return 6 + zoomScale;
+    } else if (type === 'medium_airport') {
+      return 4 + zoomScale * 1.5;
+    } else {
+      return 2 + zoomScale * 2;
+    }
+  };
+  
+  // Update zoom level
+  useEffect(() => {
+    if (mapRef.current) {
+      const handleZoom = () => setCurrentZoom(mapRef.current!.getZoom());
+      mapRef.current.on('zoomend', handleZoom);
+      return () => {
+        mapRef.current?.off('zoomend', handleZoom);
+      };
+    }
+  }, []);
   
   // Toggle terrain layer based on setting
   useEffect(() => {
@@ -483,12 +512,12 @@ export default function LeafletMap({
       
       <MapEventHandler onBoundsChange={onBoundsChange} onMapReady={(map) => { mapRef.current = map; }} />
       
-      {/* Airport markers - only show larger airports when zoomed out */}
-      {airports.map(airport => (
+      {/* Airport markers - filtered and zoom-based sizing */}
+      {filteredAirports.map(airport => (
         <CircleMarker
           key={airport.icao}
           center={[airport.latitude, airport.longitude]}
-          radius={airport.type === 'large_airport' ? 6 : airport.type === 'medium_airport' ? 4 : 2}
+          radius={getMarkerRadius(airport.type)}
           pathOptions={{
             color: getMarkerColor(airport.type),
             fillColor: getMarkerColor(airport.type),
