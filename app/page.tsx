@@ -19,7 +19,13 @@ const features = [
 
 export default function LandingPage() {
   const [planePhase, setPlanePhase] = useState(0);
+  const [mounted, setMounted] = useState(false);
   const { openLoginModal } = useAuthModal();
+
+  // Wait for client-side mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fun plane animation phases
   useEffect(() => {
@@ -119,12 +125,14 @@ export default function LandingPage() {
               For quick planning — we&apos;re here.
             </p>
             
-            <button
-              onClick={() => openLoginModal()}
-              className="text-sky-400 hover:text-sky-300 text-lg underline underline-offset-4 mb-2"
-            >
-              Log In
-            </button>
+            {mounted && (
+              <button
+                onClick={() => openLoginModal()}
+                className="text-sky-400 hover:text-sky-300 text-lg underline underline-offset-4 mb-2"
+              >
+                Log In
+              </button>
+            )}
             <p className="text-slate-500 text-sm">
               Ready to try a module? Just click on any below.
             </p>
