@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { MapContainer, TileLayer, Popup, Polyline, CircleMarker, useMapEvents } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -456,6 +456,10 @@ export default function LeafletMap({
   const [notams, setNotams] = useState<any[]>([]);
   const mapRef = useRef<L.Map | null>(null);
   const [currentZoom, setCurrentZoom] = useState(mapZoom);
+  const boundsRef = useRef<{ minLat: number; maxLat: number; minLon: number; maxLon: number } | null>(null);
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isFetchingRef = useRef(false);
+  const lastFailedRef = useRef<{ tfrs?: number; pireps?: number }>({});
   
   // Base layer URLs
   const baseLayers = {
@@ -515,31 +519,77 @@ export default function LeafletMap({
     });
   }, [showTerrain, terrainLayer]);
   
-  // Fetch TFRs when map bounds change and showTfrs is enabled
-  useEffect(() => {
-    if (!showTfrs || !mapRef.current) return;
+  // Track bounds changes and update ref
+  const handleBoundsChange = useCallback((bounds: { minLat: number; maxLat: number; minLon: number; maxLon: number }) => {
+    boundsRef.current = bounds;
+    onBoundsChange(bounds);
     
-    const bounds = mapRef.current.getBounds();
-    const boundsParam = `${bounds.getSouth()},${bounds.getNorth()},${bounds.getWest()},${bounds.getEast()}`;
+    // Debounce TFR/PIREP fetches - wait 500ms after map stops moving
+    if (fetchTimeoutRef.current) {
+      clearTimeout(fetchTimeoutRef.current);
+    }
+    
+    fetchTimeoutRef.current = setTimeout(() => {
+      // Don't fetch if already fetching or recently failed
+      if (isFetchingRef.current) return;
+      const now = Date.now();
+      if (lastFailedRef.current.tfrs && now - lastFailedRef.current.tfrs < 30000) return;
+      if (lastFailedRef.current.pireps && now - lastFailedRef.current.pireps < 30000) return;
+      
+      if (showTfrs && boundsRef.current && !lastFailedRef.current.tfrs) {
+        isFetchingRef.current = true;
+        const boundsParam = `${bounds.minLat},${bounds.maxLat},${bounds.minLon},${bounds.maxLon}`;
+        fetch(`/api/tfrs?bounds=${boundsParam}`)
+          .then(res => {
+            if (!res.ok) throw new Error('API unavailable');
+            return res.json();
+          })
+          .then(data => setTfrs(data.tfrs || []))
+          .catch(() => { lastFailedRef.current.tfrs = Date.now(); })
+          .finally(() => { isFetchingRef.current = false; });
+      }
+      if (showPireps && boundsRef.current && !lastFailedRef.current.pireps) {
+        isFetchingRef.current = true;
+        const boundsParam = `${bounds.minLat},${bounds.maxLat},${bounds.minLon},${bounds.maxLon}`;
+        fetch(`/api/pireps?bounds=${boundsParam}`)
+          .then(res => {
+            if (!res.ok) throw new Error('API unavailable');
+            return res.json();
+          })
+          .then(data => setPireps(data.pireps || []))
+          .catch(() => { lastFailedRef.current.pireps = Date.now(); })
+          .finally(() => { isFetchingRef.current = false; });
+      }
+    }, 500);
+  }, [onBoundsChange, showTfrs, showPireps]);
+
+  // Initial fetch when toggled ON
+  useEffect(() => {
+    if (!showTfrs) return;
+    if (!boundsRef.current) return;
+    
+    const bounds = boundsRef.current;
+    const boundsParam = `${bounds.minLat},${bounds.maxLat},${bounds.minLon},${bounds.maxLon}`;
     
     fetch(`/api/tfrs?bounds=${boundsParam}`)
       .then(res => res.json())
       .then(data => setTfrs(data.tfrs || []))
       .catch(console.error);
-  }, [showTfrs, mapRef.current?.getBounds?.()]);
-  
-  // Fetch PIREPs when map bounds change and showPireps is enabled
+  }, [showTfrs]);
+
+  // Initial fetch when toggled ON  
   useEffect(() => {
-    if (!showPireps || !mapRef.current) return;
+    if (!showPireps) return;
+    if (!boundsRef.current) return;
     
-    const bounds = mapRef.current.getBounds();
-    const boundsParam = `${bounds.getSouth()},${bounds.getNorth()},${bounds.getWest()},${bounds.getEast()}`;
+    const bounds = boundsRef.current;
+    const boundsParam = `${bounds.minLat},${bounds.maxLat},${bounds.minLon},${bounds.maxLon}`;
     
     fetch(`/api/pireps?bounds=${boundsParam}`)
       .then(res => res.json())
       .then(data => setPireps(data.pireps || []))
       .catch(console.error);
-  }, [showPireps, mapRef.current?.getBounds?.()]);
+  }, [showPireps]);
  
   return (
     <MapContainer
@@ -552,7 +602,7 @@ export default function LeafletMap({
         url={baseLayers[baseLayer].url}
       />
       
-      <MapEventHandler onBoundsChange={onBoundsChange} onMapReady={(map) => { mapRef.current = map; }} />
+      <MapEventHandler onBoundsChange={handleBoundsChange} onMapReady={(map) => { mapRef.current = map; }} />
       
       {/* Airport markers - filtered and zoom-based sizing */}
       {filteredAirports.map(airport => (
