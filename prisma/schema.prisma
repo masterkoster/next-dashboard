@@ -9,7 +9,7 @@ datasource db {
 
 model User {
   id               String    @id @default(uuid())
-  username         String?   @unique @db.NVarChar(50)
+  username         String    @unique @db.NVarChar(50)
   email            String    @unique @db.NVarChar(255)
   name             String?   @db.NVarChar(255)
   purchasedModules String    @default("[]") @db.NVarChar(Max)

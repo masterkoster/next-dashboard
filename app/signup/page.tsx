@@ -138,11 +138,11 @@ export default function SignupPage() {
             </div>
 
             <div>
-              <label 
-                htmlFor="username" 
+              <label
+                htmlFor="username"
                 className="block text-sm font-medium text-slate-300"
               >
-                Username <span className="text-slate-500">(optional)</span>
+                Username <span className="text-red-400">*</span>
               </label>
               <input
                 id="username"
@@ -152,15 +152,17 @@ export default function SignupPage() {
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
                 placeholder="johndoe123"
+                required
                 minLength={3}
                 maxLength={20}
                 pattern="[a-z0-9]+"
                 autoComplete="username"
+                aria-required="true"
                 aria-label="Username - letters and numbers only"
                 aria-describedby="username-help"
               />
               <p id="username-help" className="mt-1 text-xs text-slate-500">
-                Letters and numbers only. Auto-generated if empty.
+                Letters and numbers only. This is what you&apos;ll use to log in.
               </p>
             </div>
 

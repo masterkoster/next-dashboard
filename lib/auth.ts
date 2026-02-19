@@ -17,13 +17,18 @@ if (process.env.NODE_ENV !== "production") {
 const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret-change-in-production-12345"
 const siteUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "https://next-dashboard-davids-projects.vercel.app"
 
+// Cookie names based on environment
+const isSecure = process.env.NODE_ENV === 'production'
+const cookiePrefix = isSecure ? '__Secure-' : ''
+
 export const authOptions: any = {
   providers: [
     CredentialsProvider({
       name: "credentials",
       credentials: {
         username: { label: "Username or Email", type: "text" },
-        password: { label: "Password", type: "password" }
+        password: { label: "Password", type: "password" },
+        rememberMe: { label: "Remember Me", type: "boolean" }
       },
       async authorize(credentials: any) {
         console.log("Authorize called with:", credentials?.username)
@@ -35,6 +40,7 @@ export const authOptions: any = {
         
         try {
           const input = (credentials.username as string).trim().toLowerCase()
+          const rememberMe = credentials.rememberMe === 'true' || credentials.rememberMe === true
           
           // Try to find user by username first, then by email
           let user: any = await prisma.user.findUnique({
@@ -84,7 +90,8 @@ export const authOptions: any = {
             name: user.name,
             username: user.username,
             emailVerified: user.emailVerified,
-            role: user.role 
+            role: user.role,
+            rememberMe: rememberMe // Pass to JWT
           }
         } catch (error) {
           console.error("Authorize error:", error)
@@ -97,29 +104,68 @@ export const authOptions: any = {
   url: siteUrl,
   session: { 
     strategy: "jwt" as const,
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    // Default: 30 days for remembered sessions
+    maxAge: 30 * 24 * 60 * 60, 
+    // Update session age on every request (sliding window)
+    updateAge: 24 * 60 * 60, // 24 hours
+  },
+  jwt: {
+    // JWT max age should match session maxAge
+    maxAge: 30 * 24 * 60 * 60,
   },
   pages: { signIn: "/login" },
   cookies: {
     sessionToken: {
-      name: `next-auth.session-token`,
+      name: `${cookiePrefix}next-auth.session-token`,
       options: {
         httpOnly: true,
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
+        secure: isSecure,
         maxAge: 30 * 24 * 60 * 60, // 30 days
+        path: '/',
+      },
+    },
+    callbackUrl: {
+      name: `${cookiePrefix}next-auth.callback-url`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isSecure,
+        path: '/',
+      },
+    },
+    csrfToken: {
+      name: `${cookiePrefix}next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        secure: isSecure,
         path: '/',
       },
     },
   },
   callbacks: {
-    async jwt({ token, user }: { token: any; user?: any }) {
+    async jwt({ token, user, trigger, session }: { token: any; user?: any; trigger?: string; session?: any }) {
+      // Initial sign in
       if (user) {
         token.id = user.id
         token.username = user.username
         token.emailVerified = user.emailVerified
         token.role = user.role
+        token.rememberMe = user.rememberMe
+        
+        // Set expiration based on rememberMe
+        if (!user.rememberMe) {
+          // Browser session only - expires when browser closes
+          token.exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60) // 24 hours
+        }
       }
+      
+      // Handle session updates
+      if (trigger === "update" && session) {
+        token.name = session.name
+      }
+      
       return token
     },
     async session({ session, token }: { session: any; token: any }) {
@@ -128,10 +174,20 @@ export const authOptions: any = {
         session.user.username = token.username
         session.user.emailVerified = token.emailVerified
         session.user.role = token.role
+        session.expires = token.exp ? new Date(token.exp * 1000).toISOString() : session.expires
       }
       return session
     }
-  }
+  },
+  events: {
+    async signIn({ user, account, profile, isNewUser }: any) {
+      console.log("User signed in:", user?.email)
+    },
+    async signOut({ token }: any) {
+      console.log("User signed out:", token?.email)
+    },
+  },
+  debug: process.env.NODE_ENV === 'development',
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth(authOptions)

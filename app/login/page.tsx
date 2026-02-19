@@ -8,6 +8,7 @@ import Link from "next/link";
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(true);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -32,6 +33,7 @@ export default function LoginPage() {
     const result = await signIn("credentials", {
       username,
       password,
+      rememberMe,
       redirect: false,
     });
 
@@ -119,7 +121,16 @@ export default function LoginPage() {
               />
             </div>
 
-            <div className="flex items-center justify-end">
+            <div className="flex items-center justify-between">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-emerald-500 focus:ring-emerald-500"
+                />
+                <span className="text-sm text-slate-300">Remember me for 30 days</span>
+              </label>
               <Link 
                 href="/forgot-password" 
                 className="text-sm text-emerald-400 hover:text-emerald-300"

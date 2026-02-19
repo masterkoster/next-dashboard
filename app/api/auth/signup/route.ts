@@ -14,24 +14,15 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = prisma
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-function generateUsername(name: string, email: string): string {
-  // Try to use name first, then email prefix
-  let base = name?.trim() || email.split('@')[0]
-  // Remove special chars, spaces
-  base = base.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()
-  // Add random numbers if needed
-  return base + Math.floor(Math.random() * 1000)
-}
-
 export async function POST(request: Request) {
   try {
     console.log("Signup attempt")
     
-    const { name, email, password, username: providedUsername } = await request.json()
+    const { name, email, password, username } = await request.json()
     
-    if (!email || !password) {
+    if (!email || !password || !username) {
       return NextResponse.json(
-        { error: "Email and password are required" },
+        { error: "Username, email, and password are required" },
         { status: 400 }
       )
     }
@@ -44,7 +35,7 @@ export async function POST(request: Request) {
     }
     
     const normalizedEmail = email.trim().toLowerCase()
-    const username = (providedUsername || generateUsername(name, email)).toLowerCase()
+    const normalizedUsername = username.toLowerCase()
     
     console.log("Checking existing email:", normalizedEmail)
     
@@ -61,15 +52,16 @@ export async function POST(request: Request) {
     }
     
     // Check if username exists
-    console.log("Checking username:", username)
+    console.log("Checking username:", normalizedUsername)
     const existingUsername = await prisma.user.findUnique({
-      where: { username }
+      where: { username: normalizedUsername }
     })
     
     if (existingUsername) {
-      // Generate a unique username
-      const uniqueUsername = username + Math.floor(Math.random() * 10000)
-      console.log("Username taken, using:", uniqueUsername)
+      return NextResponse.json(
+        { error: "Username already taken. Please choose another." },
+        { status: 400 }
+      )
     }
     
     console.log("Hashing password")
@@ -81,11 +73,11 @@ export async function POST(request: Request) {
     
     const finalUsername = existingUsername ? username + Math.floor(Math.random() * 10000) : username
     
-    console.log("Creating user with username:", finalUsername)
+    console.log("Creating user with username:", normalizedUsername)
     const user = await prisma.user.create({
       data: {
-        username: finalUsername,
-        name: name || finalUsername,
+        username: normalizedUsername,
+        name: name || normalizedUsername,
         email: normalizedEmail,
         password: hashedPassword,
         purchasedModules: "[]",

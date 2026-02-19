@@ -4,21 +4,26 @@ import Link from 'next/link';
 import { useState } from 'react';
 
 const features = [
-  { name: 'Waypoints per flight', free: '6', pro: 'Unlimited' },
-  { name: 'Saved flight plans', free: '5', pro: 'Unlimited' },
-  { name: 'Flying clubs', free: '1', pro: 'Unlimited' },
-  { name: 'Aircraft profiles', free: '3', pro: 'Unlimited' },
-  { name: 'Fuel prices', free: 'Home state', pro: 'All 50 states' },
-  { name: 'E6B Flight Computer', free: true, pro: true },
-  { name: 'Training Tracker', free: true, pro: true },
-  { name: 'Weight & Balance', free: true, pro: true },
-  { name: 'NOTAMs & Weather', free: true, pro: true },
-  { name: 'Document storage (POH, insurance)', free: false, pro: true },
-  { name: 'Export to ForeFlight', free: false, pro: true },
-  { name: 'Export to Garmin Pilot', free: false, pro: true },
-  { name: 'Export to PDF', free: false, pro: true },
-  { name: 'Priority support', free: false, pro: true },
-  { name: 'Early access to new features', free: false, pro: true },
+  { name: 'Waypoints per flight', free: '6', pro: 'Unlimited', proPlus: 'Unlimited' },
+  { name: 'Saved flight plans', free: '5', pro: 'Unlimited', proPlus: 'Unlimited' },
+  { name: 'Flying clubs', free: '1', pro: 'Unlimited', proPlus: 'Unlimited' },
+  { name: 'Aircraft profiles', free: '3', pro: 'Unlimited', proPlus: 'Unlimited' },
+  { name: 'Fuel prices', free: 'Home state', pro: 'All 50 states', proPlus: 'All 50 states' },
+  { name: 'E6B Flight Computer', free: true, pro: true, proPlus: true },
+  { name: 'Training Tracker', free: true, pro: true, proPlus: true },
+  { name: 'Weight & Balance', free: true, pro: true, proPlus: true },
+  { name: 'NOTAMs & Weather', free: true, pro: true, proPlus: true },
+  { name: 'Export to ForeFlight', free: true, pro: true, proPlus: true },
+  { name: 'Export to Garmin Pilot', free: true, pro: true, proPlus: true },
+  { name: 'Export to PDF', free: true, pro: true, proPlus: true },
+  { name: 'Digital Logbook', free: false, pro: false, proPlus: true },
+  { name: 'Currency Tracking (BFR, IPC, night)', free: false, pro: false, proPlus: true },
+  { name: 'Hour Analytics & Graphs', free: false, pro: false, proPlus: true },
+  { name: 'Post-Flight Playback', free: false, pro: false, proPlus: true },
+  { name: 'Calendar Sync (Google/Apple)', free: false, pro: false, proPlus: true },
+  { name: 'Email Flight Plans', free: false, pro: false, proPlus: true },
+  { name: 'Priority support', free: false, pro: false, proPlus: true },
+  { name: 'Early access to new features', free: false, pro: false, proPlus: true },
 ];
 
 const faqs = [
@@ -69,7 +74,7 @@ export default function PricingPage() {
           </h1>
           
           <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-8">
-            Start free forever, or unlock unlimited power with Pro. No hidden fees, no BS.
+            Start free forever, or unlock unlimited power with Pro. Go Pro+ for advanced features.
           </p>
 
           {/* Billing Toggle */}
@@ -102,8 +107,8 @@ export default function PricingPage() {
       </div>
 
       {/* Pricing Cards */}
-      <div className="mx-auto max-w-5xl px-6 pb-20">
-        <div className="grid md:grid-cols-2 gap-8">
+      <div className="mx-auto max-w-6xl px-6 pb-20">
+        <div className="grid lg:grid-cols-3 gap-8">
           
           {/* Free Plan */}
           <div className="relative rounded-3xl border border-slate-700 bg-slate-800/30 p-8 backdrop-blur-sm">
@@ -127,6 +132,7 @@ export default function PricingPage() {
                 '3 Aircraft profiles',
                 'E6B & Training Tracker',
                 'Home state fuel prices',
+                'Export to GPX/PDF/ForeFlight',
               ].map((feature, i) => (
                 <li key={i} className="flex items-center gap-3 text-slate-300">
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
@@ -183,12 +189,10 @@ export default function PricingPage() {
                 'Unlimited flight plans',
                 'Unlimited Flying Clubs',
                 'Unlimited Aircraft',
-                'E6B & Training Tracker',
                 'All 50 states fuel prices',
-                'Document storage (POH, insurance)',
-                'Export to ForeFlight & Garmin',
+                'E6B & Training Tracker',
                 'Priority support',
-                'Early access to new features',
+                'Early access to features',
               ].map((feature, i) => (
                 <li key={i} className="flex items-center gap-3 text-slate-300">
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center">
@@ -210,18 +214,80 @@ export default function PricingPage() {
               No credit card required
             </p>
           </div>
+
+          {/* Pro+ Plan */}
+          <div className="relative rounded-3xl border-2 border-amber-500/50 bg-gradient-to-br from-amber-500/5 to-orange-500/5 p-8 backdrop-blur-sm shadow-lg shadow-amber-500/10">
+            {/* Best Value Badge */}
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 px-4 py-1.5 text-sm font-bold text-white shadow-lg">
+                <span>🚀</span> Best Value
+              </span>
+            </div>
+
+            <div className="mb-6 mt-2">
+              <h3 className="text-2xl font-bold text-white mb-2">Pro+</h3>
+              <p className="text-slate-400">For pilots who want it all</p>
+            </div>
+            
+            <div className="mb-8">
+              <div className="flex items-baseline gap-1">
+                <span className="text-5xl font-bold text-white">
+                  {billingCycle === 'monthly' ? '$6.99' : '$69.99'}
+                </span>
+                <span className="text-slate-400">
+                  /{billingCycle === 'monthly' ? 'mo' : 'year'}
+                </span>
+              </div>
+              {billingCycle === 'yearly' && (
+                <p className="text-sm text-amber-400 mt-1">
+                  Save $13.89 per year
+                </p>
+              )}
+            </div>
+
+            <ul className="space-y-4 mb-8">
+              {[
+                'Everything in Pro',
+                'Digital Logbook',
+                'Currency Tracking (BFR, IPC)',
+                'Hour Analytics & Graphs',
+                'Post-Flight Playback',
+                'Calendar Sync',
+                'Email Flight Plans',
+                'Premium support',
+              ].map((feature, i) => (
+                <li key={i} className="flex items-center gap-3 text-slate-300">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-amber-500 flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                  </span>
+                  <span className={i === 0 ? 'text-amber-400 font-medium' : ''}>{feature}</span>
+                </li>
+              ))}
+            </ul>
+
+            <button
+              className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 px-6 py-3 font-semibold text-white transition shadow-lg shadow-amber-500/25"
+            >
+              Upgrade to Pro+
+            </button>
+            <p className="text-center text-xs text-slate-500 mt-3">
+              Zero external costs
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Feature Comparison Table */}
-      <div className="mx-auto max-w-5xl px-6 pb-20">
+      <div className="mx-auto max-w-6xl px-6 pb-20">
         <h2 className="text-3xl font-bold text-white text-center mb-12">
           Compare All Features
         </h2>
 
         <div className="rounded-2xl border border-slate-700 bg-slate-800/30 overflow-hidden">
           {/* Table Header */}
-          <div className="grid grid-cols-3 bg-slate-800/50 border-b border-slate-700">
+          <div className="grid grid-cols-4 bg-slate-800/50 border-b border-slate-700">
             <div className="px-6 py-4 text-left">
               <span className="text-sm font-medium text-slate-400">Feature</span>
             </div>
@@ -231,13 +297,16 @@ export default function PricingPage() {
             <div className="px-6 py-4 text-center border-l border-slate-700 bg-emerald-500/10">
               <span className="text-sm font-medium text-emerald-400">Pro</span>
             </div>
+            <div className="px-6 py-4 text-center border-l border-slate-700 bg-amber-500/10">
+              <span className="text-sm font-medium text-amber-400">Pro+</span>
+            </div>
           </div>
 
           {/* Table Rows */}
           {features.map((feature, i) => (
             <div
               key={i}
-              className={`grid grid-cols-3 border-b border-slate-700/50 last:border-0 ${
+              className={`grid grid-cols-4 border-b border-slate-700/50 last:border-0 ${
                 i % 2 === 0 ? 'bg-slate-800/20' : ''
               }`}
             >
@@ -264,6 +333,17 @@ export default function PricingPage() {
                   )
                 ) : (
                   <span className="text-sm text-emerald-300 font-medium">{feature.pro}</span>
+                )}
+              </div>
+              <div className="px-6 py-4 text-center border-l border-slate-700/50 bg-amber-500/5 flex items-center justify-center">
+                {typeof feature.proPlus === 'boolean' ? (
+                  feature.proPlus ? (
+                    <span className="text-amber-400 text-lg">✓</span>
+                  ) : (
+                    <span className="text-slate-600 text-lg">—</span>
+                  )
+                ) : (
+                  <span className="text-sm text-amber-300 font-medium">{feature.proPlus}</span>
                 )}
               </div>
             </div>
