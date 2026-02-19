@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,7 +30,7 @@ export default function LoginPage() {
     setLoading(true);
 
     const result = await signIn("credentials", {
-      email,
+      username, // Now uses username instead of email
       password,
       redirect: false,
     });
@@ -38,7 +38,7 @@ export default function LoginPage() {
     setLoading(false);
 
     if (result?.error) {
-      setError("Invalid email or password");
+      setError("Invalid username or password");
     } else if (result?.ok) {
       window.location.href = "/dashboard";
     } else {
@@ -63,15 +63,18 @@ export default function LoginPage() {
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-300">Email</label>
+              <label className="block text-sm font-medium text-slate-300">Username or Email</label>
               <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                placeholder="you@example.com"
+                placeholder="username or email"
                 required
               />
+              <p className="mt-1 text-xs text-slate-500">
+                New users: login with your username. Old users: your email still works.
+              </p>
             </div>
 
             <div>
