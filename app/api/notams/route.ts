@@ -140,7 +140,8 @@ export async function GET(request: Request) {
         for (const notam of demoForAirport) {
           allNotams.push({
             ...notam,
-            icao
+            icao,
+            location: icao
           });
         }
       }
