@@ -63,4 +63,11 @@ export const moduleCatalog: ModuleDefinition[] = [
     description: "Real-time precipitation and storm tracking",
     requiresPurchase: false,
   },
+  {
+    id: "calendar-sync",
+    label: "Calendar Sync",
+    href: "/modules/calendar-sync",
+    description: "Add flights to Google or Apple Calendar",
+    requiresPurchase: false,
+  },
 ];
