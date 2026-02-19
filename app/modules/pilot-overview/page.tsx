@@ -2,7 +2,8 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSession } from 'next-auth/react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
+import { createNavLogPdfDoc, getNavLogExportHistory, StoredNavLogExport } from '../fuel-saver/lib/exportUtils';
 
 // Import the existing components
 import CurrencyTracker from '../../components/CurrencyTracker';
@@ -232,14 +233,26 @@ function PilotOverviewContent() {
   const router = useRouter();
   const [entries, setEntries] = useState<LogbookEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'logbook' | 'training' | 'currency' | 'analytics'>('logbook');
+  const [activeTab, setActiveTab] = useState<'logbook' | 'training' | 'currency' | 'analytics' | 'documents'>('logbook');
   const [isProPlus, setIsProPlus] = useState(false);
+  const [navLogExports, setNavLogExports] = useState<StoredNavLogExport[]>([]);
+  const [selectedExportId, setSelectedExportId] = useState<string | null>(null);
+  const [viewerUrl, setViewerUrl] = useState<string | null>(null);
+  const [viewerLoading, setViewerLoading] = useState(false);
 
   useEffect(() => {
     if (status === 'authenticated') {
       checkSubscription();
     }
   }, [status]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    setNavLogExports(getNavLogExportHistory());
+    const handler = () => setNavLogExports(getNavLogExportHistory());
+    window.addEventListener('navlog-exports-updated', handler);
+    return () => window.removeEventListener('navlog-exports-updated', handler);
+  }, []);
 
   const checkSubscription = async () => {
     try {
@@ -255,6 +268,53 @@ function PilotOverviewContent() {
       console.error('Failed to check tier:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePreviewExport = (exportItem: StoredNavLogExport) => {
+    setSelectedExportId(exportItem.id);
+    setViewerLoading(true);
+    setTimeout(() => {
+      try {
+        const doc = createNavLogPdfDoc(exportItem.navLogData, {
+          detailed: exportItem.detailed,
+          cruisingAltitude: exportItem.navLogData.cruisingAltitude,
+        });
+        const dataUri = doc.output('datauristring');
+        setViewerUrl(dataUri);
+      } catch (error) {
+        console.error('Failed to render nav log preview', error);
+        setViewerUrl(null);
+      } finally {
+        setViewerLoading(false);
+      }
+    }, 0);
+  };
+
+  const handleDownloadExport = (exportItem: StoredNavLogExport) => {
+    try {
+      const doc = createNavLogPdfDoc(exportItem.navLogData, {
+        detailed: exportItem.detailed,
+        cruisingAltitude: exportItem.navLogData.cruisingAltitude,
+      });
+      const filenameBase = exportItem.name.replace(/[^a-z0-9]/gi, '-').toLowerCase() || 'flight-plan';
+      doc.save(`${filenameBase}-navlog.pdf`);
+    } catch (error) {
+      console.error('Failed to download nav log export', error);
+    }
+  };
+
+  const formatExportDate = (isoString: string) => {
+    try {
+      return new Date(isoString).toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch {
+      return isoString;
     }
   };
 
@@ -359,7 +419,7 @@ function PilotOverviewContent() {
       {/* Tabs */}
       <div className="bg-slate-800/50 border-b border-slate-700">
         <div className="max-w-7xl mx-auto flex gap-1 px-4 overflow-x-auto">
-          {(['logbook', 'training', 'currency', 'analytics'] as const).map((tab) => (
+          {(['logbook', 'training', 'currency', 'analytics', 'documents'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -373,6 +433,7 @@ function PilotOverviewContent() {
               {tab === 'training' && '🎓 '}
               {tab === 'currency' && '💱 '}
               {tab === 'analytics' && '📊 '}
+              {tab === 'documents' && '📂 '}
               {tab === 'training' ? 'Training' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
@@ -473,6 +534,87 @@ function PilotOverviewContent() {
         {/* Training Tab - show for everyone (not just Pro+) */}
         {activeTab === 'training' && (
           <TrainingOverview />
+        )}
+
+        {activeTab === 'documents' && (
+          <div className="space-y-4">
+            <div className="bg-slate-800 rounded-xl p-4 border border-slate-700 flex flex-col gap-2">
+              <div>
+                <h3 className="text-xl font-bold text-white">📂 Documents</h3>
+                <p className="text-slate-400 text-sm">
+                  Every time you export a Nav Log PDF we store a local copy here so you can preview or download again without rebuilding the route.
+                </p>
+              </div>
+            </div>
+
+            {navLogExports.length === 0 ? (
+              <div className="bg-slate-800 border border-slate-700 rounded-xl p-10 text-center text-slate-400">
+                Export a Nav Log as PDF from the Fuel Saver module and it will appear here for quick access.
+              </div>
+            ) : (
+              <div className="grid lg:grid-cols-3 gap-4">
+                <div className="space-y-3">
+                  {navLogExports.map((exportItem) => (
+                    <div
+                      key={exportItem.id}
+                      className={`bg-slate-800 border rounded-xl p-4 transition-colors ${
+                        selectedExportId === exportItem.id ? 'border-emerald-500' : 'border-slate-700'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div>
+                          <div className="text-white font-semibold">{exportItem.name}</div>
+                          <div className="text-xs text-slate-400">{formatExportDate(exportItem.createdAt)}</div>
+                        </div>
+                        <span className="text-xs px-2 py-1 rounded-full border border-slate-600 text-slate-300">
+                          {exportItem.detailed ? 'Detailed' : 'Basic'}
+                        </span>
+                      </div>
+                      <div className="text-sm text-slate-400 mt-2">
+                        {exportItem.navLogData.departure} → {exportItem.navLogData.arrival}
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <button
+                          onClick={() => handlePreviewExport(exportItem)}
+                          className="flex-1 bg-slate-700 hover:bg-slate-600 text-white text-sm py-2 rounded-lg"
+                        >
+                          Preview
+                        </button>
+                        <button
+                          onClick={() => handleDownloadExport(exportItem)}
+                          className="flex-1 bg-slate-600 hover:bg-slate-500 text-white text-sm py-2 rounded-lg"
+                        >
+                          Download
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-xl p-4 min-h-[520px] flex flex-col">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <h4 className="text-white font-semibold">PDF Preview</h4>
+                      <p className="text-xs text-slate-400">Rendered directly in your browser</p>
+                    </div>
+                  </div>
+                  <div className="flex-1 bg-white rounded-lg overflow-hidden border border-slate-200">
+                    {viewerLoading ? (
+                      <div className="w-full h-full flex items-center justify-center text-slate-500">
+                        Preparing preview…
+                      </div>
+                    ) : viewerUrl ? (
+                      <iframe src={viewerUrl} className="w-full h-[500px]" title="Nav Log Preview" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-500">
+                        Select a nav log from the list to preview it here.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
     </div>
