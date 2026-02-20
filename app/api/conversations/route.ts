@@ -43,6 +43,9 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const recipientId = (body?.userId || '').toString();
+    const listingId = (body?.listingId || '').toString();
+    const initialMessage = body?.message as string | undefined;
+    
     if (!recipientId) {
       return NextResponse.json({ error: 'User is required' }, { status: 400 });
     }
@@ -50,18 +53,33 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Cannot chat with yourself' }, { status: 400 });
     }
 
-    const isFriend = await prisma.friendRequest.findFirst({
-      where: {
-        status: 'accepted',
-        OR: [
-          { requesterId: session.user.id, recipientId },
-          { requesterId: recipientId, recipientId: session.user.id },
-        ],
-      },
-    });
+    // Check if this is a marketplace inquiry (listingId provided) - no friendship required
+    let isMarketplaceInquiry = false;
+    if (listingId) {
+      const listing = await prisma.marketplaceListing.findUnique({
+        where: { id: listingId },
+        select: { id: true, userId: true },
+      });
+      if (listing && listing.userId === recipientId) {
+        isMarketplaceInquiry = true;
+      }
+    }
 
-    if (!isFriend) {
-      return NextResponse.json({ error: 'Friendship required' }, { status: 403 });
+    // Only require friendship for non-marketplace conversations
+    if (!isMarketplaceInquiry) {
+      const isFriend = await prisma.friendRequest.findFirst({
+        where: {
+          status: 'accepted',
+          OR: [
+            { requesterId: session.user.id, recipientId },
+            { requesterId: recipientId, recipientId: session.user.id },
+          ],
+        },
+      });
+
+      if (!isFriend) {
+        return NextResponse.json({ error: 'Friendship required' }, { status: 403 });
+      }
     }
 
     const existingConversation = await prisma.conversation.findFirst({
@@ -78,6 +96,16 @@ export async function POST(request: Request) {
     });
 
     if (existingConversation) {
+      // If there's an initial message, send it to existing conversation
+      if (initialMessage) {
+        await prisma.message.create({
+          data: {
+            conversationId: existingConversation.id,
+            senderId: session.user.id,
+            body: initialMessage,
+          },
+        });
+      }
       return NextResponse.json({ conversationId: existingConversation.id });
     }
 
@@ -94,6 +122,17 @@ export async function POST(request: Request) {
       },
       select: { id: true },
     });
+
+    // Send initial message if provided
+    if (initialMessage) {
+      await prisma.message.create({
+        data: {
+          conversationId: conversation.id,
+          senderId: session.user.id,
+          body: initialMessage,
+        },
+      });
+    }
 
     return NextResponse.json({ conversationId: conversation.id });
   } catch (error) {

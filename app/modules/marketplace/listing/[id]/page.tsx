@@ -258,27 +258,32 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
 
   async function handleSubmitContact(e: React.FormEvent) {
     e.preventDefault();
-    if (!session || !contactMessage.trim()) return;
+    if (!session || !contactMessage.trim() || !listing) return;
     
     setSubmitting(true);
     try {
-      const res = await fetch('/api/marketplace/inquiries', {
+      // Create conversation and send message
+      const res = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          listingId: listing?.id,
-          message: contactMessage,
+          userId: listing.user.id,
+          listingId: listing.id,
+          message: `Inquiry about: ${listing.title}\n\n${contactMessage}`,
         }),
       });
+      
       if (res.ok) {
-        alert('Your inquiry has been sent to the seller!');
-        setShowContactForm(false);
-        setContactMessage('');
+        const data = await res.json();
+        // Show success and redirect to messages
+        alert('Message sent! Redirecting to your messages...');
+        window.location.href = `/modules/social?newConversation=${data.conversationId}`;
       } else {
-        alert('Failed to send inquiry. Please try again.');
+        const error = await res.json();
+        alert(error.error || 'Failed to send message. Please try again.');
       }
     } catch (err) {
-      alert('Failed to send inquiry. Please try again.');
+      alert('Failed to send message. Please try again.');
     } finally {
       setSubmitting(false);
     }
