@@ -17,6 +17,7 @@ L.Icon.Default.mergeOptions({
 
 export default function WeatherRadarMap() {
   const mapRef = useRef<L.Map | null>(null);
+  const baseLayerRef = useRef<L.TileLayer | null>(null);
   const radarLayerRef = useRef<L.TileLayer | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
@@ -30,6 +31,10 @@ export default function WeatherRadarMap() {
   const [jumpIcao, setJumpIcao] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const [loadingFrames, setLoadingFrames] = useState(true);
+  const [radarOpacity, setRadarOpacity] = useState(0.72);
+  const [basemap, setBasemap] = useState<'light' | 'dark'>('light');
+  const [showLegend, setShowLegend] = useState(false);
+  const [speedMs, setSpeedMs] = useState(450);
 
   // Fetch radar timestamps from RainViewer API
   useEffect(() => {
@@ -64,14 +69,13 @@ export default function WeatherRadarMap() {
     const map = L.map('weather-radar-map', {
       center: [39.8283, -98.5795], // Center of US
       zoom: 6,
-      zoomControl: true,
+      zoomControl: false,
     });
 
     mapRef.current = map;
 
-    // Add dark base map for better radar visibility
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-      attribution: '© CartoDB',
+    baseLayerRef.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© OpenStreetMap, © CARTO',
       maxZoom: 19,
     }).addTo(map);
 
@@ -83,6 +87,16 @@ export default function WeatherRadarMap() {
       map.remove();
     };
   }, []);
+
+  useEffect(() => {
+    const layer = baseLayerRef.current;
+    if (!layer) return;
+
+    const url = basemap === 'dark'
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+    layer.setUrl(url);
+  }, [basemap]);
 
   const currentFrame = frames[frameIndex] || null;
   const currentTileUrl = useMemo(() => {
@@ -99,7 +113,7 @@ export default function WeatherRadarMap() {
     if (!radarLayerRef.current) {
       radarLayerRef.current = L.tileLayer(currentTileUrl, {
         attribution: 'Radar data © RainViewer',
-        opacity: 0.72,
+        opacity: radarOpacity,
         maxZoom: 12,
         zIndex: 500,
       }).addTo(map);
@@ -107,7 +121,12 @@ export default function WeatherRadarMap() {
     }
 
     radarLayerRef.current.setUrl(currentTileUrl);
-  }, [currentTileUrl]);
+  }, [currentTileUrl, radarOpacity]);
+
+  useEffect(() => {
+    if (!radarLayerRef.current) return;
+    radarLayerRef.current.setOpacity(radarOpacity);
+  }, [radarOpacity]);
 
   // Animation.
   useEffect(() => {
@@ -124,7 +143,7 @@ export default function WeatherRadarMap() {
         const next = prev + 1;
         return next >= frames.length ? 0 : next;
       });
-    }, 450);
+    }, Math.max(200, Math.min(2000, speedMs)));
 
     return () => {
       if (animationRef.current) {
@@ -132,7 +151,7 @@ export default function WeatherRadarMap() {
         animationRef.current = null;
       }
     };
-  }, [isPlaying, frames.length]);
+  }, [isPlaying, frames.length, speedMs]);
 
   const frameLabel = useMemo(() => {
     if (!currentFrame) return '—';
@@ -141,6 +160,18 @@ export default function WeatherRadarMap() {
     } catch {
       return String(currentFrame.time);
     }
+  }, [currentFrame]);
+
+  const frameRelativeLabel = useMemo(() => {
+    if (!currentFrame) return '';
+    const now = Date.now();
+    const then = currentFrame.time * 1000;
+    const diffMin = Math.round((now - then) / 60000);
+    if (!Number.isFinite(diffMin)) return '';
+    if (diffMin <= 0) return 'now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const h = Math.round(diffMin / 60);
+    return `${h}h ago`;
   }, [currentFrame]);
 
   async function jumpToAirport() {
@@ -153,7 +184,7 @@ export default function WeatherRadarMap() {
     try {
       const res = await fetch(`/api/airports/${encodeURIComponent(icao)}`);
       if (!res.ok) {
-        setNotice('Airport not found. Try a valid ICAO (e.g., KJFK).');
+        setNotice('Airport not found. Try ICAO (KDTW) or IATA (DTW).');
         return;
       }
       const data = await res.json();
@@ -196,121 +227,221 @@ export default function WeatherRadarMap() {
         const lon = pos.coords.longitude;
         map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
       },
-      () => setNotice('Location permission denied.'),
+      () => setNotice('Location permission denied by browser settings.'),
       { enableHighAccuracy: false, timeout: 6000 }
     );
   }
 
+  function zoomIn() {
+    mapRef.current?.zoomIn();
+  }
+
+  function zoomOut() {
+    mapRef.current?.zoomOut();
+  }
+
   return (
-    <div className="relative h-full">
+    <div className="relative h-full bg-slate-950">
       {/* Map Container */}
       <div id="weather-radar-map" className="h-full w-full" />
 
-      {/* Controls Overlay */}
-      <div className="absolute top-4 left-4 z-[1000] bg-slate-800/90 backdrop-blur rounded-lg p-4 shadow-lg w-[320px]">
-        <div className="flex items-center justify-between">
-          <h3 className="text-white font-semibold">Radar</h3>
-          <span className="text-xs text-slate-400">{loadingFrames ? 'Loading…' : frames.length ? `Frame ${frameIndex + 1}/${frames.length}` : 'No data'}</span>
-        </div>
+      {/* Top glass bar (Windy-ish) */}
+      <div className="absolute top-0 left-0 right-0 z-[1000] px-4 pt-4 pointer-events-none">
+        <div className="mx-auto max-w-6xl">
+          <div className="pointer-events-auto flex items-center gap-3 rounded-2xl border border-slate-200/10 bg-slate-900/60 backdrop-blur-xl shadow-xl px-3 py-3">
+            <div className="flex items-center gap-2">
+              <div className="h-2 w-2 rounded-full bg-emerald-400" />
+              <div className="text-sm font-semibold text-white">Radar</div>
+              <div className="text-xs text-slate-300">{frameLabel}{frameRelativeLabel ? ` • ${frameRelativeLabel}` : ''}</div>
+            </div>
 
-        <div className="mt-3 flex items-center gap-2">
-          <button
-            onClick={() => setIsPlaying((p) => !p)}
-            disabled={frames.length < 2}
-            className={`px-3 py-2 rounded text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
-              isPlaying ? 'bg-red-500 hover:bg-red-400 text-white' : 'bg-emerald-500 hover:bg-emerald-400 text-white'
-            }`}
-          >
-            {isPlaying ? 'Pause' : 'Play'}
-          </button>
-          <button
-            onClick={() => setFrameIndex((i) => (frames.length ? (i - 1 + frames.length) % frames.length : i))}
-            disabled={!frames.length}
-            className="px-3 py-2 rounded text-sm bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:opacity-50"
-          >
-            Prev
-          </button>
-          <button
-            onClick={() => setFrameIndex((i) => (frames.length ? (i + 1) % frames.length : i))}
-            disabled={!frames.length}
-            className="px-3 py-2 rounded text-sm bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:opacity-50"
-          >
-            Next
-          </button>
-          <div className="ml-auto text-xs text-slate-400">{frameLabel}</div>
-        </div>
+            <div className="flex-1" />
 
-        <div className="mt-3">
-          <input
-            type="range"
-            min={0}
-            max={Math.max(0, frames.length - 1)}
-            value={Math.min(frameIndex, Math.max(0, frames.length - 1))}
-            onChange={(e) => setFrameIndex(Number(e.target.value))}
-            disabled={!frames.length}
-            className="w-full"
-          />
-        </div>
-
-        <div className="mt-4 pt-4 border-t border-slate-700">
-          <div className="text-xs text-slate-400 mb-2">Jump to</div>
-          <div className="flex gap-2">
-            <input
-              value={jumpIcao}
-              onChange={(e) => setJumpIcao(e.target.value)}
-              placeholder="ICAO (e.g., KJFK)"
-              className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white"
-            />
-            <button
-              onClick={jumpToAirport}
-              className="px-3 py-2 rounded text-sm bg-slate-700 text-slate-200 hover:bg-slate-600"
-            >
-              Go
-            </button>
+            <div className="hidden sm:flex items-center gap-2">
+              <button
+                onClick={() => setBasemap((b) => (b === 'light' ? 'dark' : 'light'))}
+                className="text-xs px-3 py-2 rounded-full bg-slate-800/70 hover:bg-slate-700/70 text-slate-200 border border-slate-700"
+              >
+                Base: {basemap === 'light' ? 'Light' : 'Dark'}
+              </button>
+              <button
+                onClick={() => setShowLegend((v) => !v)}
+                className="text-xs px-3 py-2 rounded-full bg-slate-800/70 hover:bg-slate-700/70 text-slate-200 border border-slate-700"
+              >
+                Legend
+              </button>
+            </div>
           </div>
+        </div>
+      </div>
+
+      {/* Left tool rail */}
+      <div className="absolute top-24 left-4 z-[1000] pointer-events-auto">
+        <div className="flex flex-col gap-2 rounded-2xl border border-slate-200/10 bg-slate-900/60 backdrop-blur-xl shadow-xl p-2">
           <button
             onClick={jumpToMyLocation}
-            className="mt-2 w-full px-3 py-2 rounded text-sm bg-slate-700 text-slate-200 hover:bg-slate-600"
+            className="h-10 w-10 rounded-xl bg-slate-800/70 hover:bg-slate-700/70 border border-slate-700 text-slate-200 text-sm"
+            title="Use my location"
           >
-            Use My Location
+            ⦿
           </button>
-          {notice && <div className="mt-2 text-xs text-amber-300">{notice}</div>}
+          <button
+            onClick={() => setShowLegend((v) => !v)}
+            className="h-10 w-10 rounded-xl bg-slate-800/70 hover:bg-slate-700/70 border border-slate-700 text-slate-200 text-sm"
+            title="Legend"
+          >
+            ≋
+          </button>
         </div>
       </div>
 
-      {/* Legend */}
-      <div className="absolute bottom-4 right-4 z-[1000] bg-slate-800/90 backdrop-blur rounded-lg p-4 shadow-lg">
-        <h4 className="text-white text-sm font-semibold mb-2">Precipitation Intensity</h4>
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-blue-300" />
-            <span className="text-xs text-slate-300">Light</span>
+      {/* Search box */}
+      <div className="absolute top-24 left-1/2 -translate-x-1/2 z-[1000] w-[min(520px,calc(100%-2rem))] pointer-events-auto">
+        <div className="rounded-2xl border border-slate-200/10 bg-slate-900/60 backdrop-blur-xl shadow-xl px-3 py-2 flex items-center gap-2">
+          <div className="text-slate-300 text-sm">Go to</div>
+          <input
+            value={jumpIcao}
+            onChange={(e) => setJumpIcao(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') jumpToAirport();
+            }}
+            placeholder="Airport code (DTW / KDTW)"
+            className="flex-1 bg-transparent outline-none text-white text-sm placeholder:text-slate-500"
+          />
+          <button
+            onClick={jumpToAirport}
+            className="px-3 py-2 rounded-xl bg-emerald-500/90 hover:bg-emerald-400 text-white text-sm"
+          >
+            Go
+          </button>
+        </div>
+        {notice && (
+          <div className="mt-2 text-xs text-amber-200 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2">
+            {notice}
           </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-blue-500" />
-            <span className="text-xs text-slate-300">Moderate</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-yellow-500" />
-            <span className="text-xs text-slate-300">Heavy</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 rounded bg-red-500" />
-            <span className="text-xs text-slate-300">Severe</span>
+        )}
+      </div>
+
+      {/* Bottom timeline */}
+      <div className="absolute bottom-4 left-4 right-4 z-[1000] pointer-events-none">
+        <div className="mx-auto max-w-6xl pointer-events-auto">
+          <div className="rounded-2xl border border-slate-200/10 bg-slate-900/60 backdrop-blur-xl shadow-xl px-4 py-3">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setIsPlaying((p) => !p)}
+                disabled={frames.length < 2}
+                className={`px-3 py-2 rounded-xl text-sm font-medium border border-slate-700 disabled:opacity-50 disabled:cursor-not-allowed ${
+                  isPlaying ? 'bg-red-500/80 hover:bg-red-400 text-white' : 'bg-slate-800/70 hover:bg-slate-700/70 text-white'
+                }`}
+              >
+                {isPlaying ? 'Pause' : 'Play'}
+              </button>
+
+              <div className="flex-1">
+                <input
+                  type="range"
+                  min={0}
+                  max={Math.max(0, frames.length - 1)}
+                  value={Math.min(frameIndex, Math.max(0, frames.length - 1))}
+                  onChange={(e) => {
+                    setIsPlaying(false);
+                    setFrameIndex(Number(e.target.value));
+                  }}
+                  disabled={!frames.length}
+                  className="w-full"
+                />
+                <div className="mt-1 flex items-center justify-between text-[11px] text-slate-300">
+                  <span>{loadingFrames ? 'Loading frames…' : frames.length ? 'Past radar' : 'No data'}</span>
+                  <span>{frameLabel}{frameRelativeLabel ? ` • ${frameRelativeLabel}` : ''}</span>
+                </div>
+              </div>
+
+              <div className="hidden md:flex items-center gap-2">
+                <div className="text-[11px] text-slate-300">Opacity</div>
+                <input
+                  type="range"
+                  min={0.2}
+                  max={0.95}
+                  step={0.01}
+                  value={radarOpacity}
+                  onChange={(e) => setRadarOpacity(Number(e.target.value))}
+                />
+              </div>
+
+              <div className="hidden lg:flex items-center gap-2">
+                <div className="text-[11px] text-slate-300">Speed</div>
+                <select
+                  value={speedMs}
+                  onChange={(e) => setSpeedMs(Number(e.target.value))}
+                  className="bg-slate-800/70 border border-slate-700 rounded-xl px-2 py-2 text-xs text-white"
+                >
+                  <option value={300}>Fast</option>
+                  <option value={450}>Normal</option>
+                  <option value={700}>Slow</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Info Panel */}
-      <div className="absolute top-4 right-4 z-[1000] bg-slate-800/90 backdrop-blur rounded-lg p-4 shadow-lg max-w-xs">
-        <h4 className="text-white text-sm font-semibold mb-2">About Weather Radar</h4>
-        <p className="text-xs text-slate-400 mb-2">
-          Real-time precipitation radar. Use the timeline to scrub through recent frames.
-        </p>
-        <p className="text-xs text-slate-500">
-          Data provided by RainViewer API. Updates every 10 minutes.
-        </p>
+      {/* Zoom buttons */}
+      <div className="absolute bottom-28 right-4 z-[1000] pointer-events-auto">
+        <div className="flex flex-col gap-2 rounded-2xl border border-slate-200/10 bg-slate-900/60 backdrop-blur-xl shadow-xl p-2">
+          <button
+            onClick={zoomIn}
+            className="h-10 w-10 rounded-xl bg-slate-800/70 hover:bg-slate-700/70 border border-slate-700 text-slate-200 text-lg"
+            title="Zoom in"
+          >
+            +
+          </button>
+          <button
+            onClick={zoomOut}
+            className="h-10 w-10 rounded-xl bg-slate-800/70 hover:bg-slate-700/70 border border-slate-700 text-slate-200 text-lg"
+            title="Zoom out"
+          >
+            −
+          </button>
+        </div>
       </div>
+
+      {/* Legend (toggle) */}
+      {showLegend && (
+        <div className="absolute top-24 right-4 z-[1000] pointer-events-auto w-[260px]">
+          <div className="rounded-2xl border border-slate-200/10 bg-slate-900/60 backdrop-blur-xl shadow-xl p-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-white">Intensity</div>
+              <button
+                onClick={() => setShowLegend(false)}
+                className="text-xs text-slate-300 hover:text-white"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded bg-blue-300" />
+                <span className="text-xs text-slate-200">Light</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded bg-blue-500" />
+                <span className="text-xs text-slate-200">Moderate</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded bg-yellow-500" />
+                <span className="text-xs text-slate-200">Heavy</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 rounded bg-red-500" />
+                <span className="text-xs text-slate-200">Severe</span>
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] text-slate-400">
+              Radar tiles: RainViewer.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Empty state overlay */}
       {!loadingFrames && frames.length === 0 && (
