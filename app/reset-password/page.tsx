@@ -48,9 +48,9 @@ function ResetPasswordForm() {
       const data = await res.json();
 
       if (res.ok) {
-        setMessage({ type: 'success', text: 'Password reset successful! Redirecting to dashboard...' });
+        setMessage({ type: 'success', text: 'Password reset successful! Redirecting to login...' });
         setTimeout(() => {
-          router.push('/dashboard');
+          router.push('/login?reset=1');
         }, 2000);
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to reset password' });
@@ -68,6 +68,13 @@ function ResetPasswordForm() {
       <p className="text-slate-400 mb-6">
         Enter your new password below.
       </p>
+
+      {email && (
+        <div className="mb-5 rounded-xl border border-slate-800 bg-slate-950/40 px-4 py-3">
+          <div className="text-xs text-slate-500">Resetting password for</div>
+          <div className="text-sm text-slate-200 break-all">{email}</div>
+        </div>
+      )}
 
       <form 
         onSubmit={handleSubmit} 
@@ -141,23 +148,26 @@ function ResetPasswordForm() {
 
         <button
           type="submit"
-          disabled={isLoading || !token}
+          disabled={isLoading || !token || !email}
           className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-emerald-950 hover:bg-emerald-400 disabled:opacity-50 transition-colors"
           aria-label={isLoading ? "Resetting password" : "Reset password"}
           aria-busy={isLoading}
-          aria-disabled={!token}
+          aria-disabled={!token || !email}
         >
           {isLoading ? 'Resetting...' : 'Reset Password'}
         </button>
       </form>
 
       <div className="mt-6 text-center">
-        <Link 
-          href="/login" 
-          className="text-sm text-slate-400 hover:text-slate-300"
-        >
-          ← Back to Login
-        </Link>
+        <div className="flex items-center justify-center gap-4 text-sm">
+          <Link href="/forgot-password" className="text-slate-400 hover:text-slate-300">
+            Request a new reset link
+          </Link>
+          <span className="text-slate-700">•</span>
+          <Link href="/login" className="text-slate-400 hover:text-slate-300">
+            Back to Login
+          </Link>
+        </div>
       </div>
     </div>
   );
@@ -173,8 +183,19 @@ function LoadingState() {
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<LoadingState />}>
-      <ResetPasswordForm />
-    </Suspense>
+    <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-800 flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold text-white">
+            <span>✈️</span>
+            <span>AviationHub</span>
+          </Link>
+        </div>
+
+        <Suspense fallback={<LoadingState />}>
+          <ResetPasswordForm />
+        </Suspense>
+      </div>
+    </div>
   );
 }
