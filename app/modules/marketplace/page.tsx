@@ -1,8 +1,11 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { useSession, signIn } from 'next-auth/react';
 import dynamic from 'next/dynamic';
+import { checkMessageSafety } from '@/lib/message-safety';
+import { ensureIdentityKeypair, publishMyPublicKey, encryptForUser } from '@/lib/e2ee';
 
 const MarketplaceMap = dynamic(() => import('./MarketplaceMap'), { ssr: false });
 
@@ -140,9 +143,107 @@ export default function MarketplacePage() {
   const [airportLookup, setAirportLookup] = useState<AirportLookup | null>(null);
   const [airportLookupState, setAirportLookupState] = useState<'idle' | 'loading' | 'error'>('idle');
 
+  const [friends, setFriends] = useState<{ id: string }[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<any[]>([]);
+  const [friendDraftFor, setFriendDraftFor] = useState<string | null>(null);
+  const [friendDraftMessage, setFriendDraftMessage] = useState('');
+  const [connectNotice, setConnectNotice] = useState<string | null>(null);
+
   useEffect(() => {
     loadListings();
   }, []);
+
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    ensureIdentityKeypair().catch(() => {});
+    publishMyPublicKey().catch(() => {});
+    loadFriendState();
+  }, [session]);
+
+  function countSentences(text: string) {
+    const s = text
+      .trim()
+      .split(/[.!?]+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    return s.length;
+  }
+
+  async function loadFriendState() {
+    try {
+      const [friendsRes, requestsRes] = await Promise.all([fetch('/api/friends'), fetch('/api/friends/requests')]);
+      const friendsData = await friendsRes.json();
+      const requestsData = await requestsRes.json();
+      setFriends(friendsData.friends || []);
+      setOutgoingRequests(requestsData.outgoing || []);
+    } catch (error) {
+      console.error('Failed to load friend status', error);
+    }
+  }
+
+  async function sendFriendRequest(userId: string, initialMessage?: string) {
+    if (!session) {
+      signIn();
+      return;
+    }
+    try {
+      let initialMessageEnvelope: string | null = null;
+      const message = (initialMessage || '').trim();
+      if (message) {
+        const safety = checkMessageSafety(message);
+        if (!safety.ok) {
+          setConnectNotice(safety.error);
+          return;
+        }
+        if (countSentences(message) > 3) {
+          setConnectNotice('Message too long (max 3 sentences).');
+          return;
+        }
+
+        const encrypted = await encryptForUser(userId, message);
+        if (encrypted.ok) initialMessageEnvelope = encrypted.envelopeString;
+      }
+
+      const res = await fetch('/api/friends/requests', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ recipientId: userId, initialMessageEnvelope }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send request');
+      }
+      setConnectNotice('Friend request sent');
+      setFriendDraftFor(null);
+      setFriendDraftMessage('');
+      await loadFriendState();
+    } catch (error) {
+      console.error(error);
+      setConnectNotice(error instanceof Error ? error.message : 'Failed to send request');
+    }
+  }
+
+  async function openChatWithUser(userId: string) {
+    if (!session) {
+      signIn();
+      return;
+    }
+    try {
+      const res = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to start chat');
+      }
+      window.dispatchEvent(new CustomEvent('open-chat', { detail: { conversationId: data.conversationId } }));
+    } catch (error) {
+      console.error(error);
+      setConnectNotice(error instanceof Error ? error.message : 'Failed to start chat');
+    }
+  }
 
   const filteredListings = useMemo(() => {
     return listings.filter((listing) => {
@@ -337,6 +438,11 @@ export default function MarketplacePage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        {connectNotice && (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm px-4 py-2 rounded-lg">
+            {connectNotice}
+          </div>
+        )}
         {showForm && (
           <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
@@ -552,6 +658,94 @@ export default function MarketplacePage() {
                   <p className="text-sm text-slate-300 mt-3 line-clamp-3">
                     {listing.description || 'No description provided.'}
                   </p>
+                  <div className="mt-3 flex items-center justify-between gap-3">
+                    <div className="text-xs text-slate-500">
+                      Posted by{' '}
+                      <span className="text-slate-300">
+                        {listing.user?.id ? (
+                          <Link
+                            href={`/pilots/${encodeURIComponent(listing.user?.username || listing.user.id)}`}
+                            className="hover:underline"
+                          >
+                            {listing.user?.name || listing.user?.username || 'Pilot'}
+                          </Link>
+                        ) : (
+                          listing.user?.name || listing.user?.username || 'Pilot'
+                        )}
+                      </span>
+                    </div>
+
+                    {listing.user?.id && listing.user.id !== session?.user?.id && (
+                      <div className="flex items-center gap-2">
+                        {friends.some((f) => f.id === listing.user.id) ? (
+                          <button
+                            onClick={() => openChatWithUser(listing.user.id)}
+                            className="px-3 py-1 rounded-full text-xs bg-emerald-500/20 border border-emerald-400 text-emerald-200"
+                          >
+                            Chat
+                          </button>
+                        ) : outgoingRequests.some((req) => req.recipient?.id === listing.user.id) ? (
+                          <span className="px-3 py-1 rounded-full text-xs bg-slate-700 text-slate-300">
+                            Request Sent
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (!session) {
+                                signIn();
+                                return;
+                              }
+                              setFriendDraftFor(listing.user.id);
+                              setFriendDraftMessage('');
+                            }}
+                            className="px-3 py-1 rounded-full text-xs bg-slate-700 text-slate-200"
+                          >
+                            Add Friend
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {friendDraftFor && listing.user?.id === friendDraftFor && (
+                    <div className="w-full mt-3 bg-slate-900 border border-slate-700 rounded-xl p-3">
+                      <div className="text-xs text-slate-400 mb-2">
+                        Optional note (max 3 sentences). Sent encrypted.
+                      </div>
+                      <textarea
+                        value={friendDraftMessage}
+                        onChange={(e) => setFriendDraftMessage(e.target.value)}
+                        rows={3}
+                        placeholder="Hey — interested in connecting about this listing?"
+                        className="w-full bg-slate-950/40 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white"
+                      />
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <div
+                          className={`text-xs ${countSentences(friendDraftMessage) > 3 ? 'text-amber-300' : 'text-slate-500'}`}
+                        >
+                          {countSentences(friendDraftMessage)}/3 sentences
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => {
+                              setFriendDraftFor(null);
+                              setFriendDraftMessage('');
+                            }}
+                            className="px-3 py-1 rounded-full text-xs bg-slate-800 text-slate-300"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            disabled={countSentences(friendDraftMessage) > 3}
+                            onClick={() => sendFriendRequest(listing.user.id, friendDraftMessage)}
+                            className="px-3 py-1 rounded-full text-xs bg-emerald-500/20 border border-emerald-400 text-emerald-200 disabled:opacity-50"
+                          >
+                            Send
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                   {listing.contactValue && (
                     <div className="mt-3 text-xs text-slate-400">
                       Contact via {listing.contactMethod}: <span className="text-white">{listing.contactValue}</span>
