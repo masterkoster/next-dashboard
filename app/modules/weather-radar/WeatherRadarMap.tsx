@@ -25,12 +25,14 @@ export default function WeatherRadarMap() {
   const animationRef = useRef<number | null>(null);
 
   const [radarHost, setRadarHost] = useState<string>('https://tilecache.rainviewer.com');
-  const [frames, setFrames] = useState<Array<{ time: number; path: string }>>([]);
+  const [frames, setFrames] = useState<Array<{ time: number }>>([]);
   const [frameIndex, setFrameIndex] = useState(0);
 
   const [jumpIcao, setJumpIcao] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const [loadingFrames, setLoadingFrames] = useState(true);
+  const [useProxyTiles, setUseProxyTiles] = useState(false);
+  const tileErrorCountRef = useRef(0);
   const [radarOpacity, setRadarOpacity] = useState(0.72);
   const [basemap, setBasemap] = useState<'light' | 'dark'>('light');
   const [showLegend, setShowLegend] = useState(false);
@@ -41,16 +43,16 @@ export default function WeatherRadarMap() {
     const fetchRadarData = async () => {
       try {
         setLoadingFrames(true);
-        const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
+        // Use same-origin proxy to avoid client blockers.
+        const res = await fetch('/api/radar/frames');
         const data = await res.json();
-        const host = (data?.host || 'https://tilecache.rainviewer.com').toString();
-        setRadarHost(host);
+        if (!res.ok) {
+          throw new Error(data?.error || 'Failed to load frames');
+        }
 
-        const radarPast = Array.isArray(data?.radar?.past) ? data.radar.past : [];
-        const nowcast = Array.isArray(data?.radar?.nowcast) ? data.radar.nowcast : [];
-        const all = [...radarPast, ...nowcast]
-          .filter((t: any) => typeof t?.time === 'number' && typeof t?.path === 'string')
-          .map((t: any) => ({ time: t.time, path: t.path as string }));
+        const all = Array.isArray(data?.frames)
+          ? data.frames.filter((t: any) => typeof t?.time === 'number').map((t: any) => ({ time: t.time as number }))
+          : [];
 
         setFrames(all);
         setFrameIndex(Math.max(0, all.length - 1));
@@ -101,8 +103,12 @@ export default function WeatherRadarMap() {
   const currentFrame = frames[frameIndex] || null;
   const currentTileUrl = useMemo(() => {
     if (!currentFrame) return null;
-    return `${radarHost}${currentFrame.path}/{z}/{x}/{y}/2/1_1.png`;
-  }, [currentFrame, radarHost]);
+    const time = currentFrame.time;
+    if (useProxyTiles) {
+      return `/api/radar/tile?time=${encodeURIComponent(String(time))}&z={z}&x={x}&y={y}`;
+    }
+    return `${radarHost}/v2/radar/${time}/{z}/{x}/{y}/2/1_1.png`;
+  }, [currentFrame, radarHost, useProxyTiles]);
 
   // Ensure radar layer exists when frames arrive; update when frame changes.
   useEffect(() => {
@@ -117,11 +123,19 @@ export default function WeatherRadarMap() {
         maxZoom: 12,
         zIndex: 500,
       }).addTo(map);
+
+      radarLayerRef.current.on('tileerror', () => {
+        tileErrorCountRef.current += 1;
+        if (!useProxyTiles && tileErrorCountRef.current >= 3) {
+          setUseProxyTiles(true);
+          setNotice('Direct radar tiles blocked. Switched to proxy tiles (may be slower).');
+        }
+      });
       return;
     }
 
     radarLayerRef.current.setUrl(currentTileUrl);
-  }, [currentTileUrl, radarOpacity]);
+  }, [currentTileUrl, radarOpacity, useProxyTiles]);
 
   useEffect(() => {
     if (!radarLayerRef.current) return;
@@ -173,6 +187,11 @@ export default function WeatherRadarMap() {
     const h = Math.round(diffMin / 60);
     return `${h}h ago`;
   }, [currentFrame]);
+
+  useEffect(() => {
+    // Reset tile error counter when switching modes.
+    tileErrorCountRef.current = 0;
+  }, [useProxyTiles]);
 
   async function jumpToAirport() {
     const map = mapRef.current;
