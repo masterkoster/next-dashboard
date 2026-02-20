@@ -13,9 +13,9 @@ const nextConfig: NextConfig = {
       "frame-src 'self' blob: data:",
       "child-src 'self' blob: data:",
       // Next.js needs inline scripts; dev needs eval. Tighten later with nonces.
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com",
       // Allow API calls and realtime.
-      "connect-src 'self' https: wss:",
+      "connect-src 'self' https: wss: https://www.google-analytics.com",
     ].join('; ');
 
     return [
@@ -25,7 +25,7 @@ const nextConfig: NextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'X-Frame-Options', value: 'DENY' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-          { key: 'Permissions-Policy', value: 'geolocation=(), microphone=(), camera=()' },
+          { key: 'Permissions-Policy', value: 'geolocation=(self), microphone=(), camera=()' },
           { key: 'Content-Security-Policy', value: csp },
         ],
       },

@@ -4,18 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-// Fix Leaflet default icons
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+// Fix Leaflet default icons (works in production builds)
+const markerIconUrl = new URL('leaflet/dist/images/marker-icon.png', import.meta.url).toString();
+const markerIconRetinaUrl = new URL('leaflet/dist/images/marker-icon-2x.png', import.meta.url).toString();
+const markerShadowUrl = new URL('leaflet/dist/images/marker-shadow.png', import.meta.url).toString();
 
-let DefaultIcon = L.icon({
-  iconUrl: icon.src,
-  shadowUrl: iconShadow.src,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIconUrl,
+  iconRetinaUrl: markerIconRetinaUrl,
+  shadowUrl: markerShadowUrl,
 });
-
-L.Marker.prototype.options.icon = DefaultIcon;
 
 export default function WeatherRadarMap() {
   const mapRef = useRef<L.Map | null>(null);
@@ -168,8 +166,8 @@ export default function WeatherRadarMap() {
 
       map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
 
-      if (markerRef.current) {
-        markerRef.current.remove();
+      if (markerRef.current && map.hasLayer(markerRef.current)) {
+        map.removeLayer(markerRef.current);
         markerRef.current = null;
       }
 
