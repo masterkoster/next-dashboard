@@ -19,11 +19,15 @@ export default function WeatherRadarMap() {
   const mapRef = useRef<L.Map | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const baseLayerRef = useRef<L.TileLayer | null>(null);
-  const radarLayerRef = useRef<L.TileLayer | null>(null);
+  const radarLayerARef = useRef<L.TileLayer | null>(null);
+  const radarLayerBRef = useRef<L.TileLayer | null>(null);
+  const activeRadarLayerRef = useRef<'A' | 'B'>('A');
+  const transitionRafRef = useRef<number | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const animationRef = useRef<number | null>(null);
+  const frameIndexRef = useRef(0);
+  const playTokenRef = useRef(0);
 
   const frames = useMemo(() => {
     // IEM provides current + 5-min increments back to 55 minutes.
@@ -64,9 +68,10 @@ export default function WeatherRadarMap() {
     }).addTo(map);
 
     return () => {
-      if (animationRef.current) {
-        window.clearInterval(animationRef.current);
-        animationRef.current = null;
+      playTokenRef.current += 1;
+      if (transitionRafRef.current) {
+        cancelAnimationFrame(transitionRafRef.current);
+        transitionRafRef.current = null;
       }
       setMapReady(false);
       map.remove();
@@ -92,55 +97,148 @@ export default function WeatherRadarMap() {
     return `https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/${layer}-900913/{z}/{x}/{y}.png`;
   }, [currentFrame]);
 
-  // Ensure radar layer exists when frames arrive; update when frame changes.
+  useEffect(() => {
+    frameIndexRef.current = frameIndex;
+  }, [frameIndex]);
+
+  function tileUrlForMinutesAgo(minutesAgo: number) {
+    const layer = minutesAgo === 0 ? 'nexrad-n0q' : `nexrad-n0q-m${String(minutesAgo).padStart(2, '0')}m`;
+    return `https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/${layer}-900913/{z}/{x}/{y}.png`;
+  }
+
+  // Ensure radar layers exist once the map is ready.
   useEffect(() => {
     const map = mapRef.current;
     if (!mapReady || !map) return;
     if (!currentTileUrl) return;
 
-    if (!radarLayerRef.current) {
-      radarLayerRef.current = L.tileLayer(currentTileUrl, {
+    if (!radarLayerARef.current) {
+      radarLayerARef.current = L.tileLayer(currentTileUrl, {
         attribution: 'Radar © Iowa Environmental Mesonet',
         opacity: radarOpacity,
         maxZoom: 12,
         zIndex: 500,
         subdomains: ['1', '2', '3'],
       }).addTo(map);
-      return;
     }
 
-    radarLayerRef.current.setUrl(currentTileUrl);
+    if (!radarLayerBRef.current) {
+      radarLayerBRef.current = L.tileLayer(currentTileUrl, {
+        attribution: 'Radar © Iowa Environmental Mesonet',
+        opacity: 0,
+        maxZoom: 12,
+        zIndex: 501,
+        subdomains: ['1', '2', '3'],
+      }).addTo(map);
+    }
   }, [currentTileUrl, radarOpacity, mapReady]);
 
+  // Keep opacity in sync.
   useEffect(() => {
-    if (!radarLayerRef.current) return;
-    radarLayerRef.current.setOpacity(radarOpacity);
+    if (activeRadarLayerRef.current === 'A') {
+      radarLayerARef.current?.setOpacity(radarOpacity);
+      radarLayerBRef.current?.setOpacity(0);
+    } else {
+      radarLayerBRef.current?.setOpacity(radarOpacity);
+      radarLayerARef.current?.setOpacity(0);
+    }
   }, [radarOpacity]);
 
-  // Animation.
+  // When scrubbing (not playing), snap the active layer to the selected frame.
   useEffect(() => {
-    if (animationRef.current) {
-      window.clearInterval(animationRef.current);
-      animationRef.current = null;
-    }
+    const map = mapRef.current;
+    if (!mapReady || !map) return;
+    if (isPlaying) return;
+    if (!currentFrame) return;
 
+    const active = activeRadarLayerRef.current;
+    const activeLayer = active === 'A' ? radarLayerARef.current : radarLayerBRef.current;
+    const inactiveLayer = active === 'A' ? radarLayerBRef.current : radarLayerARef.current;
+    if (!activeLayer || !inactiveLayer) return;
+
+    activeLayer.setUrl(tileUrlForMinutesAgo(currentFrame.minutesAgo));
+    activeLayer.setOpacity(radarOpacity);
+    inactiveLayer.setOpacity(0);
+  }, [currentFrame, isPlaying, mapReady, radarOpacity]);
+
+  // Playback loop with smooth cross-fade.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!mapReady || !map) return;
     if (!isPlaying) return;
     if (frames.length < 2) return;
 
-    animationRef.current = window.setInterval(() => {
-      setFrameIndex((prev) => {
-        const next = prev + 1;
-        return next >= frames.length ? 0 : next;
-      });
-    }, Math.max(200, Math.min(2000, speedMs)));
+    const token = ++playTokenRef.current;
 
-    return () => {
-      if (animationRef.current) {
-        window.clearInterval(animationRef.current);
-        animationRef.current = null;
+    const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+    const fade = (activeLayer: L.TileLayer, inactiveLayer: L.TileLayer, duration: number) => {
+      return new Promise<void>((resolve) => {
+        const start = performance.now();
+        const tick = (now: number) => {
+          if (playTokenRef.current !== token) {
+            resolve();
+            return;
+          }
+          const t = Math.min(1, (now - start) / duration);
+          const eased = t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+          activeLayer.setOpacity((1 - eased) * radarOpacity);
+          inactiveLayer.setOpacity(eased * radarOpacity);
+
+          if (t < 1) {
+            transitionRafRef.current = requestAnimationFrame(tick);
+            return;
+          }
+
+          transitionRafRef.current = null;
+          resolve();
+        };
+
+        transitionRafRef.current = requestAnimationFrame(tick);
+      });
+    };
+
+    const run = async () => {
+      while (playTokenRef.current === token) {
+        const curIdx = frameIndexRef.current;
+        const nextIdx = (curIdx + 1) % frames.length;
+        const cur = frames[curIdx];
+        const next = frames[nextIdx];
+        if (!cur || !next) return;
+
+        const activeKey = activeRadarLayerRef.current;
+        const activeLayer = activeKey === 'A' ? radarLayerARef.current : radarLayerBRef.current;
+        const inactiveLayer = activeKey === 'A' ? radarLayerBRef.current : radarLayerARef.current;
+        if (!activeLayer || !inactiveLayer) return;
+
+        activeLayer.setUrl(tileUrlForMinutesAgo(cur.minutesAgo));
+        inactiveLayer.setUrl(tileUrlForMinutesAgo(next.minutesAgo));
+        activeLayer.setOpacity(radarOpacity);
+        inactiveLayer.setOpacity(0);
+
+        const fadeDuration = Math.max(220, Math.min(900, Math.round(speedMs * 0.7)));
+        await fade(activeLayer, inactiveLayer, fadeDuration);
+
+        if (playTokenRef.current !== token) return;
+
+        activeRadarLayerRef.current = activeKey === 'A' ? 'B' : 'A';
+        setFrameIndex(nextIdx);
+
+        const rest = Math.max(0, Math.round(speedMs - fadeDuration));
+        if (rest) await sleep(rest);
       }
     };
-  }, [isPlaying, frames.length, speedMs]);
+
+    run();
+
+    return () => {
+      playTokenRef.current += 1;
+      if (transitionRafRef.current) {
+        cancelAnimationFrame(transitionRafRef.current);
+        transitionRafRef.current = null;
+      }
+    };
+  }, [isPlaying, mapReady, radarOpacity, speedMs, frames]);
 
   const frameLabel = useMemo(() => {
     if (!currentFrame) return '—';
