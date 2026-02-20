@@ -301,9 +301,16 @@ export default function MarketplacePage() {
               >
                 <Filter className="h-4 w-4" />
               </Button>
-              <Button className="h-12 px-6">
-                Search
-              </Button>
+              <Link href="/modules/marketplace/create" className="hidden sm:block">
+                <Button variant="outline" className="h-12 px-4">
+                  List Your Aircraft
+                </Button>
+              </Link>
+              <Link href="/modules/marketplace/create">
+                <Button className="h-12 px-6">
+                  Search
+                </Button>
+              </Link>
             </div>
           </div>
 
