@@ -17,6 +17,7 @@ L.Icon.Default.mergeOptions({
 
 export default function WeatherRadarMap() {
   const mapRef = useRef<L.Map | null>(null);
+  const [mapReady, setMapReady] = useState(false);
   const baseLayerRef = useRef<L.TileLayer | null>(null);
   const radarLayerRef = useRef<L.TileLayer | null>(null);
   const markerRef = useRef<L.Marker | null>(null);
@@ -75,6 +76,11 @@ export default function WeatherRadarMap() {
     });
 
     mapRef.current = map;
+    setMapReady(true);
+
+    L.control
+      .zoom({ position: 'bottomright' })
+      .addTo(map);
 
     baseLayerRef.current = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
       attribution: '© OpenStreetMap, © CARTO',
@@ -86,6 +92,7 @@ export default function WeatherRadarMap() {
         window.clearInterval(animationRef.current);
         animationRef.current = null;
       }
+      setMapReady(false);
       map.remove();
     };
   }, []);
@@ -113,7 +120,7 @@ export default function WeatherRadarMap() {
   // Ensure radar layer exists when frames arrive; update when frame changes.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    if (!mapReady || !map) return;
     if (!currentTileUrl) return;
 
     if (!radarLayerRef.current) {
@@ -135,7 +142,7 @@ export default function WeatherRadarMap() {
     }
 
     radarLayerRef.current.setUrl(currentTileUrl);
-  }, [currentTileUrl, radarOpacity, useProxyTiles]);
+  }, [currentTileUrl, radarOpacity, useProxyTiles, mapReady]);
 
   useEffect(() => {
     if (!radarLayerRef.current) return;
@@ -195,7 +202,7 @@ export default function WeatherRadarMap() {
 
   async function jumpToAirport() {
     const map = mapRef.current;
-    if (!map) return;
+    if (!mapReady || !map) return;
     const icao = jumpIcao.trim().toUpperCase();
     if (!icao) return;
 
@@ -232,7 +239,7 @@ export default function WeatherRadarMap() {
 
   function jumpToMyLocation() {
     const map = mapRef.current;
-    if (!map) return;
+    if (!mapReady || !map) return;
     setNotice(null);
 
     if (!navigator.geolocation) {
