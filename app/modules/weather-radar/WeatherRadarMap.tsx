@@ -31,7 +31,7 @@ export default function WeatherRadarMap() {
   const [jumpIcao, setJumpIcao] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
   const [loadingFrames, setLoadingFrames] = useState(true);
-  const [useProxyTiles, setUseProxyTiles] = useState(false);
+  const [useProxyTiles, setUseProxyTiles] = useState(process.env.NODE_ENV === 'production');
   const tileErrorCountRef = useRef(0);
   const [radarOpacity, setRadarOpacity] = useState(0.72);
   const [basemap, setBasemap] = useState<'light' | 'dark'>('light');
@@ -128,7 +128,7 @@ export default function WeatherRadarMap() {
         tileErrorCountRef.current += 1;
         if (!useProxyTiles && tileErrorCountRef.current >= 3) {
           setUseProxyTiles(true);
-          setNotice('Direct radar tiles blocked. Switched to proxy tiles (may be slower).');
+          // Avoid noisy warnings; proxy mode is expected under some blockers.
         }
       });
       return;

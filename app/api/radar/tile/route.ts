@@ -21,8 +21,8 @@ export async function GET(request: Request) {
 
     const upstreamUrl = `https://tilecache.rainviewer.com/v2/radar/${time}/${z}/${x}/${y}/2/1_1.png`;
     const upstream = await fetch(upstreamUrl, {
-      // Tiles can be cached.
       cache: 'force-cache',
+      next: { revalidate: 3600 },
     });
 
     if (!upstream.ok) {
@@ -36,7 +36,8 @@ export async function GET(request: Request) {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        // Cache at edge and in browser to reduce tile proxy load.
+        'Cache-Control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
       },
     });
   } catch (error) {
