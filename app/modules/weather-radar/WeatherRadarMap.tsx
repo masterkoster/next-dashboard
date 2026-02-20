@@ -25,48 +25,24 @@ export default function WeatherRadarMap() {
   const [isPlaying, setIsPlaying] = useState(false);
   const animationRef = useRef<number | null>(null);
 
-  const [radarHost, setRadarHost] = useState<string>('https://tilecache.rainviewer.com');
-  const [frames, setFrames] = useState<Array<{ time: number }>>([]);
-  const [frameIndex, setFrameIndex] = useState(0);
+  const frames = useMemo(() => {
+    // IEM provides current + 5-min increments back to 55 minutes.
+    // Order oldest -> newest.
+    const mins = [55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 0];
+    return mins.map((m) => ({ minutesAgo: m }));
+  }, []);
+
+  const [frameIndex, setFrameIndex] = useState(frames.length - 1);
 
   const [jumpIcao, setJumpIcao] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
-  const [loadingFrames, setLoadingFrames] = useState(true);
-  const [useProxyTiles, setUseProxyTiles] = useState(process.env.NODE_ENV === 'production');
-  const tileErrorCountRef = useRef(0);
+  const [loadingFrames, setLoadingFrames] = useState(false);
   const [radarOpacity, setRadarOpacity] = useState(0.72);
   const [basemap, setBasemap] = useState<'light' | 'dark'>('light');
   const [showLegend, setShowLegend] = useState(false);
   const [speedMs, setSpeedMs] = useState(450);
 
-  // Fetch radar timestamps from RainViewer API
-  useEffect(() => {
-    const fetchRadarData = async () => {
-      try {
-        setLoadingFrames(true);
-        // Use same-origin proxy to avoid client blockers.
-        const res = await fetch('/api/radar/frames');
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(data?.error || 'Failed to load frames');
-        }
-
-        const all = Array.isArray(data?.frames)
-          ? data.frames.filter((t: any) => typeof t?.time === 'number').map((t: any) => ({ time: t.time as number }))
-          : [];
-
-        setFrames(all);
-        setFrameIndex(Math.max(0, all.length - 1));
-      } catch (err) {
-        console.error('Failed to fetch radar data:', err);
-        setNotice('Failed to load radar frames. Please try again.');
-      } finally {
-        setLoadingFrames(false);
-      }
-    };
-    fetchRadarData();
-  }, []);
-
+  // Frames are fixed for IEM (0-55 minutes). No fetch needed.
   useEffect(() => {
     // Initialize map
     const map = L.map('weather-radar-map', {
@@ -110,12 +86,11 @@ export default function WeatherRadarMap() {
   const currentFrame = frames[frameIndex] || null;
   const currentTileUrl = useMemo(() => {
     if (!currentFrame) return null;
-    const time = currentFrame.time;
-    if (useProxyTiles) {
-      return `/api/radar/tile?time=${encodeURIComponent(String(time))}&z={z}&x={x}&y={y}`;
-    }
-    return `${radarHost}/v2/radar/${time}/{z}/{x}/{y}/2/1_1.png`;
-  }, [currentFrame, radarHost, useProxyTiles]);
+    const m = currentFrame.minutesAgo;
+    const layer = m === 0 ? 'nexrad-n0q' : `nexrad-n0q-m${String(m).padStart(2, '0')}m`;
+    // Use multiple hostnames for parallel loading.
+    return `https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/${layer}-900913/{z}/{x}/{y}.png`;
+  }, [currentFrame]);
 
   // Ensure radar layer exists when frames arrive; update when frame changes.
   useEffect(() => {
@@ -125,24 +100,17 @@ export default function WeatherRadarMap() {
 
     if (!radarLayerRef.current) {
       radarLayerRef.current = L.tileLayer(currentTileUrl, {
-        attribution: 'Radar data © RainViewer',
+        attribution: 'Radar © Iowa Environmental Mesonet',
         opacity: radarOpacity,
         maxZoom: 12,
         zIndex: 500,
+        subdomains: ['1', '2', '3'],
       }).addTo(map);
-
-      radarLayerRef.current.on('tileerror', () => {
-        tileErrorCountRef.current += 1;
-        if (!useProxyTiles && tileErrorCountRef.current >= 3) {
-          setUseProxyTiles(true);
-          // Avoid noisy warnings; proxy mode is expected under some blockers.
-        }
-      });
       return;
     }
 
     radarLayerRef.current.setUrl(currentTileUrl);
-  }, [currentTileUrl, radarOpacity, useProxyTiles, mapReady]);
+  }, [currentTileUrl, radarOpacity, mapReady]);
 
   useEffect(() => {
     if (!radarLayerRef.current) return;
@@ -177,28 +145,18 @@ export default function WeatherRadarMap() {
   const frameLabel = useMemo(() => {
     if (!currentFrame) return '—';
     try {
-      return new Date(currentFrame.time * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const then = Date.now() - currentFrame.minutesAgo * 60_000;
+      return new Date(then).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch {
-      return String(currentFrame.time);
+      return '';
     }
   }, [currentFrame]);
 
   const frameRelativeLabel = useMemo(() => {
     if (!currentFrame) return '';
-    const now = Date.now();
-    const then = currentFrame.time * 1000;
-    const diffMin = Math.round((now - then) / 60000);
-    if (!Number.isFinite(diffMin)) return '';
-    if (diffMin <= 0) return 'now';
-    if (diffMin < 60) return `${diffMin}m ago`;
-    const h = Math.round(diffMin / 60);
-    return `${h}h ago`;
+    return currentFrame.minutesAgo === 0 ? 'now' : `${currentFrame.minutesAgo}m ago`;
   }, [currentFrame]);
 
-  useEffect(() => {
-    // Reset tile error counter when switching modes.
-    tileErrorCountRef.current = 0;
-  }, [useProxyTiles]);
 
   async function jumpToAirport() {
     const map = mapRef.current;
