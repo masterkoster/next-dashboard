@@ -2,6 +2,7 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
+import { useSession, signIn } from 'next-auth/react';
 
 // Import v0 components
 import { ListingHeader } from '@/components/aircraft/listing-header';
@@ -10,6 +11,7 @@ import { ImageGallery } from '@/components/aircraft/image-gallery';
 import { EquipmentSection } from '@/components/aircraft/equipment-section';
 import { LocationCard } from '@/components/aircraft/location-card';
 import { ContactSection } from '@/components/aircraft/contact-section';
+import { Button } from '@/components/ui/button';
 
 interface Listing {
   id: string;
@@ -208,9 +210,13 @@ const DEMO_LISTINGS_DETAIL: Record<string, Listing> = {
 
 export default function ListingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { data: session } = useSession();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showContactForm, setShowContactForm] = useState(false);
+  const [contactMessage, setContactMessage] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     loadListing();
@@ -234,6 +240,50 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
+  function handleContact() {
+    if (!session) {
+      signIn();
+      return;
+    }
+    setShowContactForm(true);
+  }
+
+  function handleMakeOffer() {
+    if (!session) {
+      signIn();
+      return;
+    }
+    setShowContactForm(true);
+  }
+
+  async function handleSubmitContact(e: React.FormEvent) {
+    e.preventDefault();
+    if (!session || !contactMessage.trim()) return;
+    
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/marketplace/inquiries', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          listingId: listing?.id,
+          message: contactMessage,
+        }),
+      });
+      if (res.ok) {
+        alert('Your inquiry has been sent to the seller!');
+        setShowContactForm(false);
+        setContactMessage('');
+      } else {
+        alert('Failed to send inquiry. Please try again.');
+      }
+    } catch (err) {
+      alert('Failed to send inquiry. Please try again.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   if (loading) {
     return <div className="min-h-screen bg-background flex items-center justify-center text-muted-foreground">Loading...</div>;
   }
@@ -249,10 +299,48 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  const images = listing.images?.length ? listing.images : ['/placeholder-aircraft.jpg'];
+  const images = listing.images?.length ? listing.images : ['https://images.unsplash.com/photo-1559627755-0b42f3014507?w=800&q=80'];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Contact Form Modal */}
+      {showContactForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6">
+            <h3 className="text-lg font-semibold">Contact Seller</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Send a message about this listing</p>
+            <form onSubmit={handleSubmitContact} className="mt-4 space-y-4">
+              <div>
+                <textarea
+                  value={contactMessage}
+                  onChange={(e) => setContactMessage(e.target.value)}
+                  placeholder="I'm interested in this aircraft..."
+                  className="w-full min-h-[120px] rounded-xl border border-border bg-background px-4 py-3 text-sm placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  required
+                />
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowContactForm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  disabled={submitting}
+                >
+                  {submitting ? 'Sending...' : 'Send Message'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       <main className="max-w-7xl mx-auto px-4 py-10">
         <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
           <Link href="/modules/marketplace" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground">
@@ -316,6 +404,8 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
             <ContactSection 
               sellerName={listing.user.name || listing.user.username || "Seller"}
               sellerType={listing.sellerType}
+              onContact={handleContact}
+              onMakeOffer={handleMakeOffer}
             />
 
             {/* Location Card - Using v0 component */}
