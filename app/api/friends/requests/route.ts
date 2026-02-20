@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server';
 import { auth, prisma } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
+import { validateE2eeEnvelopeString } from '@/lib/e2ee';
+
+function getClientKey(request: Request, userId: string) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  return `${userId}:${ip}`;
+}
 
 export async function GET() {
   try {
@@ -15,6 +22,7 @@ export async function GET() {
         id: true,
         status: true,
         createdAt: true,
+        initialMessageEnvelope: true,
         requester: { select: { id: true, name: true, username: true } },
       },
     });
@@ -26,6 +34,7 @@ export async function GET() {
         id: true,
         status: true,
         createdAt: true,
+        initialMessageEnvelope: true,
         recipient: { select: { id: true, name: true, username: true } },
       },
     });
@@ -44,13 +53,46 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const recipientId = (body?.recipientId || '').toString();
+    const rl = rateLimit({ key: `friend-request:${getClientKey(request, session.user.id)}`, limit: 10, windowMs: 60_000 });
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
+    const body = await request.json().catch(() => null);
+    const recipientId = (body?.recipientId || '').toString().trim();
     if (!recipientId) {
       return NextResponse.json({ error: 'Recipient is required' }, { status: 400 });
     }
     if (recipientId === session.user.id) {
       return NextResponse.json({ error: 'Cannot friend yourself' }, { status: 400 });
+    }
+
+    const recipientExists = await prisma.user.findUnique({ where: { id: recipientId }, select: { id: true } });
+    if (!recipientExists) {
+      return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
+    }
+
+    let initialMessageEnvelope: string | null = null;
+    if (body?.initialMessageEnvelope != null) {
+      const validated = validateE2eeEnvelopeString(body.initialMessageEnvelope, { maxLen: 5_000 });
+      if (!validated.ok) {
+        return NextResponse.json({ error: validated.error }, { status: 400 });
+      }
+
+      // If they attach an encrypted initial message, ensure the recipient has an E2EE key set.
+      const recipient = await prisma.user.findUnique({
+        where: { id: recipientId },
+        select: { id: true, e2eePublicKeyJwk: true },
+      });
+
+      // recipient existence already checked above
+      if (!recipient) return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
+
+      if (!recipient.e2eePublicKeyJwk) {
+        return NextResponse.json({ error: 'Recipient has not set an E2EE public key' }, { status: 409 });
+      }
+
+      initialMessageEnvelope = validated.envelopeString;
     }
 
     const existingDirect = await prisma.friendRequest.findFirst({
@@ -85,11 +127,13 @@ export async function POST(request: Request) {
         requesterId: session.user.id,
         recipientId,
         status: 'pending',
+        initialMessageEnvelope,
       },
       select: {
         id: true,
         status: true,
         createdAt: true,
+        initialMessageEnvelope: true,
         recipient: { select: { id: true, name: true, username: true } },
       },
     });

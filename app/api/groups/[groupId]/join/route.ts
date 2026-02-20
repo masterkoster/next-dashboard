@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { isUuid } from '@/lib/validate';
 
 interface RouteParams {
   params: Promise<{ groupId: string }>;
@@ -11,6 +12,9 @@ export async function POST(request: Request, { params }: RouteParams) {
     const session = await auth();
     
     const { groupId } = await params;
+    if (!isUuid(groupId)) {
+      return NextResponse.json({ error: 'Invalid groupId' }, { status: 400 });
+    }
     const body = await request.json();
     const { token } = body;
 

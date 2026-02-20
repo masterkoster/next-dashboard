@@ -1,7 +1,10 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useSession, signIn } from 'next-auth/react';
+import { checkMessageSafety } from '@/lib/message-safety';
+import { encryptForUser, publishMyPublicKey } from '@/lib/e2ee';
 
 interface PilotProfile {
   id: string;
@@ -81,6 +84,20 @@ export default function PilotDirectoryPage() {
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<any[]>([]);
   const [friendActionMessage, setFriendActionMessage] = useState<string | null>(null);
+  const [friendDraftFor, setFriendDraftFor] = useState<string | null>(null);
+  const [friendDraftMessage, setFriendDraftMessage] = useState('');
+
+  function countSentences(input: string) {
+    const cleaned = input
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!cleaned) return 0;
+    const parts = cleaned
+      .split(/[.!?]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return parts.length;
+  }
 
   useEffect(() => {
     fetchProfiles();
@@ -88,6 +105,7 @@ export default function PilotDirectoryPage() {
 
   useEffect(() => {
     if (session?.user?.id) {
+      publishMyPublicKey().catch(() => {});
       fetchMyProfile();
       loadFriendState();
     }
@@ -163,18 +181,35 @@ export default function PilotDirectoryPage() {
     }
   }
 
-  async function sendFriendRequest(userId: string) {
+  async function sendFriendRequest(userId: string, initialMessage?: string) {
     try {
+      let initialMessageEnvelope: string | null = null;
+      const message = (initialMessage || '').trim();
+      if (message) {
+        const safety = checkMessageSafety(message);
+        if (!safety.ok) {
+          setFriendActionMessage(safety.error);
+          return;
+        }
+        const encrypted = await encryptForUser(userId, message);
+        if (encrypted.ok) initialMessageEnvelope = encrypted.envelopeString;
+      }
+
       const res = await fetch('/api/friends/requests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ recipientId: userId }),
+        body: JSON.stringify({
+          recipientId: userId,
+          initialMessageEnvelope: initialMessageEnvelope || undefined,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to send request');
       }
       setFriendActionMessage('Friend request sent');
+      setFriendDraftFor(null);
+      setFriendDraftMessage('');
       await loadFriendState();
     } catch (error) {
       console.error(error);
@@ -187,7 +222,7 @@ export default function PilotDirectoryPage() {
       const res = await fetch(`/api/friends/requests/${requestId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, seedInitialMessage: action === 'accept' }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -195,6 +230,10 @@ export default function PilotDirectoryPage() {
       }
       setFriendActionMessage(action === 'accept' ? 'Friend request accepted' : 'Friend request declined');
       await loadFriendState();
+
+      if (action === 'accept' && data?.conversationId) {
+        window.dispatchEvent(new CustomEvent('open-chat', { detail: { conversationId: data.conversationId } }));
+      }
     } catch (error) {
       console.error(error);
       setFriendActionMessage(error instanceof Error ? error.message : 'Failed to update request');
@@ -322,7 +361,16 @@ export default function PilotDirectoryPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-white text-lg font-semibold">
-                      {profile.user?.name || profile.user?.username || 'Anonymous Pilot'}
+                      {profile.user?.id ? (
+                        <Link
+                          href={`/pilots/${encodeURIComponent(profile.user?.username || profile.user.id)}`}
+                          className="hover:underline"
+                        >
+                          {profile.user?.name || profile.user?.username || 'Anonymous Pilot'}
+                        </Link>
+                      ) : (
+                        profile.user?.name || profile.user?.username || 'Anonymous Pilot'
+                      )}
                     </div>
                     <div className="text-xs text-slate-400">{profile.homeAirport || 'No home airport'}</div>
                   </div>
@@ -341,7 +389,7 @@ export default function PilotDirectoryPage() {
                     const isFriend = friends.some((friend) => friend.id === profile.user?.id);
 
                     return (
-                  <div className="mt-3 flex flex-wrap gap-2">
+                   <div className="mt-3 flex flex-wrap gap-2">
                     {isFriend ? (
                       <button
                         onClick={() => openChatWithUser(profile.user!.id)}
@@ -369,12 +417,54 @@ export default function PilotDirectoryPage() {
                         </button>
                       </>
                     ) : (
-                      <button
-                        onClick={() => sendFriendRequest(profile.user!.id)}
-                        className="px-3 py-1 rounded-full text-xs bg-slate-700 text-slate-200"
-                      >
-                        Add Friend
-                      </button>
+                      <>
+                        <button
+                          onClick={() => {
+                            setFriendDraftFor(profile.user!.id);
+                            setFriendDraftMessage('');
+                          }}
+                          className="px-3 py-1 rounded-full text-xs bg-slate-700 text-slate-200"
+                        >
+                          Add Friend
+                        </button>
+                        {friendDraftFor === profile.user!.id && (
+                          <div className="w-full mt-2 bg-slate-900 border border-slate-700 rounded-xl p-3">
+                            <div className="text-xs text-slate-400 mb-2">
+                              Optional note (max 3 sentences). Sent encrypted (requires recipient E2EE key).
+                            </div>
+                            <textarea
+                              value={friendDraftMessage}
+                              onChange={(e) => setFriendDraftMessage(e.target.value)}
+                              rows={3}
+                              placeholder="Hey — want to connect?"
+                              className="w-full bg-slate-950/40 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white"
+                            />
+                            <div className="mt-2 flex items-center justify-between gap-2">
+                              <div className={`text-xs ${countSentences(friendDraftMessage) > 3 ? 'text-amber-300' : 'text-slate-500'}`}>
+                                {countSentences(friendDraftMessage)}/3 sentences
+                              </div>
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => {
+                                    setFriendDraftFor(null);
+                                    setFriendDraftMessage('');
+                                  }}
+                                  className="px-3 py-1 rounded-full text-xs bg-slate-800 text-slate-300"
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  disabled={countSentences(friendDraftMessage) > 3}
+                                  onClick={() => sendFriendRequest(profile.user!.id, friendDraftMessage)}
+                                  className="px-3 py-1 rounded-full text-xs bg-emerald-500/20 border border-emerald-400 text-emerald-200 disabled:opacity-50"
+                                >
+                                  Send
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                   );
@@ -394,14 +484,9 @@ export default function PilotDirectoryPage() {
                 <p className="text-sm text-slate-300 mt-3">
                   {profile.bio || 'No bio yet.'}
                 </p>
-                {profile.user?.email && (
-                  <a
-                    href={`mailto:${profile.user.email}`}
-                    className="inline-flex items-center gap-2 text-sm text-emerald-400 hover:text-emerald-300 mt-3"
-                  >
-                    ✉️ Contact pilot
-                  </a>
-                )}
+                <div className="text-xs text-slate-500 mt-3">
+                  Use friend request + chat to connect.
+                </div>
               </div>
             ))
           )}

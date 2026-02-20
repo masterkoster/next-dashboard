@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { isUuid } from '@/lib/validate';
 import { randomBytes } from 'crypto';
 
 interface RouteParams {
@@ -16,6 +17,9 @@ export async function GET(request: Request, { params }: RouteParams) {
     }
 
     const { groupId } = await params;
+    if (!isUuid(groupId)) {
+      return NextResponse.json({ error: 'Invalid groupId' }, { status: 400 });
+    }
     
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`
@@ -76,6 +80,9 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     const { groupId } = await params;
+    if (!isUuid(groupId)) {
+      return NextResponse.json({ error: 'Invalid groupId' }, { status: 400 });
+    }
     
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`

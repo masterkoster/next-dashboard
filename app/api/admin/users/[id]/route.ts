@@ -3,18 +3,6 @@ import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 import { hash } from 'bcryptjs';
 
-// Helper to check if user is admin or owner
-async function isAdmin(session: any): Promise<boolean> {
-  if (!session?.user?.email) return false;
-  
-  const users = await prisma.$queryRawUnsafe(`
-    SELECT role FROM [User] WHERE email = '${session.user.email}'
-  `) as any[];
-  
-  if (!users || users.length === 0) return false;
-  return users[0].role === 'admin' || users[0].role === 'owner';
-}
-
 // GET /api/admin/users/[id] - Get single user details
 export async function GET(
   request: Request,
@@ -22,60 +10,67 @@ export async function GET(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const isAdminUser = await isAdmin(session);
-    if (!isAdminUser) {
+    const role = (session.user as any)?.role;
+    if (role !== 'admin' && role !== 'owner') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
     const { id } = await params;
 
-    // Get user details
-    const users = await prisma.$queryRawUnsafe(`
-      SELECT id, email, name, tier, role, createdAt, updatedAt, homeState,
-        stripeCustomerId, subscriptionEnd
-      FROM [User] WHERE id = '${id}'
-    `) as any[];
+    const user = await prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        username: true,
+        tier: true,
+        role: true,
+        homeState: true,
+        stripeCustomerId: true,
+        subscriptionEnd: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { flightPlans: true, memberships: true } },
+      },
+    });
 
-    if (!users || users.length === 0) {
+    if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const user = users[0];
-
-    // Get flight plans count
-    const fpCount = await prisma.$queryRawUnsafe(`
-      SELECT COUNT(*) as count FROM [FlightPlan] WHERE userId = '${id}'
-    `) as any[];
-
-    // Get clubs (groups) count
-    const clubCount = await prisma.$queryRawUnsafe(`
-      SELECT COUNT(*) as count FROM [GroupMember] WHERE userId = '${id}'
-    `) as any[];
-
-    // Get recent error reports
-    const errorReports = await prisma.$queryRawUnsafe(`
-      SELECT TOP 5 id, title, status, createdAt 
-      FROM [ErrorReport] 
-      WHERE userId = '${id}'
-      ORDER BY createdAt DESC
-    `) as any[];
+    const errorReports = await prisma.errorReport.findMany({
+      where: { userId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      select: { id: true, title: true, status: true, createdAt: true },
+    });
 
     return NextResponse.json({
       user: {
-        ...user,
-        flightPlanCount: Number(fpCount[0]?.count || 0),
-        clubCount: Number(clubCount[0]?.count || 0),
-        errorReports: errorReports.map((e: any) => ({
-          ...e,
-          createdAt: e.createdAt?.toISOString(),
-        })),
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        username: user.username,
+        tier: user.tier,
+        role: user.role,
+        homeState: user.homeState,
+        stripeCustomerId: user.stripeCustomerId,
+        subscriptionEnd: user.subscriptionEnd?.toISOString(),
         createdAt: user.createdAt?.toISOString(),
         updatedAt: user.updatedAt?.toISOString(),
-        subscriptionEnd: user.subscriptionEnd?.toISOString(),
+        flightPlanCount: Number(user._count?.flightPlans || 0),
+        clubCount: Number(user._count?.memberships || 0),
+        errorReports: errorReports.map((e) => ({
+          id: e.id,
+          title: e.title,
+          status: e.status,
+          createdAt: e.createdAt?.toISOString(),
+        })),
       },
     });
   } catch (error) {
@@ -91,12 +86,12 @@ export async function PUT(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const isAdminUser = await isAdmin(session);
-    if (!isAdminUser) {
+    const sessionRole = (session.user as any)?.role;
+    if (sessionRole !== 'admin' && sessionRole !== 'owner') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -104,22 +99,15 @@ export async function PUT(
     const body = await request.json();
     const { tier, role } = body;
 
-    // Build update query
-    const updates: string[] = [];
-    if (tier) {
-      updates.push(`tier = '${tier}'`);
-    }
-    if (role) {
-      updates.push(`role = '${role}'`);
-    }
+    const data: any = {};
+    if (tier) data.tier = tier;
+    if (role) data.role = role;
 
-    if (updates.length === 0) {
+    if (Object.keys(data).length === 0) {
       return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
     }
 
-    await prisma.$queryRawUnsafe(`
-      UPDATE [User] SET ${updates.join(', ')} WHERE id = '${id}'
-    `);
+    await prisma.user.update({ where: { id }, data });
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -135,12 +123,12 @@ export async function POST(
 ) {
   try {
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const isAdminUser = await isAdmin(session);
-    if (!isAdminUser) {
+    const sessionRole = (session.user as any)?.role;
+    if (sessionRole !== 'admin' && sessionRole !== 'owner') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -155,9 +143,10 @@ export async function POST(
     // Hash the new password
     const hashedPassword = await hash(newPassword, 12);
 
-    await prisma.$queryRawUnsafe(`
-      UPDATE [User] SET password = '${hashedPassword}' WHERE id = '${id}'
-    `);
+    await prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword },
+    });
 
     return NextResponse.json({ success: true, message: 'Password reset successfully' });
   } catch (error) {

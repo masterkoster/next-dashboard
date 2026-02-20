@@ -30,6 +30,7 @@ export default function ExportDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const [navLogDetail, setNavLogDetail] = useState<'basic' | 'detailed' | null>(null);
   const [copied, setCopied] = useState(false);
+  const [deepLinkNotice, setDeepLinkNotice] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -133,15 +134,30 @@ export default function ExportDropdown({
       const ua = window.navigator.userAgent.toLowerCase();
       const isMobile = /iphone|ipad|android/.test(ua);
       if (isMobile) {
+        // Try iOS/Safari-friendly approach with a transient iframe.
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = scheme;
+        document.body.appendChild(iframe);
+        setTimeout(() => {
+          try {
+            document.body.removeChild(iframe);
+          } catch {}
+        }, 800);
+        // Fallback attempt as well.
         window.location.href = scheme;
+        setDeepLinkNotice(null);
         return;
+      }
+
+      // Desktop: copy the deep link and show instructions.
+      if (navigator?.clipboard) {
+        navigator.clipboard.writeText(scheme);
       }
       if (fallback) {
         window.open(fallback, '_blank', 'noopener');
-      } else if (navigator?.clipboard) {
-        navigator.clipboard.writeText(scheme);
       }
-      alert(`${label || 'Link'} opened. If nothing happened, paste the copied link into your device.`);
+      setDeepLinkNotice(`${label || 'Link'} copied. On mobile, paste into Safari address bar to open the EFB app. You can also import via GPX.`);
     } catch (error) {
       console.error('Deep link failed', error);
       if (fallback) {
@@ -194,6 +210,13 @@ export default function ExportDropdown({
       {isOpen && (
         <div className="absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl z-50">
           <div className="py-1">
+            {deepLinkNotice && (
+              <div className="px-4 pt-3 pb-2 text-xs text-slate-300">
+                <div className="rounded-md border border-slate-700 bg-slate-900/40 p-2">
+                  {deepLinkNotice}
+                </div>
+              </div>
+            )}
             {/* Copy Shareable Link */}
             <button
               onClick={handleCopyLink}

@@ -13,8 +13,15 @@ if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
 
-// Auth secret - use env or fallback
-const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "fallback-secret-change-in-production-12345"
+// Auth secret
+const authSecretEnv = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+const authSecret = authSecretEnv || (process.env.NODE_ENV === 'production' ? undefined : 'dev-insecure-secret');
+if (!authSecret) {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Missing AUTH_SECRET (or NEXTAUTH_SECRET) in production');
+  }
+  console.warn('AUTH_SECRET is not set. Sessions will be unstable across restarts.');
+}
 const siteUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "https://next-dashboard-davids-projects.vercel.app"
 
 // Cookie names based on environment
@@ -31,10 +38,7 @@ export const authOptions: any = {
         rememberMe: { label: "Remember Me", type: "boolean" }
       },
       async authorize(credentials: any) {
-        console.log("Authorize called with:", credentials?.username)
-        
         if (!credentials?.username || !credentials?.password) {
-          console.log("Missing credentials")
           return null
         }
         
@@ -54,10 +58,7 @@ export const authOptions: any = {
             })
           }
           
-          console.log("User found:", !!user, "Has password:", !!user?.password)
-          
           if (!user || !user.password) {
-            console.log("No user or no password")
             return null
           }
           
@@ -80,8 +81,6 @@ export const authOptions: any = {
             }
           }
           
-          console.log("Password valid:", isValid)
-          
           if (!isValid) return null
           
           return { 
@@ -95,8 +94,8 @@ export const authOptions: any = {
             rememberMe: rememberMe // Pass to JWT
           }
         } catch (error) {
-          console.error("Authorize error:", error)
-          throw error
+          console.error('Authorize error:', error)
+          return null
         }
       }
     })

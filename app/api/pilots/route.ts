@@ -16,7 +16,6 @@ const PUBLIC_PROFILE_SELECT = {
       id: true,
       name: true,
       username: true,
-      email: true,
       tier: true,
     },
   },
@@ -107,7 +106,6 @@ function serializeProfile(profile: any) {
           id: profile.user.id,
           name: profile.user.name,
           username: profile.user.username,
-          email: profile.user.email,
           tier: profile.user.tier,
         }
       : null,

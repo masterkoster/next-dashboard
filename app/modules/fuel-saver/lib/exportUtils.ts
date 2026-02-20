@@ -672,15 +672,21 @@ export function downloadNavLog(
   const html = detailed ? generateDetailedNavLog(navLogData) : generateBasicNavLog(navLogData);
   const filename = `${navLogData.name?.replace(/[^a-z0-9]/gi, '-').toLowerCase() || 'flight-plan'}-${detailed ? 'detailed' : 'basic'}-navlog`;
 
-  // Open in new window for printing
-  const printWindow = window.open('', '_blank');
+  // Open in new window for printing without document.write
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const printWindow = window.open(url, '_blank', 'noopener');
   if (printWindow) {
-    printWindow.document.write(html);
-    printWindow.document.close();
-    printWindow.onload = () => {
-      printWindow.print();
+    const tryPrint = () => {
+      try {
+        printWindow.focus();
+        printWindow.print();
+      } catch {}
     };
+    printWindow.addEventListener('load', tryPrint, { once: true });
+    setTimeout(tryPrint, 800);
   }
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
 /**
@@ -852,7 +858,9 @@ export function generateForeFlightDeepLink(
   waypoints: Waypoint[],
   options?: { planName?: string; altitude?: number }
 ): DeepLinkResult | null {
-  const route = waypoints.filter((wp) => wp?.icao);
+  const route = waypoints
+    .filter((wp) => wp?.icao)
+    .map((wp) => ({ ...wp, icao: (wp.icao || '').toUpperCase() }));
   if (route.length < 2) return null;
 
   const origin = route[0].icao;
@@ -876,7 +884,9 @@ export function generateGarminDeepLink(
   waypoints: Waypoint[],
   options?: { planName?: string }
 ): DeepLinkResult | null {
-  const route = waypoints.filter((wp) => wp?.icao);
+  const route = waypoints
+    .filter((wp) => wp?.icao)
+    .map((wp) => ({ ...wp, icao: (wp.icao || '').toUpperCase() }));
   if (route.length < 2) return null;
 
   const routeDots = route.map((wp) => wp.icao).join('..');

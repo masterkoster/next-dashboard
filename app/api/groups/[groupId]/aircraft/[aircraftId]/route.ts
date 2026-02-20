@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { isUuid } from '@/lib/validate';
 
 interface RouteParams {
   params: Promise<{ groupId: string; aircraftId: string }>;
@@ -14,6 +15,9 @@ export async function PUT(request: Request, { params }: RouteParams) {
     }
 
     const { groupId, aircraftId } = await params;
+    if (!isUuid(groupId) || !isUuid(aircraftId)) {
+      return NextResponse.json({ error: 'Invalid groupId or aircraftId' }, { status: 400 });
+    }
     
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`
@@ -68,6 +72,9 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     }
 
     const { groupId, aircraftId } = await params;
+    if (!isUuid(groupId) || !isUuid(aircraftId)) {
+      return NextResponse.json({ error: 'Invalid groupId or aircraftId' }, { status: 400 });
+    }
     
     // Get user by email using raw SQL
     const users = await prisma.$queryRawUnsafe(`

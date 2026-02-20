@@ -18,6 +18,10 @@ model User {
   updatedAt        DateTime @updatedAt
   password         String?  @db.NVarChar(255)
 
+  // E2EE (public key only; private key stays client-side)
+  e2eePublicKeyJwk       String? @db.NVarChar(Max)
+  e2eePublicKeyUpdatedAt DateTime?
+
   // Email verification
   emailVerified     DateTime?
   verifyToken       String?   @db.NVarChar(255)
@@ -107,6 +111,9 @@ model FriendRequest {
   status      String   @default("pending") @db.NVarChar(20) // pending, accepted, declined, cancelled
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Optional encrypted initial message (stored as ciphertext envelope JSON string)
+  initialMessageEnvelope String? @db.NVarChar(Max)
 
   requester User @relation("FriendRequestRequester", fields: [requesterId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   recipient User @relation("FriendRequestRecipient", fields: [recipientId], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -476,6 +483,9 @@ model FlightPlan {
   name          String?   @db.NVarChar(255)
   callsign      String?   @db.NVarChar(20)
   aircraftType  String?   @db.NVarChar(20)
+  aircraftSpeed Int?
+  aircraftBurnRate Float?
+  aircraftFuelCapacity Int?
   pilotName     String?   @db.NVarChar(100)
   departureIcao String?   @db.NVarChar(10)
   departureTime DateTime?

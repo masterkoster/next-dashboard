@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { auth } from '@/lib/auth';
 import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcrypt"
 
@@ -9,6 +10,16 @@ export const runtime = 'nodejs'
 
 export async function POST() {
   try {
+    if (process.env.NODE_ENV === 'production') {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
+    const session = await auth();
+    const role = (session?.user as any)?.role;
+    if (!session?.user?.id || (role !== 'owner' && role !== 'admin')) {
+      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    }
+
     const users = await prisma.user.findMany({
       where: {
         password: {

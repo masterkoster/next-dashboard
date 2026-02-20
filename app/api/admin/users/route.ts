@@ -2,28 +2,16 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-// Helper to check if user is admin or owner
-async function isAdmin(session: any): Promise<boolean> {
-  if (!session?.user?.email) return false;
-  
-  const users = await prisma.$queryRawUnsafe(`
-    SELECT role FROM [User] WHERE email = '${session.user.email}'
-  `) as any[];
-  
-  if (!users || users.length === 0) return false;
-  return users[0].role === 'admin' || users[0].role === 'owner';
-}
-
 // GET /api/admin/users - List users with search and pagination
 export async function GET(request: Request) {
   try {
     const session = await auth();
-    if (!session?.user?.email) {
+    if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const isAdminUser = await isAdmin(session);
-    if (!isAdminUser) {
+    const sessionRole = (session.user as any)?.role;
+    if (sessionRole !== 'admin' && sessionRole !== 'owner') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -35,42 +23,58 @@ export async function GET(request: Request) {
     const role = url.searchParams.get('role'); // user, admin, owner
     const offset = (page - 1) * limit;
 
-    let whereClause = '1=1';
-    
+    const where: any = {};
+
     if (search) {
-      whereClause += ` AND (email LIKE '%${search}%' OR name LIKE '%${search}%')`;
+      const term = search.trim();
+      if (term) {
+        where.OR = [
+          { email: { contains: term } },
+          { name: { contains: term } },
+          { username: { contains: term } },
+        ];
+      }
     }
     if (tier && tier !== 'all') {
-      whereClause += ` AND tier = '${tier}'`;
+      where.tier = tier;
     }
     if (role) {
-      whereClause += ` AND role = '${role}'`;
+      where.role = role;
     }
 
-    // Get total count
-    const countResult = await prisma.$queryRawUnsafe(`
-      SELECT COUNT(*) as count FROM [User] WHERE ${whereClause}
-    `) as any[];
-    const total = Number(countResult[0]?.count || 0);
-
-    // Get users
-    const users = await prisma.$queryRawUnsafe(`
-      SELECT id, email, name, tier, role, createdAt, updatedAt,
-        (SELECT COUNT(*) FROM [FlightPlan] WHERE userId = [User].id) as flightPlanCount,
-        (SELECT COUNT(*) FROM [GroupMember] WHERE userId = [User].id) as clubCount
-      FROM [User] 
-      WHERE ${whereClause}
-      ORDER BY createdAt DESC
-      OFFSET ${offset} ROWS FETCH NEXT ${limit} ROWS ONLY
-    `) as any[];
+    const [total, users] = await prisma.$transaction([
+      prisma.user.count({ where }),
+      prisma.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: offset,
+        take: limit,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          username: true,
+          tier: true,
+          role: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: { select: { flightPlans: true, memberships: true } },
+        },
+      }),
+    ]);
 
     return NextResponse.json({
       users: users.map((u: any) => ({
-        ...u,
-        flightPlanCount: Number(u.flightPlanCount || 0),
-        clubCount: Number(u.clubCount || 0),
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        username: u.username,
+        tier: u.tier,
+        role: u.role,
         createdAt: u.createdAt?.toISOString(),
         updatedAt: u.updatedAt?.toISOString(),
+        flightPlanCount: Number(u._count?.flightPlans || 0),
+        clubCount: Number(u._count?.memberships || 0),
       })),
       pagination: {
         page,

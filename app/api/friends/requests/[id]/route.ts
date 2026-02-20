@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 import { auth, prisma } from '@/lib/auth';
+import { rateLimit } from '@/lib/rate-limit';
+
+function getClientKey(request: Request, userId: string) {
+  const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
+  return `${userId}:${ip}`;
+}
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -8,9 +14,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
+    const rl = rateLimit({ key: `friend-request-action:${getClientKey(request, session.user.id)}`, limit: 30, windowMs: 60_000 });
+    if (!rl.ok) {
+      return NextResponse.json({ error: 'Too many requests' }, { status: 429 });
+    }
+
     const { id } = await params;
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
     const action = (body?.action || '').toString();
+    const seedInitialMessage = body?.seedInitialMessage === true;
 
     const friendRequest = await prisma.friendRequest.findUnique({ where: { id } });
     if (!friendRequest) {
@@ -46,24 +58,46 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
             },
           },
         },
+        select: { id: true },
       });
 
-      if (!existingConversation) {
-        await prisma.conversation.create({
-          data: {
-            participants: {
-              createMany: {
-                data: [
-                  { userId: friendRequest.requesterId },
-                  { userId: friendRequest.recipientId },
-                ],
+      const conversationId = existingConversation?.id
+        ? existingConversation.id
+        : (
+            await prisma.conversation.create({
+              data: {
+                participants: {
+                  createMany: {
+                    data: [
+                      { userId: friendRequest.requesterId },
+                      { userId: friendRequest.recipientId },
+                    ],
+                  },
+                },
               },
+              select: { id: true },
+            })
+          ).id;
+
+      if (seedInitialMessage && friendRequest.initialMessageEnvelope) {
+        const existingMessageCount = await prisma.message.count({ where: { conversationId } });
+        if (existingMessageCount === 0) {
+          await prisma.message.create({
+            data: {
+              conversationId,
+              senderId: friendRequest.requesterId,
+              body: friendRequest.initialMessageEnvelope,
             },
-          },
-        });
+          });
+
+          await prisma.conversation.update({
+            where: { id: conversationId },
+            data: { updatedAt: new Date() },
+          });
+        }
       }
 
-      return NextResponse.json({ request: updated });
+      return NextResponse.json({ request: updated, conversationId });
     }
 
     if (action === 'decline') {

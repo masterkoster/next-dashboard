@@ -237,6 +237,28 @@ interface CurrentFuelSaverPlan {
   updatedAt?: string;
 }
 
+type SavedPlanKey = `db:${string}` | `local:${string}`;
+
+interface SavedFlightPlan {
+  key: SavedPlanKey;
+  id: string;
+  source: 'db' | 'local';
+  name?: string | null;
+  aircraftType?: string | null;
+  aircraftSpeed?: number | null;
+  aircraftBurnRate?: number | null;
+  aircraftFuelCapacity?: number | null;
+  cruisingAlt?: number | null;
+  createdAt?: string | null;
+  waypoints: Array<{
+    icao?: string | null;
+    name?: string | null;
+    city?: string | null;
+    latitude: number;
+    longitude: number;
+  }>;
+}
+
 function PilotOverviewContent() {
   const { data: session, status } = useSession();
   const router = useRouter();
@@ -249,6 +271,10 @@ function PilotOverviewContent() {
   const [viewerUrl, setViewerUrl] = useState<string | null>(null);
   const [viewerLoading, setViewerLoading] = useState(false);
   const [currentFuelPlan, setCurrentFuelPlan] = useState<CurrentFuelSaverPlan | null>(null);
+  const [savedFlightPlans, setSavedFlightPlans] = useState<SavedFlightPlan[]>([]);
+  const [selectedSavedPlanKey, setSelectedSavedPlanKey] = useState<SavedPlanKey | ''>('');
+  const [savedPlansLoading, setSavedPlansLoading] = useState(false);
+  const [savedPlansError, setSavedPlansError] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === 'authenticated') {
@@ -263,6 +289,91 @@ function PilotOverviewContent() {
     window.addEventListener('navlog-exports-updated', handler);
     return () => window.removeEventListener('navlog-exports-updated', handler);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const loadLocal = () => {
+      try {
+        const raw = localStorage.getItem('savedFlightPlans');
+        if (!raw) return [] as any[];
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+      } catch {
+        return [] as any[];
+      }
+    };
+
+    const localPlans = loadLocal()
+      .filter((plan: any) => plan && plan.waypoints && Array.isArray(plan.waypoints))
+      .map((plan: any) => {
+        const id = String(plan.id ?? plan.name ?? Date.now());
+        return {
+          key: `local:${id}` as SavedPlanKey,
+          id,
+          source: 'local' as const,
+          name: plan.name ?? null,
+          aircraftType: plan.aircraftType ?? null,
+          aircraftSpeed: typeof plan.aircraftSpeed === 'number' ? plan.aircraftSpeed : null,
+          aircraftBurnRate: typeof plan.aircraftBurnRate === 'number' ? plan.aircraftBurnRate : null,
+          aircraftFuelCapacity: typeof plan.aircraftFuelCapacity === 'number' ? plan.aircraftFuelCapacity : null,
+          cruisingAlt: typeof plan.cruisingAlt === 'number' ? plan.cruisingAlt : null,
+          createdAt: plan.createdAt ?? null,
+          waypoints: (plan.waypoints || []).map((wp: any) => ({
+            icao: wp.icao ?? null,
+            name: wp.name ?? null,
+            city: wp.city ?? null,
+            latitude: Number(wp.latitude),
+            longitude: Number(wp.longitude),
+          })),
+        } satisfies SavedFlightPlan;
+      });
+
+    setSavedFlightPlans(localPlans);
+  }, []);
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+    setSavedPlansLoading(true);
+    setSavedPlansError(null);
+    fetch('/api/flight-plans')
+      .then((res) => res.json())
+      .then((data) => {
+        const dbPlans = (data.flightPlans || [])
+          .filter((plan: any) => plan && plan.waypoints && Array.isArray(plan.waypoints))
+          .map((plan: any) => {
+            return {
+              key: `db:${plan.id}` as SavedPlanKey,
+              id: String(plan.id),
+              source: 'db' as const,
+              name: plan.name ?? null,
+              aircraftType: plan.aircraftType ?? null,
+              aircraftSpeed: typeof plan.aircraftSpeed === 'number' ? plan.aircraftSpeed : null,
+              aircraftBurnRate: typeof plan.aircraftBurnRate === 'number' ? plan.aircraftBurnRate : null,
+              aircraftFuelCapacity: typeof plan.aircraftFuelCapacity === 'number' ? plan.aircraftFuelCapacity : null,
+              cruisingAlt: typeof plan.cruisingAlt === 'number' ? plan.cruisingAlt : null,
+              createdAt: plan.createdAt ? new Date(plan.createdAt).toISOString() : null,
+              waypoints: (plan.waypoints || []).map((wp: any) => ({
+                icao: wp.icao ?? null,
+                name: wp.name ?? null,
+                city: wp.city ?? null,
+                latitude: Number(wp.latitude),
+                longitude: Number(wp.longitude),
+              })),
+            } satisfies SavedFlightPlan;
+          });
+
+        setSavedFlightPlans((prev) => {
+          const locals = prev.filter((p) => p.source === 'local');
+          return [...dbPlans, ...locals];
+        });
+      })
+      .catch((error) => {
+        console.error('Failed to load saved flight plans', error);
+        setSavedPlansError('Failed to load saved flight plans.');
+      })
+      .finally(() => setSavedPlansLoading(false));
+  }, [status]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -349,6 +460,33 @@ function PilotOverviewContent() {
       currentFuelPlan.cruisingAltitude,
       currentFuelPlan.fuelPrices,
       { detailed, planName: currentFuelPlan.name }
+    );
+  };
+
+  const handleGenerateFromSavedPlan = (detailed: boolean) => {
+    const selected = savedFlightPlans.find((plan) => plan.key === selectedSavedPlanKey);
+    if (!selected) return;
+    if (!selected.waypoints || selected.waypoints.length < 2) return;
+
+    const aircraft = {
+      name: selected.aircraftType || 'Aircraft',
+      speed: selected.aircraftSpeed ?? 110,
+      burnRate: selected.aircraftBurnRate ?? 8.5,
+      fuelCapacity: selected.aircraftFuelCapacity ?? 50,
+    };
+    const cruisingAltitude = selected.cruisingAlt ?? 5500;
+
+    downloadNavLogPdf(
+      selected.waypoints.map((wp) => ({
+        icao: (wp.icao || '').toUpperCase(),
+        name: wp.name || undefined,
+        latitude: wp.latitude,
+        longitude: wp.longitude,
+      })),
+      aircraft,
+      cruisingAltitude,
+      {},
+      { detailed, planName: selected.name || undefined }
     );
   };
 
@@ -622,6 +760,62 @@ function PilotOverviewContent() {
                 </div>
               </div>
             )}
+
+            <div className="bg-slate-800 border border-slate-700 rounded-xl p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-white font-semibold">Generate From Saved Flight Plan</div>
+                  <div className="text-xs text-slate-400">Pick a plan and generate a Nav Log PDF here.</div>
+                </div>
+                {savedPlansLoading ? (
+                  <span className="text-xs text-slate-400">Loading…</span>
+                ) : (
+                  <span className="text-xs px-2 py-1 rounded-full border border-slate-600 text-slate-300">{savedFlightPlans.length} plans</span>
+                )}
+              </div>
+
+              {savedPlansError && (
+                <div className="text-xs text-red-300">{savedPlansError}</div>
+              )}
+
+              <div className="flex flex-col gap-2">
+                <select
+                  value={selectedSavedPlanKey}
+                  onChange={(e) => setSelectedSavedPlanKey(e.target.value as SavedPlanKey)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white"
+                >
+                  <option value="">Select a saved plan…</option>
+                  {savedFlightPlans.map((plan) => {
+                    const label = plan.name || `${plan.waypoints?.[0]?.icao || 'DEP'} → ${plan.waypoints?.[plan.waypoints.length - 1]?.icao || 'ARR'}`;
+                    const tag = plan.source === 'db' ? 'Cloud' : 'Local';
+                    return (
+                      <option key={plan.key} value={plan.key}>
+                        [{tag}] {label}
+                      </option>
+                    );
+                  })}
+                </select>
+                <div className="flex gap-2">
+                  <button
+                    disabled={!selectedSavedPlanKey}
+                    onClick={() => handleGenerateFromSavedPlan(false)}
+                    className="flex-1 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm py-2 rounded-lg"
+                  >
+                    Generate Basic PDF
+                  </button>
+                  <button
+                    disabled={!selectedSavedPlanKey}
+                    onClick={() => handleGenerateFromSavedPlan(true)}
+                    className="flex-1 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm py-2 rounded-lg"
+                  >
+                    Generate Detailed PDF
+                  </button>
+                </div>
+                <div className="text-xs text-slate-400">
+                  If a saved plan is missing performance data, we use safe defaults (110 kt / 8.5 gph / 50 gal).
+                </div>
+              </div>
+            </div>
 
             {navLogExports.length === 0 ? (
               <div className="bg-slate-800 border border-slate-700 rounded-xl p-10 text-center text-slate-400">

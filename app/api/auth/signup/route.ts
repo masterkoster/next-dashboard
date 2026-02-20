@@ -16,8 +16,6 @@ export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   try {
-    console.log("Signup attempt")
-    
     const { name, email, password, username } = await request.json()
     
     if (!email || !password || !username) {
@@ -35,9 +33,20 @@ export async function POST(request: Request) {
     }
     
     const normalizedEmail = email.trim().toLowerCase()
-    const normalizedUsername = username.toLowerCase()
-    
-    console.log("Checking existing email:", normalizedEmail)
+    const normalizedUsername = username.trim().toLowerCase()
+
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)
+    if (!emailOk) {
+      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
+    }
+
+    const usernameOk = /^[a-z0-9_]{3,20}$/.test(normalizedUsername)
+    if (!usernameOk) {
+      return NextResponse.json(
+        { error: 'Username must be 3-20 characters (a-z, 0-9, underscore)' },
+        { status: 400 }
+      )
+    }
     
     // Check if email exists
     const existingEmail = await prisma.user.findUnique({
@@ -52,7 +61,6 @@ export async function POST(request: Request) {
     }
     
     // Check if username exists
-    console.log("Checking username:", normalizedUsername)
     const existingUsername = await prisma.user.findUnique({
       where: { username: normalizedUsername }
     })
@@ -64,16 +72,12 @@ export async function POST(request: Request) {
       )
     }
     
-    console.log("Hashing password")
     const hashedPassword = await bcrypt.hash(password, 10)
     
     // Generate verification token
     const verifyToken = crypto.randomBytes(32).toString("hex")
     const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
     
-    const finalUsername = existingUsername ? username + Math.floor(Math.random() * 10000) : username
-    
-    console.log("Creating user with username:", normalizedUsername)
     const user = await prisma.user.create({
       data: {
         username: normalizedUsername,
@@ -88,18 +92,15 @@ export async function POST(request: Request) {
       }
     })
     
-    console.log("User created:", user.id)
-    
     // Send verification email
-    console.log("Sending verification email...")
     const emailResult = await sendVerificationEmail(
       normalizedEmail,
       verifyToken,
-      user.name || finalUsername
+      user.name || normalizedUsername
     )
     
     if (!emailResult.success) {
-      console.error("Failed to send verification email:", emailResult.error)
+      console.error('Failed to send verification email:', emailResult.error)
       // Don't fail signup if email fails - user can resend later
     }
     
