@@ -529,18 +529,18 @@ export default function MarketplacePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-background">
       {/* v0-style Hero Banner */}
-      <div className="relative bg-slate-900 overflow-hidden">
+      <div className="relative bg-secondary/50 overflow-hidden">
         <div className="absolute inset-0 opacity-20">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-slate-900 to-blue-500/20" />
+          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/20 via-background to-blue-500/20" />
         </div>
         <div className="relative max-w-7xl mx-auto px-4 py-12 text-center">
-          <h1 className="text-4xl font-bold text-white lg:text-5xl">
+          <h1 className="text-4xl font-bold text-foreground lg:text-5xl">
             Find Your Next Aircraft
-            <span className="block text-emerald-400">With Confidence</span>
+            <span className="block text-primary">With Confidence</span>
           </h1>
-          <p className="mt-4 text-slate-400 max-w-2xl mx-auto text-lg">
+          <p className="mt-4 text-muted-foreground max-w-2xl mx-auto text-lg">
             The premier marketplace for buying and selling aircraft. Verified listings, 
             secure transactions, satisfied pilots.
           </p>
@@ -552,12 +552,12 @@ export default function MarketplacePage() {
               value={filters.query}
               onChange={(e) => setFilters((prev) => ({ ...prev, query: e.target.value }))}
               placeholder="Search by make, model, N-number, or location..."
-              className="flex-1 h-12 px-4 rounded-xl bg-slate-800 border border-slate-700 text-white placeholder:text-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+              className="flex-1 h-12 px-4 rounded-xl bg-card border border-border text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
             <select
               value={filters.type}
               onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value as any }))}
-              className="h-12 px-4 rounded-xl bg-slate-800 border border-slate-700 text-white focus:border-emerald-500 focus:outline-none"
+              className="h-12 px-4 rounded-xl bg-card border border-border text-foreground focus:border-primary focus:outline-none"
             >
               <option value="ALL">All Types</option>
               {LISTING_TYPE_OPTIONS.map((opt) => (
@@ -566,7 +566,7 @@ export default function MarketplacePage() {
             </select>
             <button
               onClick={() => setShowForm(true)}
-              className="h-12 px-6 bg-emerald-500 hover:bg-emerald-400 text-white font-medium rounded-xl"
+              className="h-12 px-6 bg-primary hover:bg-primary/90 text-foreground font-medium rounded-xl"
             >
               + Sell Aircraft
             </button>
@@ -580,8 +580,8 @@ export default function MarketplacePage() {
               { value: '15K+', label: 'Active Buyers' },
             ].map((stat) => (
               <div key={stat.label} className="text-center">
-                <div className="text-2xl font-bold text-white">{stat.value}</div>
-                <div className="text-xs text-slate-400">{stat.label}</div>
+                <div className="text-2xl font-bold text-foreground">{stat.value}</div>
+                <div className="text-xs text-muted-foreground">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -589,17 +589,17 @@ export default function MarketplacePage() {
       </div>
 
       {/* Filters & Content */}
-      <div className="border-b border-slate-800 bg-slate-900/90 sticky top-0 z-20">
+      <div className="border-b border-border bg-secondary/50/90 sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-white">🛩️ Aircraft Marketplace</h1>
-            <p className="text-slate-400 text-sm">Find partners, buy or sell shares, and discover active pilots near you.</p>
+            <h1 className="text-3xl font-bold text-foreground">🛩️ Aircraft Marketplace</h1>
+            <p className="text-muted-foreground text-sm">Find partners, buy or sell shares, and discover active pilots near you.</p>
           </div>
           <div className="flex gap-3">
             <select
               value={filters.type}
               onChange={(e) => setFilters((prev) => ({ ...prev, type: e.target.value as any }))}
-              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm"
+              className="bg-card border border-border rounded-lg px-3 py-2 text-foreground text-sm"
             >
               <option value="ALL">All Types</option>
               {LISTING_TYPE_OPTIONS.map((opt) => (
@@ -611,21 +611,21 @@ export default function MarketplacePage() {
               value={filters.query}
               onChange={(e) => setFilters((prev) => ({ ...prev, query: e.target.value }))}
               placeholder="Search aircraft, airport, city"
-              className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm"
+              className="bg-card border border-border rounded-lg px-3 py-2 text-foreground text-sm"
             />
             {(filters.type === 'AIRCRAFT_SALE' || filters.type === 'ALL') && (
               <details className="relative">
-                <summary className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm cursor-pointer list-none hover:bg-slate-700">
+                <summary className="bg-card border border-border rounded-lg px-3 py-2 text-foreground text-sm cursor-pointer list-none hover:bg-secondary">
                   Filters ▾
                 </summary>
-                <div className="absolute right-0 top-full mt-2 bg-slate-800 border border-slate-700 rounded-xl p-4 w-72 shadow-xl z-30">
+                <div className="absolute right-0 top-full mt-2 bg-card border border-border rounded-xl p-4 w-72 shadow-xl z-30">
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Make</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Make</label>
                       <select
                         value={filters.make}
                         onChange={(e) => setFilters((prev) => ({ ...prev, make: e.target.value }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                       >
                         <option value="">All Makes</option>
                         {AIRCRAFT_MAKE_OPTIONS.map((m) => (
@@ -635,54 +635,54 @@ export default function MarketplacePage() {
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Min Year</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Min Year</label>
                         <input
                           type="number"
                           value={filters.minYear}
                           onChange={(e) => setFilters((prev) => ({ ...prev, minYear: e.target.value }))}
                           placeholder="1960"
-                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                          className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Max Year</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Max Year</label>
                         <input
                           type="number"
                           value={filters.maxYear}
                           onChange={(e) => setFilters((prev) => ({ ...prev, maxYear: e.target.value }))}
                           placeholder="2025"
-                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                          className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                         />
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Min Price</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Min Price</label>
                         <input
                           type="number"
                           value={filters.minPrice}
                           onChange={(e) => setFilters((prev) => ({ ...prev, minPrice: e.target.value }))}
                           placeholder="$0"
-                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                          className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Max Price</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Max Price</label>
                         <input
                           type="number"
                           value={filters.maxPrice}
                           onChange={(e) => setFilters((prev) => ({ ...prev, maxPrice: e.target.value }))}
                           placeholder="Any"
-                          className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                          className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Engine Type</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Engine Type</label>
                       <select
                         value={filters.engineType}
                         onChange={(e) => setFilters((prev) => ({ ...prev, engineType: e.target.value }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                       >
                         <option value="">All Engines</option>
                         {ENGINE_TYPE_OPTIONS.map((opt) => (
@@ -693,7 +693,7 @@ export default function MarketplacePage() {
                     <button
                       type="button"
                       onClick={() => setFilters({ query: '', type: 'ALL', make: '', minYear: '', maxYear: '', minPrice: '', maxPrice: '', minTime: '', maxTime: '', engineType: '' })}
-                      className="w-full text-xs text-slate-400 hover:text-white"
+                      className="w-full text-xs text-muted-foreground hover:text-foreground"
                     >
                       Clear Filters
                     </button>
@@ -703,7 +703,7 @@ export default function MarketplacePage() {
             )}
             <button
               onClick={() => setShowForm(true)}
-              className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-sm"
+              className="bg-primary hover:bg-primary/90 text-foreground px-4 py-2 rounded-lg text-sm"
             >
               + Post Listing
             </button>
@@ -713,18 +713,18 @@ export default function MarketplacePage() {
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {connectNotice && (
-          <div className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-sm px-4 py-2 rounded-lg">
+          <div className="bg-primary/10 border border-primary/30 text-primary text-sm px-4 py-2 rounded-lg">
             {connectNotice}
           </div>
         )}
         {showForm && (
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+          <div className="bg-card border border-border rounded-2xl p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-white">Create Listing</h2>
-              <button onClick={() => setShowForm(false)} className="text-slate-400 hover:text-white">✕</button>
+              <h2 className="text-xl font-semibold text-foreground">Create Listing</h2>
+              <button onClick={() => setShowForm(false)} className="text-muted-foreground hover:text-foreground">✕</button>
             </div>
             {!session && (
-              <div className="bg-slate-700 text-white text-sm rounded-lg px-3 py-2 mb-4">
+              <div className="bg-secondary text-foreground text-sm rounded-lg px-3 py-2 mb-4">
                 Please sign in to post a listing.
               </div>
             )}
@@ -735,11 +735,11 @@ export default function MarketplacePage() {
             )}
             <form onSubmit={handleCreateListing} className="grid md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Listing Type</label>
+                <label className="block text-sm text-muted-foreground mb-1">Listing Type</label>
                 <select
                   value={formData.type}
                   onChange={(e) => setFormData((prev) => ({ ...prev, type: e.target.value as ListingType }))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-foreground"
                   required
                 >
                   {LISTING_TYPE_OPTIONS.map((opt) => (
@@ -748,90 +748,90 @@ export default function MarketplacePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Title</label>
+                <label className="block text-sm text-muted-foreground mb-1">Title</label>
                 <input
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-foreground"
                   placeholder="e.g., 1978 Piper Archer Share"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Aircraft Type</label>
+                <label className="block text-sm text-muted-foreground mb-1">Aircraft Type</label>
                 <input
                   type="text"
                   value={formData.aircraftType}
                   onChange={(e) => setFormData((prev) => ({ ...prev, aircraftType: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-foreground"
                   placeholder="Cessna 182T"
                   required
                 />
               </div>
               <div className="space-y-2">
-                <label className="block text-sm text-slate-400 mb-1">Home Airport (ICAO)</label>
+                <label className="block text-sm text-muted-foreground mb-1">Home Airport (ICAO)</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={formData.airportIcao}
                     onChange={(e) => setFormData((prev) => ({ ...prev, airportIcao: e.target.value.toUpperCase() }))}
-                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white uppercase"
+                    className="flex-1 bg-secondary/50 border border-border rounded-lg px-3 py-2 text-foreground uppercase"
                     placeholder="KAPA"
                     required
                   />
                   <button
                     type="button"
                     onClick={handleAirportLookup}
-                    className="bg-slate-700 text-white px-3 rounded-lg"
+                    className="bg-secondary text-foreground px-3 rounded-lg"
                   >
                     Lookup
                   </button>
                 </div>
-                {airportLookupState === 'loading' && <p className="text-xs text-slate-400">Looking up airport…</p>}
+                {airportLookupState === 'loading' && <p className="text-xs text-muted-foreground">Looking up airport…</p>}
                 {airportLookupState === 'error' && <p className="text-xs text-rose-300">Could not find airport.</p>}
                 {airportLookup && (
-                  <p className="text-xs text-emerald-300">
+                  <p className="text-xs text-primary/80">
                     {airportLookup.name} • {airportLookup.city}
                   </p>
                 )}
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Price (USD)</label>
+                <label className="block text-sm text-muted-foreground mb-1">Price (USD)</label>
                 <input
                   type="number"
                   value={formData.price}
                   onChange={(e) => setFormData((prev) => ({ ...prev, price: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-foreground"
                   placeholder="Optional"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Share Percent</label>
+                <label className="block text-sm text-muted-foreground mb-1">Share Percent</label>
                 <input
                   type="number"
                   value={formData.sharePercent}
                   onChange={(e) => setFormData((prev) => ({ ...prev, sharePercent: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-foreground"
                   placeholder="Optional"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Total Hours</label>
+                <label className="block text-sm text-muted-foreground mb-1">Total Hours</label>
                 <input
                   type="number"
                   value={formData.hours}
                   onChange={(e) => setFormData((prev) => ({ ...prev, hours: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-foreground"
                   placeholder="Optional"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Contact Method</label>
+                <label className="block text-sm text-muted-foreground mb-1">Contact Method</label>
                 <select
                   value={formData.contactMethod}
                   onChange={(e) => setFormData((prev) => ({ ...prev, contactMethod: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-foreground"
                 >
                   <option value="email">Email</option>
                   <option value="phone">Phone</option>
@@ -839,12 +839,12 @@ export default function MarketplacePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Contact Detail</label>
+                <label className="block text-sm text-muted-foreground mb-1">Contact Detail</label>
                 <input
                   type="text"
                   value={formData.contactValue}
                   onChange={(e) => setFormData((prev) => ({ ...prev, contactValue: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-foreground"
                   placeholder="you@example.com"
                 />
               </div>
@@ -852,26 +852,26 @@ export default function MarketplacePage() {
               {/* Aircraft-specific fields - show when AIRCRAFT_SALE */}
               {(formData.type === 'AIRCRAFT_SALE') && (
                 <>
-                  <div className="md:col-span-2 border-t border-slate-700 pt-4 mt-2">
-                    <h3 className="text-white font-medium mb-3">Aircraft Details</h3>
+                  <div className="md:col-span-2 border-t border-border pt-4 mt-2">
+                    <h3 className="text-foreground font-medium mb-3">Aircraft Details</h3>
                   </div>
                   <div className="grid md:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">N-Number</label>
+                      <label className="block text-xs text-muted-foreground mb-1">N-Number</label>
                       <input
                         type="text"
                         value={formData.nNumber}
                         onChange={(e) => setFormData((prev) => ({ ...prev, nNumber: e.target.value.toUpperCase() }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                         placeholder="N123AB"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Make</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Make</label>
                       <select
                         value={formData.make}
                         onChange={(e) => setFormData((prev) => ({ ...prev, make: e.target.value }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                       >
                         <option value="">Select Make</option>
                         {AIRCRAFT_MAKE_OPTIONS.map((m) => (
@@ -880,55 +880,55 @@ export default function MarketplacePage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Model</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Model</label>
                       <input
                         type="text"
                         value={formData.model}
                         onChange={(e) => setFormData((prev) => ({ ...prev, model: e.target.value }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                         placeholder="SR22T"
                       />
                     </div>
                   </div>
                   <div className="grid md:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Year</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Year</label>
                       <input
                         type="number"
                         value={formData.year}
                         onChange={(e) => setFormData((prev) => ({ ...prev, year: e.target.value }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                         placeholder="2018"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Total Time (hrs)</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Total Time (hrs)</label>
                       <input
                         type="number"
                         value={formData.totalTime}
                         onChange={(e) => setFormData((prev) => ({ ...prev, totalTime: e.target.value }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                         placeholder="1250"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Engine Time (hrs)</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Engine Time (hrs)</label>
                       <input
                         type="number"
                         value={formData.engineTime}
                         onChange={(e) => setFormData((prev) => ({ ...prev, engineTime: e.target.value }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                         placeholder="1250"
                       />
                     </div>
                   </div>
                   <div className="grid md:grid-cols-3 gap-3">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Fuel Type</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Fuel Type</label>
                       <select
                         value={formData.fuelType}
                         onChange={(e) => setFormData((prev) => ({ ...prev, fuelType: e.target.value }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                       >
                         <option value="">Select</option>
                         <option value="100LL">100LL</option>
@@ -937,11 +937,11 @@ export default function MarketplacePage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Registration Type</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Registration Type</label>
                       <select
                         value={formData.registrationType}
                         onChange={(e) => setFormData((prev) => ({ ...prev, registrationType: e.target.value }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                       >
                         <option value="">Select</option>
                         <option value="Standard">Standard</option>
@@ -951,11 +951,11 @@ export default function MarketplacePage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Seller Type</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Seller Type</label>
                       <select
                         value={formData.sellerType}
                         onChange={(e) => setFormData((prev) => ({ ...prev, sellerType: e.target.value }))}
-                        className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                        className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                       >
                         <option value="owner">Owner</option>
                         <option value="broker">Broker</option>
@@ -964,12 +964,12 @@ export default function MarketplacePage() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-400 mb-1">Video URL (YouTube)</label>
+                    <label className="block text-xs text-muted-foreground mb-1">Video URL (YouTube)</label>
                     <input
                       type="url"
                       value={formData.videoUrl}
                       onChange={(e) => setFormData((prev) => ({ ...prev, videoUrl: e.target.value }))}
-                      className="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-white text-sm"
+                      className="w-full bg-secondary/50 border border-border rounded px-2 py-1.5 text-foreground text-sm"
                       placeholder="https://youtube.com/watch?v=..."
                     />
                   </div>
@@ -977,11 +977,11 @@ export default function MarketplacePage() {
               )}
               
               <div className="md:col-span-2">
-                <label className="block text-sm text-slate-400 mb-1">Description</label>
+                <label className="block text-sm text-muted-foreground mb-1">Description</label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white"
+                  className="w-full bg-secondary/50 border border-border rounded-lg px-3 py-2 text-foreground"
                   rows={3}
                   placeholder="Aircraft condition, engine hours, hangar situation, etc."
                 />
@@ -990,14 +990,14 @@ export default function MarketplacePage() {
                 <button
                   type="button"
                   onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-slate-300 hover:text-white"
+                  className="px-4 py-2 text-foreground/80 hover:text-foreground"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg"
+                  className="px-4 py-2 bg-primary hover:bg-primary/90 text-foreground rounded-lg"
                 >
                   {formLoading ? 'Posting…' : 'Publish Listing'}
                 </button>
@@ -1007,7 +1007,7 @@ export default function MarketplacePage() {
         )}
 
         {loading ? (
-          <div className="bg-slate-800 border border-slate-700 rounded-2xl p-8 text-center text-slate-400">
+          <div className="bg-card border border-border rounded-2xl p-8 text-center text-muted-foreground">
             Loading listings…
           </div>
         ) : error ? (
@@ -1016,7 +1016,7 @@ export default function MarketplacePage() {
           </div>
         ) : (
           <div className="grid gap-6 lg:grid-cols-3">
-            <div className="lg:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-3">
+            <div className="lg:col-span-2 bg-card border border-border rounded-2xl p-3">
               <MarketplaceMap
                 listings={filteredListings}
                 selectedId={selectedListing}
@@ -1025,58 +1025,58 @@ export default function MarketplacePage() {
             </div>
             <div className="space-y-3">
               {filteredListings.length === 0 && (
-                <div className="bg-slate-800 border border-slate-700 rounded-xl p-8 text-center text-slate-400">
+                <div className="bg-card border border-border rounded-xl p-8 text-center text-muted-foreground">
                   No listings match your search yet.
                 </div>
               )}
               {filteredListings.map((listing) => (
                 <div
                   key={listing.id}
-                  className={`bg-slate-800 border rounded-xl p-4 transition-colors ${
-                    selectedListing === listing.id ? 'border-emerald-400' : 'border-slate-700'
+                  className={`bg-card border rounded-xl p-4 transition-colors ${
+                    selectedListing === listing.id ? 'border-primary' : 'border-border'
                   }`}
                   onMouseEnter={() => setSelectedListing(listing.id)}
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <div className="text-white font-semibold">{listing.title}</div>
-                      <div className="text-xs text-slate-400">
-                        {listing.nNumber && <span className="text-emerald-400 mr-2">{listing.nNumber}</span>}
+                      <div className="text-foreground font-semibold">{listing.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {listing.nNumber && <span className="text-primary mr-2">{listing.nNumber}</span>}
                         {listing.year && <span>{listing.year}</span>}
                         {listing.make && listing.model && <span> • {listing.make} {listing.model}</span>}
                         {listing.aircraftType && !listing.make && <span>{listing.aircraftType}</span>}
                       </div>
                     </div>
-                    <span className="text-xs px-2 py-1 rounded-full border border-slate-600 text-slate-300">
+                    <span className="text-xs px-2 py-1 rounded-full border border-border text-foreground/80">
                       {LISTING_TYPE_OPTIONS.find((opt) => opt.value === listing.type)?.label}
                     </span>
                   </div>
-                  <div className="text-sm text-slate-400 mt-2">
+                  <div className="text-sm text-muted-foreground mt-2">
                     {listing.airportIcao} {listing.airportCity ? `• ${listing.airportCity}` : ''}
                   </div>
                   {listing.price && (
-                    <div className="text-lg text-white font-semibold mt-1">
+                    <div className="text-lg text-foreground font-semibold mt-1">
                       ${listing.price.toLocaleString()}
-                      {listing.sharePercent && <span className="text-sm font-normal text-slate-400"> ({listing.sharePercent}% share)</span>}
+                      {listing.sharePercent && <span className="text-sm font-normal text-muted-foreground"> ({listing.sharePercent}% share)</span>}
                     </div>
                   )}
                   {/* Aircraft-specific info */}
                   {(listing.type === 'AIRCRAFT_SALE' || listing.totalTime) && (
-                    <div className="text-xs text-slate-400 mt-1">
+                    <div className="text-xs text-muted-foreground mt-1">
                       {listing.totalTime && <span>TT: {listing.totalTime.toLocaleString()} hrs</span>}
                       {listing.engineTime && <span> • Engine: {listing.engineTime.toLocaleString()} hrs</span>}
                       {listing.isVerified && (
-                        <span className="ml-2 text-emerald-400">✓ Verified</span>
+                        <span className="ml-2 text-primary">✓ Verified</span>
                       )}
                     </div>
                   )}
-                  <p className="text-sm text-slate-300 mt-3 line-clamp-3">
+                  <p className="text-sm text-foreground/80 mt-3 line-clamp-3">
                     {listing.description || 'No description provided.'}
                   </p>
                   <div className="mt-3 flex items-center justify-between gap-3">
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-muted-foreground">
                       Posted by{' '}
-                      <span className="text-slate-300">
+                      <span className="text-foreground/80">
                         {listing.user?.id ? (
                           <Link
                             href={`/pilots/${encodeURIComponent(listing.user?.username || listing.user.id)}`}
@@ -1095,12 +1095,12 @@ export default function MarketplacePage() {
                         {friends.some((f) => f.id === listing.user.id) ? (
                           <button
                             onClick={() => openChatWithUser(listing.user.id)}
-                            className="px-3 py-1 rounded-full text-xs bg-emerald-500/20 border border-emerald-400 text-emerald-200"
+                            className="px-3 py-1 rounded-full text-xs bg-primary/20 border border-primary text-primary"
                           >
                             Chat
                           </button>
                         ) : outgoingRequests.some((req) => req.recipient?.id === listing.user.id) ? (
-                          <span className="px-3 py-1 rounded-full text-xs bg-slate-700 text-slate-300">
+                          <span className="px-3 py-1 rounded-full text-xs bg-secondary text-foreground/80">
                             Request Sent
                           </span>
                         ) : (
@@ -1113,7 +1113,7 @@ export default function MarketplacePage() {
                               setFriendDraftFor(listing.user.id);
                               setFriendDraftMessage('');
                             }}
-                            className="px-3 py-1 rounded-full text-xs bg-slate-700 text-slate-200"
+                            className="px-3 py-1 rounded-full text-xs bg-secondary text-foreground/70"
                           >
                             Add Friend
                           </button>
@@ -1123,8 +1123,8 @@ export default function MarketplacePage() {
                   </div>
 
                   {friendDraftFor && listing.user?.id === friendDraftFor && (
-                    <div className="w-full mt-3 bg-slate-900 border border-slate-700 rounded-xl p-3">
-                      <div className="text-xs text-slate-400 mb-2">
+                    <div className="w-full mt-3 bg-secondary/50 border border-border rounded-xl p-3">
+                      <div className="text-xs text-muted-foreground mb-2">
                         Optional note (max 3 sentences). Sent encrypted.
                       </div>
                       <textarea
@@ -1132,11 +1132,11 @@ export default function MarketplacePage() {
                         onChange={(e) => setFriendDraftMessage(e.target.value)}
                         rows={3}
                         placeholder="Hey — interested in connecting about this listing?"
-                        className="w-full bg-slate-950/40 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white"
+                        className="w-full bg-background/40 border border-border rounded-lg px-3 py-2 text-sm text-foreground"
                       />
                       <div className="mt-2 flex items-center justify-between gap-2">
                         <div
-                          className={`text-xs ${countSentences(friendDraftMessage) > 3 ? 'text-amber-300' : 'text-slate-500'}`}
+                          className={`text-xs ${countSentences(friendDraftMessage) > 3 ? 'text-amber-300' : 'text-muted-foreground'}`}
                         >
                           {countSentences(friendDraftMessage)}/3 sentences
                         </div>
@@ -1146,14 +1146,14 @@ export default function MarketplacePage() {
                               setFriendDraftFor(null);
                               setFriendDraftMessage('');
                             }}
-                            className="px-3 py-1 rounded-full text-xs bg-slate-800 text-slate-300"
+                            className="px-3 py-1 rounded-full text-xs bg-card text-foreground/80"
                           >
                             Cancel
                           </button>
                           <button
                             disabled={countSentences(friendDraftMessage) > 3}
                             onClick={() => sendFriendRequest(listing.user.id, friendDraftMessage)}
-                            className="px-3 py-1 rounded-full text-xs bg-emerald-500/20 border border-emerald-400 text-emerald-200 disabled:opacity-50"
+                            className="px-3 py-1 rounded-full text-xs bg-primary/20 border border-primary text-primary disabled:opacity-50"
                           >
                             Send
                           </button>
@@ -1162,11 +1162,11 @@ export default function MarketplacePage() {
                     </div>
                   )}
                   {listing.contactValue && (
-                    <div className="mt-3 text-xs text-slate-400">
-                      Contact via {listing.contactMethod}: <span className="text-white">{listing.contactValue}</span>
+                    <div className="mt-3 text-xs text-muted-foreground">
+                      Contact via {listing.contactMethod}: <span className="text-foreground">{listing.contactValue}</span>
                     </div>
                   )}
-                  <div className="text-xs text-slate-500 mt-2">
+                  <div className="text-xs text-muted-foreground mt-2">
                     Posted {new Date(listing.createdAt).toLocaleDateString()}
                   </div>
                 </div>

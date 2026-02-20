@@ -62,12 +62,12 @@ export default function MarketplaceMap({ listings, selectedId, onSelect }: Marke
           <Popup>
             <div className="space-y-1">
               <div className="font-semibold">{listing.title}</div>
-              <div className="text-xs text-slate-600">{listing.airportIcao}</div>
+              <div className="text-xs text-muted-foreground">{listing.airportIcao}</div>
               {listing.price && (
                 <div className="text-sm">${listing.price.toLocaleString()}</div>
               )}
               {listing.sharePercent && (
-                <div className="text-xs text-slate-500">Share: {listing.sharePercent}%</div>
+                <div className="text-xs text-muted-foreground">Share: {listing.sharePercent}%</div>
               )}
             </div>
           </Popup>
