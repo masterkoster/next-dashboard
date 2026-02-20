@@ -96,6 +96,7 @@ export default function WeatherRadarMap() {
   const [basemap, setBasemap] = useState<'light' | 'dark'>('light');
   const [showLegend, setShowLegend] = useState(false);
   const [speedMs, setSpeedMs] = useState(450);
+  const [preloadEnabled, setPreloadEnabled] = useState(true);
 
   // Frames are fixed for IEM (0-55 minutes). No fetch needed.
   useEffect(() => {
@@ -118,6 +119,10 @@ export default function WeatherRadarMap() {
       maxZoom: 19,
     }).addTo(map);
 
+    const pauseOnMove = () => setIsPlaying(false);
+    map.on('movestart', pauseOnMove);
+    map.on('zoomstart', pauseOnMove);
+
     return () => {
       playTokenRef.current += 1;
       if (transitionRafRef.current) {
@@ -125,6 +130,8 @@ export default function WeatherRadarMap() {
         transitionRafRef.current = null;
       }
       setMapReady(false);
+      map.off('movestart', pauseOnMove);
+      map.off('zoomstart', pauseOnMove);
       map.remove();
     };
   }, []);
@@ -179,6 +186,9 @@ export default function WeatherRadarMap() {
         maxZoom: 12,
         zIndex: 500,
         subdomains: ['1', '2', '3'],
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        keepBuffer: 4,
       }).addTo(map);
 
       radarLayerARef.current.on('tileerror', () => {
@@ -198,6 +208,9 @@ export default function WeatherRadarMap() {
         maxZoom: 12,
         zIndex: 501,
         subdomains: ['1', '2', '3'],
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        keepBuffer: 4,
       }).addTo(map);
 
       radarLayerBRef.current.on('tileerror', () => {
@@ -253,6 +266,23 @@ export default function WeatherRadarMap() {
 
     const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
+    const waitForVisibleTiles = (layer: L.TileLayer, timeoutMs: number) => {
+      return new Promise<void>((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          layer.off('load', onLoad);
+          window.clearTimeout(timer);
+          resolve();
+        };
+
+        const onLoad = () => finish();
+        layer.on('load', onLoad);
+        const timer = window.setTimeout(() => finish(), timeoutMs);
+      });
+    };
+
     const fade = (activeLayer: L.TileLayer, inactiveLayer: L.TileLayer, duration: number) => {
       return new Promise<void>((resolve) => {
         const start = performance.now();
@@ -297,7 +327,13 @@ export default function WeatherRadarMap() {
         activeLayer.setOpacity(radarOpacity);
         inactiveLayer.setOpacity(0);
 
-        const fadeDuration = Math.max(220, Math.min(900, Math.round(speedMs * 0.7)));
+        if (preloadEnabled) {
+          // Wait briefly for the next frame tiles to load before fading.
+          await waitForVisibleTiles(inactiveLayer, 900);
+        }
+
+        // Favor continuous blending over pauses.
+        const fadeDuration = Math.max(260, Math.min(1400, Math.round(speedMs)));
         await fade(activeLayer, inactiveLayer, fadeDuration);
 
         if (playTokenRef.current !== token) return;
@@ -305,8 +341,7 @@ export default function WeatherRadarMap() {
         activeRadarLayerRef.current = activeKey === 'A' ? 'B' : 'A';
         setFrameIndex(nextIdx);
 
-        const rest = Math.max(0, Math.round(speedMs - fadeDuration));
-        if (rest) await sleep(rest);
+        // No extra rest; keep it moving.
       }
     };
 
@@ -319,7 +354,7 @@ export default function WeatherRadarMap() {
         transitionRafRef.current = null;
       }
     };
-  }, [isPlaying, mapReady, radarOpacity, speedMs, frames]);
+  }, [isPlaying, mapReady, radarOpacity, speedMs, frames, preloadEnabled]);
 
   const frameLabel = useMemo(() => {
     if (!currentFrame) return '—';
@@ -433,6 +468,13 @@ export default function WeatherRadarMap() {
                 title="Toggle radar source"
               >
                 {radarMode === 'mrms' ? 'Smooth' : 'Standard'}
+              </button>
+              <button
+                onClick={() => setPreloadEnabled((v) => !v)}
+                className="text-xs px-3 py-2 rounded-full bg-slate-800/70 hover:bg-slate-700/70 text-slate-200 border border-slate-700"
+                title="Preload tiles before fading"
+              >
+                Preload: {preloadEnabled ? 'On' : 'Off'}
               </button>
               <button
                 onClick={() => setBasemap((b) => (b === 'light' ? 'dark' : 'light'))}
