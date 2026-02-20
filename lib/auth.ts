@@ -88,6 +88,7 @@ export const authOptions: any = {
             email: user.email, 
             name: user.name,
             username: user.username,
+            image: user.image,
             emailVerified: user.emailVerified,
             role: user.role,
             tier: user.tier,
@@ -150,6 +151,7 @@ export const authOptions: any = {
       if (user) {
         token.id = user.id
         token.username = user.username
+        token.image = user.image
         token.emailVerified = user.emailVerified
         token.role = user.role
         token.tier = user.tier
@@ -173,6 +175,7 @@ export const authOptions: any = {
       if (session.user) {
         session.user.id = token.id
         session.user.username = token.username
+        session.user.image = token.image
         session.user.emailVerified = token.emailVerified
         session.user.role = token.role
         session.user.tier = token.tier

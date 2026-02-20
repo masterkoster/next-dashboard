@@ -28,6 +28,13 @@ type MessageItem = {
   sender: { id: string; name?: string | null; username?: string | null };
 };
 
+type InviteItem = {
+  id: string;
+  role: string;
+  createdAt: string;
+  group: { id: string; name: string; description?: string | null };
+};
+
 type PilotProfile = {
   id: string;
   userId: string;
@@ -49,6 +56,18 @@ type UserMeta = {
   image?: string | null;
   age?: number | null;
   homeAirport?: string | null;
+  isOnline?: boolean;
+  lastSeenAt?: string | null;
+};
+
+type FriendWithStatus = {
+  id: string;
+  name: string | null;
+  username: string | null;
+  image: string | null;
+  homeAirport: string | null;
+  isOnline: boolean;
+  lastSeenAt: string | null;
 };
 
 function initials(name?: string | null) {
@@ -73,6 +92,21 @@ function formatLocation(homeAirport?: string | null, airport?: AirportDetails | 
   return `${airport.state || '—'} • ${name}${place ? ` (${place})` : ''} • ${icao}`;
 }
 
+function formatLastSeen(dateStr: string) {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 export default function ChatWidget() {
   const { data: session } = useSession();
   const [open, setOpen] = useState(false);
@@ -82,11 +116,13 @@ export default function ChatWidget() {
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [incomingRequests, setIncomingRequests] = useState<any[]>([]);
   const [outgoingRequests, setOutgoingRequests] = useState<any[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<InviteItem[]>([]);
   const [messageInput, setMessageInput] = useState('');
   const [userMeta, setUserMeta] = useState<Record<string, UserMeta>>({});
   const [airportCache, setAirportCache] = useState<Record<string, AirportDetails>>({});
   const [decryptedBodies, setDecryptedBodies] = useState<Record<string, string>>({});
   const [e2eeNotice, setE2eeNotice] = useState<string | null>(null);
+  const [friends, setFriends] = useState<FriendWithStatus[]>([]);
 
   const currentUserId = session?.user?.id;
 
@@ -107,6 +143,17 @@ export default function ChatWidget() {
     publishMyPublicKey().catch(() => {});
     loadConversations();
     loadRequests();
+    loadInvites();
+    loadFriends();
+
+    // Heartbeat every 30 seconds to maintain online presence
+    const heartbeat = () => {
+      fetch('/api/presence/heartbeat', { method: 'POST' }).catch(() => {});
+    };
+    heartbeat();
+    const interval = setInterval(heartbeat, 30000);
+
+    return () => clearInterval(interval);
   }, [session]);
 
   useEffect(() => {
@@ -241,6 +288,49 @@ export default function ChatWidget() {
     }
   }
 
+  async function loadInvites() {
+    try {
+      const res = await fetch('/api/invitations');
+      if (!res.ok) {
+        setPendingInvites([]);
+        return;
+      }
+      const data = await res.json();
+      setPendingInvites(Array.isArray(data) ? (data as InviteItem[]) : []);
+    } catch (error) {
+      console.error('Failed to load invites', error);
+      setPendingInvites([]);
+    }
+  }
+
+  async function loadFriends() {
+    try {
+      const res = await fetch('/api/friends/with-status');
+      const data = await res.json();
+      setFriends(data.friends || []);
+    } catch (error) {
+      console.error('Failed to load friends', error);
+      setFriends([]);
+    }
+  }
+
+  async function acceptInvite(inviteId: string) {
+    try {
+      const res = await fetch('/api/invitations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ inviteId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to accept invitation');
+      }
+      setPendingInvites((prev) => prev.filter((i) => i.id !== inviteId));
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
   async function openConversation(conversationId: string) {
     setActiveConversationId(conversationId);
     setView('chat');
@@ -252,6 +342,27 @@ export default function ChatWidget() {
       setMessages(data.messages || []);
     } catch (error) {
       console.error('Failed to load messages', error);
+    }
+  }
+
+  async function startConversation(userId: string) {
+    try {
+      const res = await fetch('/api/conversations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        console.error('Failed to start conversation:', data.error);
+        return;
+      }
+      await loadConversations();
+      if (data.conversationId) {
+        await openConversation(data.conversationId);
+      }
+    } catch (error) {
+      console.error('Failed to start conversation', error);
     }
   }
 
@@ -375,6 +486,36 @@ export default function ChatWidget() {
 
           {view === 'list' && (
             <div className="flex-1 overflow-y-auto">
+              {pendingInvites.length > 0 && (
+                <div className="p-3 border-b border-slate-800">
+                  <div className="text-xs uppercase text-slate-500 mb-2">Invitations</div>
+                  <div className="space-y-2">
+                    {pendingInvites.map((invite) => (
+                      <div key={invite.id} className="bg-slate-800 rounded-lg p-2">
+                        <div className="text-sm text-white">{invite.group?.name || 'Flying club'}</div>
+                        <div className="text-[11px] text-slate-400 mt-0.5">
+                          Role: {invite.role}
+                        </div>
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => acceptInvite(invite.id)}
+                            className="flex-1 text-xs bg-emerald-500/20 border border-emerald-400 text-emerald-200 rounded-full py-1"
+                          >
+                            Accept
+                          </button>
+                          <Link
+                            href={`/modules/flying-club/groups/${encodeURIComponent(invite.group?.id || '')}`}
+                            className="flex-1 text-center text-xs bg-slate-700 text-slate-300 rounded-full py-1"
+                          >
+                            View
+                          </Link>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {incomingRequests.length > 0 && (
                 <div className="p-3 border-b border-slate-800">
                   <div className="text-xs uppercase text-slate-500 mb-2">Requests</div>
@@ -410,6 +551,52 @@ export default function ChatWidget() {
               )}
 
               <div className="p-3">
+                {friends.length > 0 && (
+                  <>
+                    <div className="text-xs uppercase text-slate-500 mb-2">Friends</div>
+                    <div className="space-y-2 mb-4">
+                      {friends.map((friend) => {
+                        const homeAirport = friend.homeAirport || null;
+                        const airport = homeAirport ? airportCache[homeAirport.toString().trim().toUpperCase()] : null;
+                        return (
+                          <button
+                            key={friend.id}
+                            onClick={() => startConversation(friend.id)}
+                            className="w-full text-left bg-slate-800 rounded-lg p-2 hover:bg-slate-700"
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="relative flex-shrink-0">
+                                {friend.image ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={friend.image}
+                                    alt=""
+                                    className="h-8 w-8 rounded-full border border-slate-700 object-cover"
+                                  />
+                                ) : (
+                                  <div className="h-8 w-8 rounded-full bg-slate-700/70 border border-slate-600 flex items-center justify-center text-white text-xs font-semibold">
+                                    {initials(friend.name || friend.username)}
+                                  </div>
+                                )}
+                                <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-900 ${friend.isOnline ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-sm text-white truncate">
+                                  {friend.isOnline && <span className="text-emerald-400 mr-1">●</span>}
+                                  {friend.name || friend.username || 'Pilot'}
+                                </div>
+                                <div className="text-[11px] text-slate-400 truncate">
+                                  {friend.isOnline ? 'Online' : friend.lastSeenAt ? `Last seen ${formatLastSeen(friend.lastSeenAt)}` : formatLocation(homeAirport, airport || null)}
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </>
+                )}
+
                 <div className="text-xs uppercase text-slate-500 mb-2">Chats</div>
                 {conversations.length === 0 ? (
                   <div className="text-sm text-slate-400">No conversations yet.</div>
@@ -417,6 +604,8 @@ export default function ChatWidget() {
                   <div className="space-y-2">
                     {conversations.map((conversation) => {
                       const participant = conversation.participants.find((p) => p.user.id !== currentUserId)?.user;
+                      const friendStatus = friends.find(f => f.id === participant?.id);
+                      const isOnline = friendStatus?.isOnline || false;
                       const meta = participant?.id ? userMeta[participant.id] : null;
                       const homeAirport = meta?.homeAirport || null;
                       const airport = homeAirport ? airportCache[homeAirport.toString().trim().toUpperCase()] : null;
@@ -437,18 +626,21 @@ export default function ChatWidget() {
                                 onClick={(e) => e.stopPropagation()}
                                 className="flex items-center gap-2 min-w-0"
                               >
-                                {meta?.image ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={meta.image}
-                                    alt=""
-                                    className="h-8 w-8 rounded-full border border-slate-700 object-cover flex-shrink-0"
-                                  />
-                                ) : (
-                                  <div className="h-8 w-8 rounded-full bg-slate-700/70 border border-slate-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
-                                    {initials(meta?.displayName || participant?.name || participant?.username)}
-                                  </div>
-                                )}
+                                <div className="relative flex-shrink-0">
+                                  {meta?.image ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                      src={meta.image}
+                                      alt=""
+                                      className="h-8 w-8 rounded-full border border-slate-700 object-cover flex-shrink-0"
+                                    />
+                                  ) : (
+                                    <div className="h-8 w-8 rounded-full bg-slate-700/70 border border-slate-600 flex items-center justify-center text-white text-xs font-semibold flex-shrink-0">
+                                        {initials(meta?.displayName || participant?.name || participant?.username)}
+                                    </div>
+                                  )}
+                                  <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-900 ${isOnline ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                                </div>
                                 <div className="min-w-0">
                                   <div className="text-sm text-white truncate">
                                     {meta?.displayName || participant?.name || participant?.username || 'Pilot'}

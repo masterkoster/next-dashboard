@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSession, signIn } from 'next-auth/react';
-import { Search, Filter, MapPin, Clock, Gauge, User, ChevronRight, Plane } from 'lucide-react';
+import { Search, Filter, MapPin, Clock, Gauge, User, Plane } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 type ListingType = 'FOR_SALE' | 'SHARE_SELL' | 'SHARE_WANTED' | 'AIRCRAFT_SALE';
@@ -135,7 +134,6 @@ const DEMO_LISTINGS: MarketplaceListing[] = [
 ];
 
 export default function MarketplacePage() {
-  const { data: session } = useSession();
   const [listings, setListings] = useState<MarketplaceListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -182,35 +180,6 @@ export default function MarketplacePage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="border-b border-border bg-card/80 backdrop-blur-xl sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2">
-              <Plane className="h-6 w-6 text-primary" />
-              <span className="text-xl font-bold">SkyMarket</span>
-            </Link>
-            <nav className="flex items-center gap-6">
-              <Link href="/modules/marketplace" className="text-sm font-medium text-primary">
-                Browse
-              </Link>
-              <Link href="/modules/marketplace?sell=true" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                Sell Aircraft
-              </Link>
-              {session ? (
-                <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-                  Dashboard
-                </Link>
-              ) : (
-                <Button size="sm" onClick={() => signIn()}>
-                  Sign In
-                </Button>
-              )}
-            </nav>
-          </div>
-        </div>
-      </header>
-
       {/* Hero */}
       <section className="relative py-16 lg:py-24 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-primary/5" />

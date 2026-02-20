@@ -87,17 +87,15 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <div className="border-b border-border bg-background/90 backdrop-blur-xl sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/modules/marketplace" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
-            <span>←</span><span>Back to Marketplace</span>
+      <main className="max-w-7xl mx-auto px-4 py-10">
+        <div className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
+          <Link href="/modules/marketplace" className="inline-flex items-center gap-2 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:border-primary/40 hover:text-foreground">
+            <span>←</span>
+            <span>Back to Marketplace</span>
           </Link>
-          <span className="text-xs text-muted-foreground font-mono">#{listing.id.slice(0, 8).toUpperCase()}</span>
+          <span className="font-mono text-xs">#{listing.id.slice(0, 8).toUpperCase()}</span>
         </div>
-      </div>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
         {/* Title Section - Using v0 ListingHeader */}
         <ListingHeader 
           title={`${listing.year ? `${listing.year} ` : ''}${listing.make || ''} ${listing.model || ''}`.trim() || listing.title}
