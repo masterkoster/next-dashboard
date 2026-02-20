@@ -9,7 +9,7 @@ const navLinks = [
   { label: "Modules", href: "#modules" },
   { label: "Pricing", href: "#pricing" },
   { label: "Privacy", href: "#privacy" },
-  { label: "Marketplace", href: "/listing" },
+  { label: "Marketplace", href: "/modules/marketplace" },
 ]
 
 export function LandingNavbar() {
