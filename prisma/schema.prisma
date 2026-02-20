@@ -12,6 +12,7 @@ model User {
   username         String   @unique @db.NVarChar(50)
   email            String   @unique @db.NVarChar(255)
   name             String?  @db.NVarChar(255)
+  image            String?  @db.NVarChar(500) // Profile image URL
   purchasedModules String   @default("[]") @db.NVarChar(Max)
   credits          Int      @default(0)
   createdAt        DateTime @default(now())
@@ -55,14 +56,29 @@ model User {
   friendRequestsReceived FriendRequest[]       @relation("FriendRequestRecipient")
   conversationParticipants ConversationParticipant[]
   messages               Message[]
+  presence               UserPresence?
+  aircraftInquiries      AircraftInquiry[]
 
   @@map("User")
+}
+
+model UserPresence {
+  id        String   @id @default(uuid()) @db.NVarChar(36)
+  userId    String   @unique @db.NVarChar(36)
+  isOnline  Boolean  @default(false)
+  lastSeenAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([isOnline])
+  @@map("UserPresence")
 }
 
 model MarketplaceListing {
   id            String   @id @default(cuid()) @db.NVarChar(36)
   userId        String   @db.NVarChar(36)
-  type          String   @default("FOR_SALE") @db.NVarChar(20)
+  type          String   @default("FOR_SALE") @db.NVarChar(20) // FOR_SALE, SHARE_SELL, SHARE_WANTED, AIRCRAFT_SALE
   title         String   @db.NVarChar(200)
   description   String?  @db.NVarChar(Max)
   aircraftType  String   @db.NVarChar(100)
@@ -81,10 +97,56 @@ model MarketplaceListing {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  // Aircraft-specific fields (new)
+  nNumber          String?   @db.NVarChar(10)   // N-number (tail number)
+  make            String?   @db.NVarChar(100)  // Manufacturer
+  model           String?   @db.NVarChar(100)  // Model
+  year            Int?                         // Year built
+  totalTime       Int?                         // Total time on aircraft (TTSN)
+  engineTime      Int?                         // Engine hours
+  propTime        Int?                         // Prop hours
+  airframeTime    Int?                         // Airframe hours
+  annualDue       DateTime?                    // Annual inspection expiration
+  registrationType String? @db.NVarChar(50)  // Standard, Limited, Experimental, etc.
+  airworthiness  String? @db.NVarChar(50)    // Current, Expired
+  fuelType        String? @db.NVarChar(20)   // 100LL, JetA, UL94
+  avionics       String? @db.NVarChar(Max)   // JSON array of avionics
+  features        String? @db.NVarChar(Max)   // JSON array of features
+  upgrades        String? @db.NVarChar(Max)   // JSON array of upgrades
+  sellerType      String? @db.NVarChar(20)    // owner, broker, dealer
+  isVerified     Boolean  @default(false)     // Verified listing
+  verifiedAt     DateTime?                    // When verified
+  faaData        String? @db.NVarChar(Max)    // Cached FAA response
+  videoUrl        String? @db.NVarChar(500)   // YouTube/video link
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inquiries AircraftInquiry[]
 
   @@index([airportIcao], name: "idx_marketplace_airport")
+  @@index([type])
+  @@index([nNumber])
+  @@index([make, model])
+  @@index([price])
   @@map("MarketplaceListing")
+}
+
+model AircraftInquiry {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  listingId   String   @db.NVarChar(36)
+  buyerId     String   @db.NVarChar(36)
+  message     String   @db.NVarChar(Max)
+  offerAmount Int?                         // If making an offer
+  status      String   @default("unread") @db.NVarChar(20) // unread, read, responded, archived
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  listing MarketplaceListing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  buyer   User @relation(fields: [buyerId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([listingId])
+  @@index([buyerId])
+  @@index([status])
+  @@map("AircraftInquiry")
 }
 
 model PilotProfile {

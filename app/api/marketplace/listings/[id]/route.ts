@@ -21,6 +21,26 @@ const PUBLIC_LISTING_SELECT = {
   status: true,
   createdAt: true,
   images: true,
+  // Aircraft-specific fields
+  nNumber: true,
+  make: true,
+  model: true,
+  year: true,
+  totalTime: true,
+  engineTime: true,
+  propTime: true,
+  airframeTime: true,
+  annualDue: true,
+  registrationType: true,
+  airworthiness: true,
+  fuelType: true,
+  avionics: true,
+  features: true,
+  upgrades: true,
+  sellerType: true,
+  isVerified: true,
+  verifiedAt: true,
+  videoUrl: true,
   user: {
     select: {
       id: true,
@@ -80,6 +100,24 @@ export async function PUT(
     if (body.price !== undefined) data.price = normalizeInt(body.price);
     if (body.sharePercent !== undefined) data.sharePercent = normalizeInt(body.sharePercent);
     if (body.status) data.status = body.status.toString().toLowerCase() === 'inactive' ? 'inactive' : 'active';
+    
+    // Aircraft-specific fields
+    if (body.nNumber !== undefined) data.nNumber = body.nNumber?.toString().slice(0, 10) || null;
+    if (body.make !== undefined) data.make = body.make?.toString().slice(0, 100) || null;
+    if (body.model !== undefined) data.model = body.model?.toString().slice(0, 100) || null;
+    if (body.year !== undefined) data.year = normalizeInt(body.year);
+    if (body.totalTime !== undefined) data.totalTime = normalizeInt(body.totalTime);
+    if (body.engineTime !== undefined) data.engineTime = normalizeInt(body.engineTime);
+    if (body.propTime !== undefined) data.propTime = normalizeInt(body.propTime);
+    if (body.airframeTime !== undefined) data.airframeTime = normalizeInt(body.airframeTime);
+    if (body.registrationType !== undefined) data.registrationType = body.registrationType?.toString().slice(0, 50) || null;
+    if (body.airworthiness !== undefined) data.airworthiness = body.airworthiness?.toString().slice(0, 50) || null;
+    if (body.fuelType !== undefined) data.fuelType = body.fuelType?.toString().slice(0, 20) || null;
+    if (body.sellerType !== undefined) data.sellerType = body.sellerType?.toString().slice(0, 20) || null;
+    if (body.videoUrl !== undefined) data.videoUrl = body.videoUrl?.toString().slice(0, 500) || null;
+    if (body.avionics !== undefined) data.avionics = Array.isArray(body.avionics) ? JSON.stringify(body.avionics.slice(0, 50)) : null;
+    if (body.features !== undefined) data.features = Array.isArray(body.features) ? JSON.stringify(body.features.slice(0, 50)) : null;
+    if (body.upgrades !== undefined) data.upgrades = Array.isArray(body.upgrades) ? JSON.stringify(body.upgrades.slice(0, 50)) : null;
 
     const updated = await prisma.marketplaceListing.update({
       where: { id },
@@ -127,6 +165,9 @@ function sanitizeListing(listing: any) {
   return {
     ...listing,
     images: listing.images ? safeParseJSON(listing.images) : [],
+    avionics: listing.avionics ? safeParseJSON(listing.avionics) : [],
+    features: listing.features ? safeParseJSON(listing.features) : [],
+    upgrades: listing.upgrades ? safeParseJSON(listing.upgrades) : [],
   };
 }
 

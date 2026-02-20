@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth, prisma } from '@/lib/auth';
 
-const LISTING_TYPES = ['FOR_SALE', 'SHARE_SELL', 'SHARE_WANTED'] as const;
+const LISTING_TYPES = ['FOR_SALE', 'SHARE_SELL', 'SHARE_WANTED', 'AIRCRAFT_SALE'] as const;
 
 type ListingType = (typeof LISTING_TYPES)[number];
 
@@ -25,6 +25,25 @@ const PUBLIC_LISTING_SELECT = {
   status: true,
   createdAt: true,
   images: true,
+  // Aircraft-specific fields
+  nNumber: true,
+  make: true,
+  model: true,
+  year: true,
+  totalTime: true,
+  engineTime: true,
+  propTime: true,
+  annualDue: true,
+  registrationType: true,
+  airworthiness: true,
+  fuelType: true,
+  avionics: true,
+  features: true,
+  upgrades: true,
+  sellerType: true,
+  isVerified: true,
+  verifiedAt: true,
+  videoUrl: true,
   user: {
     select: {
       id: true,
@@ -40,6 +59,9 @@ function sanitizeListing(listing: any) {
   return {
     ...listing,
     images: listing.images ? safeParseJSON(listing.images) : [],
+    avionics: listing.avionics ? safeParseJSON(listing.avionics) : [],
+    features: listing.features ? safeParseJSON(listing.features) : [],
+    upgrades: listing.upgrades ? safeParseJSON(listing.upgrades) : [],
   };
 }
 
@@ -102,6 +124,17 @@ export async function GET(request: Request) {
     const query = url.searchParams.get('q');
     const take = Math.min(Number(url.searchParams.get('take')) || 60, 200);
 
+    // Aircraft-specific filters
+    const make = url.searchParams.get('make');
+    const model = url.searchParams.get('model');
+    const minYear = url.searchParams.get('minYear');
+    const maxYear = url.searchParams.get('maxYear');
+    const minPrice = url.searchParams.get('minPrice');
+    const maxPrice = url.searchParams.get('maxPrice');
+    const minTime = url.searchParams.get('minTime');
+    const maxTime = url.searchParams.get('maxTime');
+    const engineType = url.searchParams.get('engineType');
+
     const where: any = { status: 'active' };
     if (type && LISTING_TYPES.includes(type as ListingType)) {
       where.type = type;
@@ -116,7 +149,37 @@ export async function GET(request: Request) {
         { description: { contains: search } },
         { aircraftType: { contains: search } },
         { airportCity: { contains: search } },
+        // Aircraft-specific search
+        { nNumber: { contains: search } },
+        { make: { contains: search } },
+        { model: { contains: search } },
       ];
+    }
+
+    // Aircraft-specific filters
+    if (make) {
+      where.make = { contains: make };
+    }
+    if (model) {
+      where.model = { contains: model };
+    }
+    if (minYear || maxYear) {
+      where.year = {};
+      if (minYear) where.year.gte = parseInt(minYear);
+      if (maxYear) where.year.lte = parseInt(maxYear);
+    }
+    if (minPrice || maxPrice) {
+      where.price = {};
+      if (minPrice) where.price.gte = parseInt(minPrice);
+      if (maxPrice) where.price.lte = parseInt(maxPrice);
+    }
+    if (minTime || maxTime) {
+      where.totalTime = {};
+      if (minTime) where.totalTime.gte = parseInt(minTime);
+      if (maxTime) where.totalTime.lte = parseInt(maxTime);
+    }
+    if (engineType) {
+      where.engineType = engineType;
     }
 
     const listings = await prisma.marketplaceListing.findMany({
@@ -172,6 +235,24 @@ export async function POST(request: Request) {
         contactMethod: data.contactMethod,
         contactValue: data.contactValue,
         images: data.images ? JSON.stringify(data.images) : null,
+        // Aircraft-specific fields
+        nNumber: data.nNumber,
+        make: data.make,
+        model: data.model,
+        year: data.year,
+        totalTime: data.totalTime,
+        engineTime: data.engineTime,
+        propTime: data.propTime,
+        airframeTime: data.airframeTime,
+        annualDue: data.annualDue,
+        registrationType: data.registrationType,
+        airworthiness: data.airworthiness,
+        fuelType: data.fuelType,
+        avionics: data.avionics ? JSON.stringify(data.avionics) : null,
+        features: data.features ? JSON.stringify(data.features) : null,
+        upgrades: data.upgrades ? JSON.stringify(data.upgrades) : null,
+        sellerType: data.sellerType,
+        videoUrl: data.videoUrl,
       },
       select: PUBLIC_LISTING_SELECT,
     });
@@ -223,7 +304,25 @@ function validateListingPayload(payload: any): { valid: true; data: any } | { va
     hours: normalizeInt(payload.hours),
     contactMethod: payload.contactMethod ? payload.contactMethod.toString().slice(0, 50) : 'email',
     contactValue: payload.contactValue ? payload.contactValue.toString().slice(0, 200) : null,
-    images: Array.isArray(payload.images) ? payload.images.slice(0, 6) : undefined,
+    images: Array.isArray(payload.images) ? payload.images.slice(0, type === 'AIRCRAFT_SALE' ? 20 : 6) : undefined,
+    // Aircraft-specific fields
+    nNumber: payload.nNumber ? payload.nNumber.toString().trim().toUpperCase().slice(0, 10) : null,
+    make: payload.make ? payload.make.toString().trim().slice(0, 100) : null,
+    model: payload.model ? payload.model.toString().trim().slice(0, 100) : null,
+    year: normalizeInt(payload.year),
+    totalTime: normalizeInt(payload.totalTime),
+    engineTime: normalizeInt(payload.engineTime),
+    propTime: normalizeInt(payload.propTime),
+    airframeTime: normalizeInt(payload.airframeTime),
+    annualDue: payload.annualDue ? new Date(payload.annualDue) : null,
+    registrationType: payload.registrationType ? payload.registrationType.toString().slice(0, 50) : null,
+    airworthiness: payload.airworthiness ? payload.airworthiness.toString().slice(0, 50) : null,
+    fuelType: payload.fuelType ? payload.fuelType.toString().slice(0, 20) : null,
+    avionics: Array.isArray(payload.avionics) ? payload.avionics.slice(0, 50) : undefined,
+    features: Array.isArray(payload.features) ? payload.features.slice(0, 50) : undefined,
+    upgrades: Array.isArray(payload.upgrades) ? payload.upgrades.slice(0, 50) : undefined,
+    sellerType: payload.sellerType ? payload.sellerType.toString().slice(0, 20) : null,
+    videoUrl: payload.videoUrl ? payload.videoUrl.toString().slice(0, 500) : null,
   };
 
   return { valid: true, data };
