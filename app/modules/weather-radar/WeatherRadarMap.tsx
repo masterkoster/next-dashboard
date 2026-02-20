@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -19,27 +19,43 @@ L.Marker.prototype.options.icon = DefaultIcon;
 
 export default function WeatherRadarMap() {
   const mapRef = useRef<L.Map | null>(null);
-  const [selectedLayer, setSelectedLayer] = useState<'precipitation' | 'clouds' | 'wind' | 'temp'>('precipitation');
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [animationFrame, setAnimationFrame] = useState(0);
-  const animationRef = useRef<NodeJS.Timeout | null>(null);
-
   const radarLayerRef = useRef<L.TileLayer | null>(null);
-  const [radarTimestamps, setRadarTimestamps] = useState<number[]>([]);
-  const [currentFrame, setCurrentFrame] = useState(0);
+  const markerRef = useRef<L.Marker | null>(null);
+
+  const [isPlaying, setIsPlaying] = useState(false);
+  const animationRef = useRef<number | null>(null);
+
+  const [radarHost, setRadarHost] = useState<string>('https://tilecache.rainviewer.com');
+  const [frames, setFrames] = useState<Array<{ time: number; path: string }>>([]);
+  const [frameIndex, setFrameIndex] = useState(0);
+
+  const [jumpIcao, setJumpIcao] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
+  const [loadingFrames, setLoadingFrames] = useState(true);
 
   // Fetch radar timestamps from RainViewer API
   useEffect(() => {
     const fetchRadarData = async () => {
       try {
+        setLoadingFrames(true);
         const res = await fetch('https://api.rainviewer.com/public/weather-maps.json');
         const data = await res.json();
-        if (data.radar && data.radar.past) {
-          const allTimestamps = [...data.radar.past, ...(data.radar.nowcast || [])];
-          setRadarTimestamps(allTimestamps.map((t: any) => t.time));
-        }
+        const host = (data?.host || 'https://tilecache.rainviewer.com').toString();
+        setRadarHost(host);
+
+        const radarPast = Array.isArray(data?.radar?.past) ? data.radar.past : [];
+        const nowcast = Array.isArray(data?.radar?.nowcast) ? data.radar.nowcast : [];
+        const all = [...radarPast, ...nowcast]
+          .filter((t: any) => typeof t?.time === 'number' && typeof t?.path === 'string')
+          .map((t: any) => ({ time: t.time, path: t.path as string }));
+
+        setFrames(all);
+        setFrameIndex(Math.max(0, all.length - 1));
       } catch (err) {
         console.error('Failed to fetch radar data:', err);
+        setNotice('Failed to load radar frames. Please try again.');
+      } finally {
+        setLoadingFrames(false);
       }
     };
     fetchRadarData();
@@ -61,67 +77,131 @@ export default function WeatherRadarMap() {
       maxZoom: 19,
     }).addTo(map);
 
-    // Add weather radar layer
-    addRadarLayer(map);
-
     return () => {
-      map.remove();
       if (animationRef.current) {
-        clearInterval(animationRef.current);
+        window.clearInterval(animationRef.current);
+        animationRef.current = null;
       }
+      map.remove();
     };
   }, []);
 
-  // Animate through radar frames
+  const currentFrame = frames[frameIndex] || null;
+  const currentTileUrl = useMemo(() => {
+    if (!currentFrame) return null;
+    return `${radarHost}${currentFrame.path}/{z}/{x}/{y}/2/1_1.png`;
+  }, [currentFrame, radarHost]);
+
+  // Ensure radar layer exists when frames arrive; update when frame changes.
   useEffect(() => {
-    if (isPlaying && radarTimestamps.length > 0) {
-      animationRef.current = setInterval(() => {
-        setCurrentFrame((prev) => (prev + 1) % radarTimestamps.length);
-      }, 500);
-    } else if (animationRef.current) {
-      clearInterval(animationRef.current);
+    const map = mapRef.current;
+    if (!map) return;
+    if (!currentTileUrl) return;
+
+    if (!radarLayerRef.current) {
+      radarLayerRef.current = L.tileLayer(currentTileUrl, {
+        attribution: 'Radar data © RainViewer',
+        opacity: 0.72,
+        maxZoom: 12,
+        zIndex: 500,
+      }).addTo(map);
+      return;
     }
+
+    radarLayerRef.current.setUrl(currentTileUrl);
+  }, [currentTileUrl]);
+
+  // Animation.
+  useEffect(() => {
+    if (animationRef.current) {
+      window.clearInterval(animationRef.current);
+      animationRef.current = null;
+    }
+
+    if (!isPlaying) return;
+    if (frames.length < 2) return;
+
+    animationRef.current = window.setInterval(() => {
+      setFrameIndex((prev) => {
+        const next = prev + 1;
+        return next >= frames.length ? 0 : next;
+      });
+    }, 450);
+
     return () => {
-      if (animationRef.current) clearInterval(animationRef.current);
-    };
-  }, [isPlaying, radarTimestamps.length]);
-
-  // Update radar layer when frame changes
-  useEffect(() => {
-    if (mapRef.current && radarTimestamps.length > 0 && radarLayerRef.current) {
-      const timestamp = radarTimestamps[currentFrame];
-      const newUrl = `https://tilecache.rainviewer.com/v2/radar/${timestamp}/{z}/{x}/{y}/2/1_1.png`;
-      radarLayerRef.current.setUrl(newUrl);
-    }
-  }, [currentFrame, radarTimestamps]);
-
-  const addRadarLayer = (map: L.Map) => {
-    if (radarTimestamps.length === 0) return;
-    
-    const timestamp = radarTimestamps[currentFrame] || radarTimestamps[0];
-    const tileUrl = `https://tilecache.rainviewer.com/v2/radar/${timestamp}/{z}/{x}/{y}/2/1_1.png`;
-    
-    radarLayerRef.current = L.tileLayer(tileUrl, {
-      attribution: 'Radar data © RainViewer',
-      opacity: 0.7,
-      maxZoom: 12,
-      zIndex: 500,
-    }).addTo(map);
-  };
-
-  const handlePlayAnimation = () => {
-    if (isPlaying) {
-      setIsPlaying(false);
       if (animationRef.current) {
-        clearInterval(animationRef.current);
+        window.clearInterval(animationRef.current);
+        animationRef.current = null;
       }
-    } else {
-      setIsPlaying(true);
-      animationRef.current = setInterval(() => {
-        setAnimationFrame((prev) => (prev + 1) % 12); // 12 frames
-      }, 500);
+    };
+  }, [isPlaying, frames.length]);
+
+  const frameLabel = useMemo(() => {
+    if (!currentFrame) return '—';
+    try {
+      return new Date(currentFrame.time * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return String(currentFrame.time);
     }
-  };
+  }, [currentFrame]);
+
+  async function jumpToAirport() {
+    const map = mapRef.current;
+    if (!map) return;
+    const icao = jumpIcao.trim().toUpperCase();
+    if (!icao) return;
+
+    setNotice(null);
+    try {
+      const res = await fetch(`/api/airports/${encodeURIComponent(icao)}`);
+      if (!res.ok) {
+        setNotice('Airport not found. Try a valid ICAO (e.g., KJFK).');
+        return;
+      }
+      const data = await res.json();
+      const lat = Number(data.latitude);
+      const lon = Number(data.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+        setNotice('Airport location missing.');
+        return;
+      }
+
+      map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
+
+      if (markerRef.current) {
+        markerRef.current.remove();
+        markerRef.current = null;
+      }
+
+      markerRef.current = L.marker([lat, lon]).addTo(map);
+      const label = `${data.name || icao}${data.city ? ` • ${data.city}` : ''}`;
+      markerRef.current.bindPopup(label).openPopup();
+    } catch (error) {
+      console.error('Airport jump failed', error);
+      setNotice('Failed to jump to airport.');
+    }
+  }
+
+  function jumpToMyLocation() {
+    const map = mapRef.current;
+    if (!map) return;
+    setNotice(null);
+
+    if (!navigator.geolocation) {
+      setNotice('Geolocation not available in this browser.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        map.setView([lat, lon], Math.max(map.getZoom(), 8), { animate: true });
+      },
+      () => setNotice('Location permission denied.'),
+      { enableHighAccuracy: false, timeout: 6000 }
+    );
+  }
 
   return (
     <div className="relative h-full">
@@ -129,67 +209,74 @@ export default function WeatherRadarMap() {
       <div id="weather-radar-map" className="h-full w-full" />
 
       {/* Controls Overlay */}
-      <div className="absolute top-4 left-4 z-[1000] bg-slate-800/90 backdrop-blur rounded-lg p-4 shadow-lg">
-        <h3 className="text-white font-semibold mb-3">Weather Layers</h3>
-        
-        <div className="space-y-2">
+      <div className="absolute top-4 left-4 z-[1000] bg-slate-800/90 backdrop-blur rounded-lg p-4 shadow-lg w-[320px]">
+        <div className="flex items-center justify-between">
+          <h3 className="text-white font-semibold">Radar</h3>
+          <span className="text-xs text-slate-400">{loadingFrames ? 'Loading…' : frames.length ? `Frame ${frameIndex + 1}/${frames.length}` : 'No data'}</span>
+        </div>
+
+        <div className="mt-3 flex items-center gap-2">
           <button
-            onClick={() => setSelectedLayer('precipitation')}
-            className={`w-full text-left px-3 py-2 rounded text-sm transition ${
-              selectedLayer === 'precipitation'
-                ? 'bg-emerald-500 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+            onClick={() => setIsPlaying((p) => !p)}
+            disabled={frames.length < 2}
+            className={`px-3 py-2 rounded text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
+              isPlaying ? 'bg-red-500 hover:bg-red-400 text-white' : 'bg-emerald-500 hover:bg-emerald-400 text-white'
             }`}
           >
-            🌧️ Precipitation (Radar)
+            {isPlaying ? 'Pause' : 'Play'}
           </button>
           <button
-            onClick={() => setSelectedLayer('clouds')}
-            className={`w-full text-left px-3 py-2 rounded text-sm transition ${
-              selectedLayer === 'clouds'
-                ? 'bg-emerald-500 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            }`}
+            onClick={() => setFrameIndex((i) => (frames.length ? (i - 1 + frames.length) % frames.length : i))}
+            disabled={!frames.length}
+            className="px-3 py-2 rounded text-sm bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:opacity-50"
           >
-            ☁️ Cloud Cover
+            Prev
           </button>
           <button
-            onClick={() => setSelectedLayer('wind')}
-            className={`w-full text-left px-3 py-2 rounded text-sm transition ${
-              selectedLayer === 'wind'
-                ? 'bg-emerald-500 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            }`}
+            onClick={() => setFrameIndex((i) => (frames.length ? (i + 1) % frames.length : i))}
+            disabled={!frames.length}
+            className="px-3 py-2 rounded text-sm bg-slate-700 text-slate-200 hover:bg-slate-600 disabled:opacity-50"
           >
-            💨 Wind Speed
+            Next
           </button>
-          <button
-            onClick={() => setSelectedLayer('temp')}
-            className={`w-full text-left px-3 py-2 rounded text-sm transition ${
-              selectedLayer === 'temp'
-                ? 'bg-emerald-500 text-white'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            }`}
-          >
-            🌡️ Temperature
-          </button>
+          <div className="ml-auto text-xs text-slate-400">{frameLabel}</div>
+        </div>
+
+        <div className="mt-3">
+          <input
+            type="range"
+            min={0}
+            max={Math.max(0, frames.length - 1)}
+            value={Math.min(frameIndex, Math.max(0, frames.length - 1))}
+            onChange={(e) => setFrameIndex(Number(e.target.value))}
+            disabled={!frames.length}
+            className="w-full"
+          />
         </div>
 
         <div className="mt-4 pt-4 border-t border-slate-700">
+          <div className="text-xs text-slate-400 mb-2">Jump to</div>
+          <div className="flex gap-2">
+            <input
+              value={jumpIcao}
+              onChange={(e) => setJumpIcao(e.target.value)}
+              placeholder="ICAO (e.g., KJFK)"
+              className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm text-white"
+            />
+            <button
+              onClick={jumpToAirport}
+              className="px-3 py-2 rounded text-sm bg-slate-700 text-slate-200 hover:bg-slate-600"
+            >
+              Go
+            </button>
+          </div>
           <button
-            onClick={handlePlayAnimation}
-            className={`w-full px-3 py-2 rounded text-sm font-medium transition ${
-              isPlaying
-                ? 'bg-red-500 hover:bg-red-400 text-white'
-                : 'bg-emerald-500 hover:bg-emerald-400 text-white'
-            }`}
+            onClick={jumpToMyLocation}
+            className="mt-2 w-full px-3 py-2 rounded text-sm bg-slate-700 text-slate-200 hover:bg-slate-600"
           >
-            {isPlaying ? '⏸️ Pause' : '▶️ Play Animation'}
+            Use My Location
           </button>
-        </div>
-
-        <div className="mt-4 text-xs text-slate-400">
-          Frame: {animationFrame + 1}/12
+          {notice && <div className="mt-2 text-xs text-amber-300">{notice}</div>}
         </div>
       </div>
 
@@ -220,12 +307,21 @@ export default function WeatherRadarMap() {
       <div className="absolute top-4 right-4 z-[1000] bg-slate-800/90 backdrop-blur rounded-lg p-4 shadow-lg max-w-xs">
         <h4 className="text-white text-sm font-semibold mb-2">About Weather Radar</h4>
         <p className="text-xs text-slate-400 mb-2">
-          Real-time precipitation radar data shows rain, snow, and storm systems.
+          Real-time precipitation radar. Use the timeline to scrub through recent frames.
         </p>
         <p className="text-xs text-slate-500">
           Data provided by RainViewer API. Updates every 10 minutes.
         </p>
       </div>
+
+      {/* Empty state overlay */}
+      {!loadingFrames && frames.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="bg-slate-900/60 border border-slate-700 rounded-xl px-4 py-3 text-sm text-slate-200">
+            No radar frames available right now.
+          </div>
+        </div>
+      )}
     </div>
   );
 }
