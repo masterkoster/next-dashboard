@@ -18,7 +18,7 @@ export const APP_MODULES: AppModule[] = [
     icon: '🛩️',
     menu: [
       { label: 'Browse Listings', href: '/modules/marketplace' },
-      { label: 'Sell Aircraft', href: '/modules/marketplace?sell=true' },
+      { label: 'Sell Aircraft', href: '/modules/marketplace/create' },
       { label: 'Saved Listings', href: '/modules/marketplace/saved' },
     ],
   },

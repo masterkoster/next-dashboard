@@ -88,33 +88,38 @@ export function ListingForm() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          type: 'AIRCRAFT_SALE',
           title,
+          aircraftType: category,
+          airportIcao: location.toUpperCase(),
           price: parseInt(price.replace(/,/g, '')),
-          acceptOffers,
-          category,
           year: parseInt(year),
           totalTime: parseInt(totalTime.replace(/,/g, '')) || 0,
           engineTime: parseInt(engineTime.replace(/,/g, '')) || 0,
           propTime: parseInt(propTime.replace(/,/g, '')) || 0,
-          registration,
+          registrationType: registration,
           airworthiness,
           fuelType,
           description,
-          location: location.toUpperCase(),
           avionics,
           features,
           upgrades,
+          make: title.split(' ')[0] || null,
+          model: title.split(' ').slice(1).join(' ') || null,
         }),
       })
 
       if (response.ok) {
-        const listing = await response.json()
-        router.push(`/modules/marketplace/listing/${listing.id}`)
+        const data = await response.json()
+        router.push(`/modules/marketplace/listing/${data.listing.id}`)
       } else {
-        console.error('Failed to create listing')
+        const error = await response.json()
+        console.error('Failed to create listing:', error.error || 'Unknown error')
+        alert('Failed to create listing: ' + (error.error || 'Please try again'))
       }
     } catch (error) {
       console.error('Error creating listing:', error)
+      alert('Error creating listing. Please try again.')
     } finally {
       setIsSubmitting(false)
     }
