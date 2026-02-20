@@ -29,14 +29,65 @@ export default function WeatherRadarMap() {
   const frameIndexRef = useRef(0);
   const playTokenRef = useRef(0);
 
-  const frames = useMemo(() => {
-    // IEM provides current + 5-min increments back to 55 minutes.
-    // Order oldest -> newest.
-    const mins = [55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 0];
-    return mins.map((m) => ({ minutesAgo: m }));
+  const [radarMode, setRadarMode] = useState<'mrms' | 'nexrad'>('mrms');
+  const [clockMs, setClockMs] = useState(() => Date.now());
+  const radarTileErrorRef = useRef(0);
+
+  const MRMS_STEP_MIN = 2;
+  const MRMS_WINDOW_MIN = 120;
+  const MRMS_LATENCY_MIN = 10;
+
+  useEffect(() => {
+    const t = window.setInterval(() => setClockMs(Date.now()), 60_000);
+    return () => window.clearInterval(t);
   }, []);
 
+  const mrmsBaseUtcMs = useMemo(() => {
+    const d = new Date(clockMs);
+    // floor to minute
+    d.setUTCSeconds(0, 0);
+    // floor to even minute
+    d.setUTCMinutes(d.getUTCMinutes() - (d.getUTCMinutes() % MRMS_STEP_MIN));
+    // latency
+    d.setUTCMinutes(d.getUTCMinutes() - MRMS_LATENCY_MIN);
+    return d.getTime();
+  }, [clockMs]);
+
+  function formatUtcStamp(ms: number) {
+    const d = new Date(ms);
+    const y = d.getUTCFullYear();
+    const mo = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const da = String(d.getUTCDate()).padStart(2, '0');
+    const h = String(d.getUTCHours()).padStart(2, '0');
+    const mi = String(d.getUTCMinutes()).padStart(2, '0');
+    return `${y}${mo}${da}${h}${mi}`;
+  }
+
+  const frames = useMemo(() => {
+    if (radarMode === 'nexrad') {
+      const mins = [55, 50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 0];
+      return mins.map((m) => ({ minutesAgo: m, kind: 'nexrad' as const }));
+    }
+
+    // MRMS archived frames every 2 minutes.
+    const out: Array<{ minutesAgo: number; kind: 'mrms'; ts: string }> = [];
+    for (let m = MRMS_WINDOW_MIN; m >= 0; m -= MRMS_STEP_MIN) {
+      const ts = formatUtcStamp(mrmsBaseUtcMs - m * 60_000);
+      out.push({ minutesAgo: m, kind: 'mrms', ts });
+    }
+    return out;
+  }, [radarMode, mrmsBaseUtcMs]);
+
   const [frameIndex, setFrameIndex] = useState(frames.length - 1);
+
+  useEffect(() => {
+    // When mode/frames change, keep index in range and default to newest.
+    setFrameIndex((prev) => {
+      if (!frames.length) return 0;
+      if (prev >= 0 && prev < frames.length) return prev;
+      return frames.length - 1;
+    });
+  }, [frames.length]);
 
   const [jumpIcao, setJumpIcao] = useState('');
   const [notice, setNotice] = useState<string | null>(null);
@@ -91,9 +142,13 @@ export default function WeatherRadarMap() {
   const currentFrame = frames[frameIndex] || null;
   const currentTileUrl = useMemo(() => {
     if (!currentFrame) return null;
+    if (currentFrame.kind === 'mrms') {
+      const layer = `mrms::lcref-${currentFrame.ts}`;
+      return `https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/${encodeURIComponent(layer)}-900913/{z}/{x}/{y}.png`;
+    }
+
     const m = currentFrame.minutesAgo;
     const layer = m === 0 ? 'nexrad-n0q' : `nexrad-n0q-m${String(m).padStart(2, '0')}m`;
-    // Use multiple hostnames for parallel loading.
     return `https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/${layer}-900913/{z}/{x}/{y}.png`;
   }, [currentFrame]);
 
@@ -101,8 +156,13 @@ export default function WeatherRadarMap() {
     frameIndexRef.current = frameIndex;
   }, [frameIndex]);
 
-  function tileUrlForMinutesAgo(minutesAgo: number) {
-    const layer = minutesAgo === 0 ? 'nexrad-n0q' : `nexrad-n0q-m${String(minutesAgo).padStart(2, '0')}m`;
+  function tileUrlForFrame(frame: any) {
+    if (frame?.kind === 'mrms') {
+      const layer = `mrms::lcref-${frame.ts}`;
+      return `https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/${encodeURIComponent(layer)}-900913/{z}/{x}/{y}.png`;
+    }
+    const m = Number(frame?.minutesAgo) || 0;
+    const layer = m === 0 ? 'nexrad-n0q' : `nexrad-n0q-m${String(m).padStart(2, '0')}m`;
     return `https://mesonet{s}.agron.iastate.edu/cache/tile.py/1.0.0/${layer}-900913/{z}/{x}/{y}.png`;
   }
 
@@ -120,6 +180,15 @@ export default function WeatherRadarMap() {
         zIndex: 500,
         subdomains: ['1', '2', '3'],
       }).addTo(map);
+
+      radarLayerARef.current.on('tileerror', () => {
+        radarTileErrorRef.current += 1;
+        // If MRMS is missing/unavailable, fall back to NEXRAD.
+        if (radarMode === 'mrms' && radarTileErrorRef.current >= 8) {
+          setRadarMode('nexrad');
+          setNotice('High-res radar temporarily unavailable. Switched to standard radar.');
+        }
+      });
     }
 
     if (!radarLayerBRef.current) {
@@ -130,8 +199,20 @@ export default function WeatherRadarMap() {
         zIndex: 501,
         subdomains: ['1', '2', '3'],
       }).addTo(map);
+
+      radarLayerBRef.current.on('tileerror', () => {
+        radarTileErrorRef.current += 1;
+        if (radarMode === 'mrms' && radarTileErrorRef.current >= 8) {
+          setRadarMode('nexrad');
+          setNotice('High-res radar temporarily unavailable. Switched to standard radar.');
+        }
+      });
     }
   }, [currentTileUrl, radarOpacity, mapReady]);
+
+  useEffect(() => {
+    radarTileErrorRef.current = 0;
+  }, [radarMode]);
 
   // Keep opacity in sync.
   useEffect(() => {
@@ -156,7 +237,7 @@ export default function WeatherRadarMap() {
     const inactiveLayer = active === 'A' ? radarLayerBRef.current : radarLayerARef.current;
     if (!activeLayer || !inactiveLayer) return;
 
-    activeLayer.setUrl(tileUrlForMinutesAgo(currentFrame.minutesAgo));
+    activeLayer.setUrl(tileUrlForFrame(currentFrame));
     activeLayer.setOpacity(radarOpacity);
     inactiveLayer.setOpacity(0);
   }, [currentFrame, isPlaying, mapReady, radarOpacity]);
@@ -211,8 +292,8 @@ export default function WeatherRadarMap() {
         const inactiveLayer = activeKey === 'A' ? radarLayerBRef.current : radarLayerARef.current;
         if (!activeLayer || !inactiveLayer) return;
 
-        activeLayer.setUrl(tileUrlForMinutesAgo(cur.minutesAgo));
-        inactiveLayer.setUrl(tileUrlForMinutesAgo(next.minutesAgo));
+        activeLayer.setUrl(tileUrlForFrame(cur));
+        inactiveLayer.setUrl(tileUrlForFrame(next));
         activeLayer.setOpacity(radarOpacity);
         inactiveLayer.setOpacity(0);
 
@@ -243,16 +324,22 @@ export default function WeatherRadarMap() {
   const frameLabel = useMemo(() => {
     if (!currentFrame) return '—';
     try {
+      if (currentFrame.kind === 'mrms') {
+        const then = mrmsBaseUtcMs - currentFrame.minutesAgo * 60_000;
+        return new Date(then).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      }
       const then = Date.now() - currentFrame.minutesAgo * 60_000;
       return new Date(then).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } catch {
       return '';
     }
-  }, [currentFrame]);
+  }, [currentFrame, mrmsBaseUtcMs]);
 
   const frameRelativeLabel = useMemo(() => {
     if (!currentFrame) return '';
-    return currentFrame.minutesAgo === 0 ? 'now' : `${currentFrame.minutesAgo}m ago`;
+    const extra = currentFrame.kind === 'mrms' ? MRMS_LATENCY_MIN : 0;
+    const total = currentFrame.minutesAgo + extra;
+    return total <= 0 ? 'now' : `${total}m ago`;
   }, [currentFrame]);
 
 
@@ -340,6 +427,13 @@ export default function WeatherRadarMap() {
             <div className="flex-1" />
 
             <div className="hidden sm:flex items-center gap-2">
+              <button
+                onClick={() => setRadarMode((m) => (m === 'mrms' ? 'nexrad' : 'mrms'))}
+                className="text-xs px-3 py-2 rounded-full bg-slate-800/70 hover:bg-slate-700/70 text-slate-200 border border-slate-700"
+                title="Toggle radar source"
+              >
+                {radarMode === 'mrms' ? 'Smooth' : 'Standard'}
+              </button>
               <button
                 onClick={() => setBasemap((b) => (b === 'light' ? 'dark' : 'light'))}
                 className="text-xs px-3 py-2 rounded-full bg-slate-800/70 hover:bg-slate-700/70 text-slate-200 border border-slate-700"
