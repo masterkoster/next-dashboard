@@ -8,19 +8,39 @@ const resendApiKey = process.env.RESEND_API_KEY;
 const resend = new Resend(resendApiKey);
 
 const APP_NAME = 'AviationHub';
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+const APP_URL =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  process.env.NEXTAUTH_URL ||
+  (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
-function getFromAddress() {
-  const fromEnv = process.env.RESEND_FROM;
-  if (fromEnv && fromEnv.includes('@')) return fromEnv;
-
-  const domain = process.env.RESEND_DOMAIN;
-  if (domain) {
-    return `${APP_NAME} <noreply@${domain}>`;
+function resolveFromAddress(): { ok: true; from: string } | { ok: false; error: string } {
+  const fromEnv = process.env.RESEND_FROM?.trim();
+  if (fromEnv) {
+    const normalized = fromEnv.replace(/[\r\n]+/g, '');
+    if (normalized.includes('@')) {
+      if (process.env.NODE_ENV === 'production' && /@resend\.dev\b/i.test(normalized)) {
+        return { ok: false, error: 'RESEND_FROM must use your verified domain (not resend.dev)' };
+      }
+      return { ok: true, from: normalized };
+    }
   }
 
-  // Resend default sender for unverified domains.
-  return `${APP_NAME} <onboarding@resend.dev>`;
+  const domain = process.env.RESEND_DOMAIN?.trim();
+  if (domain) {
+    const normalizedDomain = domain.replace(/^https?:\/\//i, '').replace(/\s+/g, '');
+    const from = `${APP_NAME} <noreply@${normalizedDomain}>`;
+    if (process.env.NODE_ENV === 'production' && /@resend\.dev\b/i.test(from)) {
+      return { ok: false, error: 'RESEND_DOMAIN must be your verified domain (not resend.dev)' };
+    }
+    return { ok: true, from };
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    return { ok: false, error: 'Sender not configured (set RESEND_FROM or RESEND_DOMAIN)' };
+  }
+
+  // Resend default sender for local/dev testing.
+  return { ok: true, from: `${APP_NAME} <onboarding@resend.dev>` };
 }
 
 export interface SendEmailResult {
@@ -45,8 +65,13 @@ export async function sendVerificationEmail(
       return { success: false, error: 'Email service not configured' };
     }
 
+    const fromResolved = resolveFromAddress();
+    if (!fromResolved.ok) {
+      return { success: false, error: fromResolved.error };
+    }
+
     const { data, error } = await resend.emails.send({
-      from: getFromAddress(),
+      from: fromResolved.from,
       to: email,
       subject: `Verify your email - ${APP_NAME}`,
       html: verificationEmailTemplate(verifyUrl, username),
@@ -82,8 +107,13 @@ export async function sendPasswordResetEmail(
       return { success: false, error: 'Email service not configured' };
     }
 
+    const fromResolved = resolveFromAddress();
+    if (!fromResolved.ok) {
+      return { success: false, error: fromResolved.error };
+    }
+
     const { data, error } = await resend.emails.send({
-      from: getFromAddress(),
+      from: fromResolved.from,
       to: email,
       subject: `Reset your password - ${APP_NAME}`,
       html: resetPasswordEmailTemplate(resetUrl, username),
@@ -117,8 +147,13 @@ export async function sendEmail(
       return { success: false, error: 'Email service not configured' };
     }
 
+    const fromResolved = resolveFromAddress();
+    if (!fromResolved.ok) {
+      return { success: false, error: fromResolved.error };
+    }
+
     const { data, error } = await resend.emails.send({
-      from: getFromAddress(),
+      from: fromResolved.from,
       to,
       subject,
       html,
