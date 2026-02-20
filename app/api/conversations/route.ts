@@ -18,6 +18,7 @@ export async function GET() {
       select: {
         id: true,
         updatedAt: true,
+        listingId: true,
         participants: { select: { user: { select: { id: true, name: true, username: true } } } },
         messages: {
           orderBy: { createdAt: 'desc' },
@@ -27,7 +28,20 @@ export async function GET() {
       },
     });
 
-    return NextResponse.json({ conversations });
+    // Fetch listing info for conversations with listingId
+    const listingIds = conversations.filter(c => c.listingId).map(c => c.listingId!);
+    const listings = await prisma.marketplaceListing.findMany({
+      where: { id: { in: listingIds } },
+      select: { id: true, title: true, airportIcao: true },
+    });
+    const listingMap = Object.fromEntries(listings.map(l => [l.id, l]));
+
+    const conversationsWithListings = conversations.map(c => ({
+      ...c,
+      listing: c.listingId ? listingMap[c.listingId] : null,
+    }));
+
+    return NextResponse.json({ conversations: conversationsWithListings });
   } catch (error) {
     console.error('Conversations GET failed', error);
     return NextResponse.json({ error: 'Failed to load conversations' }, { status: 500 });
@@ -55,13 +69,15 @@ export async function POST(request: Request) {
 
     // Check if this is a marketplace inquiry (listingId provided) - no friendship required
     let isMarketplaceInquiry = false;
+    let listingTitle = null;
     if (listingId) {
       const listing = await prisma.marketplaceListing.findUnique({
         where: { id: listingId },
-        select: { id: true, userId: true },
+        select: { id: true, userId: true, title: true },
       });
       if (listing && listing.userId === recipientId) {
         isMarketplaceInquiry = true;
+        listingTitle = listing.title;
       }
     }
 
@@ -82,18 +98,35 @@ export async function POST(request: Request) {
       }
     }
 
-    const existingConversation = await prisma.conversation.findFirst({
-      where: {
-        participants: { some: { userId: session.user.id } },
-        AND: {
-          participants: { some: { userId: recipientId } },
+    // For marketplace conversations, check if conversation with this listing already exists
+    // For friend conversations, check if a non-marketplace conversation exists
+    let existingConversation = null;
+    
+    if (isMarketplaceInquiry && listingId) {
+      // Look for existing marketplace conversation about this listing
+      existingConversation = await prisma.conversation.findFirst({
+        where: {
+          listingId: listingId,
+          participants: { some: { userId: session.user.id } },
+          AND: {
+            participants: { some: { userId: recipientId } },
+          },
         },
-        NOT: {
-          participants: { some: { userId: { notIn: [session.user.id, recipientId] } } },
+        select: { id: true },
+      });
+    } else {
+      // Look for existing friend conversation (no listingId)
+      existingConversation = await prisma.conversation.findFirst({
+        where: {
+          listingId: null,
+          participants: { some: { userId: session.user.id } },
+          AND: {
+            participants: { some: { userId: recipientId } },
+          },
         },
-      },
-      select: { id: true },
-    });
+        select: { id: true },
+      });
+    }
 
     if (existingConversation) {
       // If there's an initial message, send it to existing conversation
@@ -106,11 +139,16 @@ export async function POST(request: Request) {
           },
         });
       }
-      return NextResponse.json({ conversationId: existingConversation.id });
+      return NextResponse.json({ 
+        conversationId: existingConversation.id,
+        isMarketplace: isMarketplaceInquiry,
+        listingTitle 
+      });
     }
 
     const conversation = await prisma.conversation.create({
       data: {
+        listingId: isMarketplaceInquiry ? listingId : null,
         participants: {
           createMany: {
             data: [
@@ -134,7 +172,11 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json({ conversationId: conversation.id });
+    return NextResponse.json({ 
+      conversationId: conversation.id,
+      isMarketplace: isMarketplaceInquiry,
+      listingTitle 
+    });
   } catch (error) {
     console.error('Conversations POST failed', error);
     return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 });

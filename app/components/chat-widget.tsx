@@ -16,6 +16,8 @@ import {
 type ConversationItem = {
   id: string;
   updatedAt: string;
+  listingId?: string | null;
+  listing?: { id: string; title: string; airportIcao: string } | null;
   participants: { user: { id: string; name?: string | null; username?: string | null } }[];
   messages: { id: string; body: string; createdAt: string; senderId: string }[];
 };
@@ -625,6 +627,7 @@ export default function ChatWidget() {
                       const preview = !lastMessage
                         ? 'No messages yet'
                         : 'Encrypted message';
+                      const isMarketplace = !!conversation.listingId;
                       return (
                         <button
                           key={conversation.id}
@@ -654,12 +657,19 @@ export default function ChatWidget() {
                                   <div className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-900 ${isOnline ? 'bg-emerald-400' : 'bg-slate-500'}`} />
                                 </div>
                                 <div className="min-w-0">
-                                  <div className="text-sm text-white truncate">
-                                    {meta?.displayName || participant?.name || participant?.username || 'Pilot'}
+                                  <div className="flex items-center gap-1">
+                                    {isMarketplace && (
+                                      <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded">Market</span>
+                                    )}
+                                    <span className="text-sm text-white truncate">
+                                      {conversation.listing?.title || meta?.displayName || participant?.name || participant?.username || 'Pilot'}
+                                    </span>
                                   </div>
                                   <div className="text-[11px] text-slate-400 truncate">
-                                    {typeof meta?.age === 'number' ? `${meta.age} • ` : ''}
-                                    {formatLocation(homeAirport, airport || null)}
+                                    {isMarketplace 
+                                      ? `Listing: ${conversation.listing?.title}`
+                                      : `${typeof meta?.age === 'number' ? `${meta.age} • ` : ''}${formatLocation(homeAirport, airport || null)}`
+                                    }
                                   </div>
                                 </div>
                               </Link>
@@ -679,18 +689,30 @@ export default function ChatWidget() {
 
           {view === 'chat' && (
             <div className="flex-1 flex flex-col">
-              <div className="px-4 py-2 border-b border-slate-800 text-sm text-slate-300 flex items-center justify-between gap-2">
-                {otherParticipant ? (
+              {/* Header with participant and optional listing info */}
+              <div className="px-4 py-2 border-b border-slate-800">
+                {activeConversation?.listing && (
                   <Link
-                    href={buildProfileHref(otherParticipant.id, otherParticipant.username)}
-                    className="hover:underline"
+                    href={`/modules/marketplace/listing/${activeConversation.listing.id}`}
+                    className="flex items-center gap-2 text-xs text-primary hover:underline mb-1"
                   >
-                    {otherParticipant?.name || otherParticipant?.username || 'Conversation'}
+                    <span className="bg-primary/10 px-2 py-0.5 rounded">Listing</span>
+                    <span className="truncate">{activeConversation.listing.title}</span>
                   </Link>
-                ) : (
-                  <span>Conversation</span>
                 )}
-                <span className="text-[11px] text-slate-500">E2EE</span>
+                <div className="flex items-center justify-between gap-2">
+                  {otherParticipant ? (
+                    <Link
+                      href={buildProfileHref(otherParticipant.id, otherParticipant.username)}
+                      className="hover:underline text-sm text-slate-300"
+                    >
+                      {otherParticipant?.name || otherParticipant?.username || 'Conversation'}
+                    </Link>
+                  ) : (
+                    <span className="text-sm text-slate-300">Conversation</span>
+                  )}
+                  <span className="text-[11px] text-slate-500">E2EE</span>
+                </div>
               </div>
               {e2eeNotice && (
                 <div className="px-4 py-2 border-b border-slate-800 text-[11px] text-amber-200 bg-amber-500/10">

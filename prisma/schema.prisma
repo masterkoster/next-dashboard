@@ -193,6 +193,9 @@ model Conversation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Marketplace listing this conversation is about (if applicable)
+  listingId String?  @db.NVarChar(36)
+
   participants ConversationParticipant[]
   messages     Message[]
 
