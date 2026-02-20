@@ -139,9 +139,21 @@ export default function ChatWidget() {
 
   useEffect(() => {
     if (!session?.user?.id) return;
+    
+    // Check for newConversation query param to open a specific conversation
+    const urlParams = new URLSearchParams(window.location.search);
+    const newConversationId = urlParams.get('newConversation');
+    
     ensureIdentityKeypair().catch(() => {});
     publishMyPublicKey().catch(() => {});
-    loadConversations();
+    loadConversations().then(() => {
+      // If there's a newConversation param, open that conversation
+      if (newConversationId) {
+        openConversation(newConversationId);
+        // Clean up the URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    });
     loadRequests();
     loadInvites();
     loadFriends();
