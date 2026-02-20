@@ -10,6 +10,8 @@ const nextConfig: NextConfig = {
       "img-src 'self' data: https:",
       "font-src 'self' data:",
       "style-src 'self' 'unsafe-inline'",
+      "frame-src 'self' blob: data:",
+      "child-src 'self' blob: data:",
       // Next.js needs inline scripts; dev needs eval. Tighten later with nonces.
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       // Allow API calls and realtime.

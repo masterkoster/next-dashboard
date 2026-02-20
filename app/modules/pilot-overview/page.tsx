@@ -277,6 +277,16 @@ function PilotOverviewContent() {
   const [savedPlansError, setSavedPlansError] = useState<string | null>(null);
 
   useEffect(() => {
+    return () => {
+      if (viewerUrl && viewerUrl.startsWith('blob:')) {
+        try {
+          URL.revokeObjectURL(viewerUrl);
+        } catch {}
+      }
+    };
+  }, [viewerUrl]);
+
+  useEffect(() => {
     if (status === 'authenticated') {
       checkSubscription();
     }
@@ -428,8 +438,16 @@ function PilotOverviewContent() {
           detailed: exportItem.detailed,
           cruisingAltitude: exportItem.navLogData.cruisingAltitude,
         });
-        const dataUri = doc.output('datauristring');
-        setViewerUrl(dataUri);
+        const blob = doc.output('blob');
+        const blobUrl = URL.createObjectURL(blob);
+        setViewerUrl((prev) => {
+          if (prev && prev.startsWith('blob:')) {
+            try {
+              URL.revokeObjectURL(prev);
+            } catch {}
+          }
+          return blobUrl;
+        });
       } catch (error) {
         console.error('Failed to render nav log preview', error);
         setViewerUrl(null);
