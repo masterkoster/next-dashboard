@@ -38,12 +38,173 @@ interface Listing {
   upgrades: string[] | null;
   sellerType: string | null;
   isVerified: boolean | null;
+  status?: string;
+  createdAt?: string;
   user: {
     id: string;
     name: string | null;
     username: string | null;
   };
 }
+
+// Demo data for listing detail page
+const DEMO_LISTINGS_DETAIL: Record<string, Listing> = {
+  '1': {
+    id: '1',
+    type: 'AIRCRAFT_SALE',
+    title: '2018 Cirrus SR22T GTS',
+    description: 'Exceptional SR22T with GTS package, CAPS, Airbag, FIKI, and full de-ice. This aircraft has been meticulously maintained with all logs available. Features include:\n\n• Garmin Perspective+ Avionics Suite\n• GFC 700 Autopilot\n• CAPS (Cirrus Airframe Parachute System)\n• Airbag Seatbelts\n• FIKI (Flight Into Known Ice)\n• Full De-Ice System\n• Heated Seats\n• TKS Known Ice Protection\n\nFresh annual completed December 2025. Always hangared. No damage history.',
+    aircraftType: 'SR22T',
+    airportIcao: 'KDVT',
+    airportName: 'Phoenix Deer Valley',
+    airportCity: 'Phoenix, AZ',
+    price: 725000,
+    sharePercent: null,
+    status: 'ACTIVE',
+    createdAt: new Date().toISOString(),
+    nNumber: 'N412CT',
+    make: 'Cirrus',
+    model: 'SR22T',
+    year: 2018,
+    totalTime: 1247,
+    engineTime: 423,
+    propTime: 423,
+    registrationType: 'Standard',
+    airworthiness: 'Current',
+    fuelType: '100LL',
+    sellerType: 'DEALER',
+    isVerified: true,
+    avionics: ['Garmin Perspective+', 'GFC 700 Autopilot', 'GDL 69A XM Weather', 'GTX 345 ADS-B In/Out', 'GTS 825 TAS', 'GMA 350c Audio Panel', 'Synthetic Vision (SVT)', 'SafeTaxi'],
+    features: ['Air Conditioning', 'TKS Known Ice', 'CAPS Parachute', 'Heated Seats', 'Premium Leather Interior', 'USB Charging Ports', 'CO Detector', 'Oxygen System'],
+    upgrades: ['Enhanced Vision System (EVS)', 'LED Landing Lights', 'Premium Paint Scheme', 'Bose A20 Headsets (4)', 'Tanis Engine Heater'],
+    user: { id: 'user1', name: 'Cirrus Aviation Partners', username: 'cirrusav' },
+    images: ['https://images.unsplash.com/photo-1559627755-0b42f3014507?w=800&q=80'],
+  },
+  '2': {
+    id: '2',
+    type: 'FOR_SALE',
+    title: '1978 Piper Archer II',
+    description: 'Well maintained, fresh annual, hangared. Always hangared since new. Complete logs from new. Recently upgraded with modern avionics.',
+    aircraftType: 'PA-28-181',
+    airportIcao: 'KAPA',
+    airportName: 'Centennial Airport',
+    airportCity: 'Denver, CO',
+    price: 165000,
+    sharePercent: null,
+    status: 'ACTIVE',
+    createdAt: new Date().toISOString(),
+    nNumber: 'N5432P',
+    make: 'Piper',
+    model: 'Archer II',
+    year: 1978,
+    totalTime: 4120,
+    engineTime: 850,
+    propTime: 120,
+    registrationType: 'Standard',
+    airworthiness: 'Current',
+    fuelType: '100LL',
+    sellerType: 'OWNER',
+    isVerified: true,
+    avionics: ['Garmin G500', 'GTX 327 Transponder', 'GMA 340 Audio Panel'],
+    features: ['Hangared', 'Fresh Annual', 'Complete Logs'],
+    upgrades: ['New Paint (2023)', 'New Interior (2022)'],
+    user: { id: 'user2', name: 'Denver Aviation', username: 'denav' },
+    images: ['https://images.unsplash.com/photo-1540962351504-03099e0a778a?w=800&q=80'],
+  },
+  '3': {
+    id: '3',
+    type: 'SHARE_SELL',
+    title: 'C172 Partnership - 25% Share',
+    description: 'Great opportunity to join a well-maintained C172 at KSDL. Perfect for students and cross-country training. Monthly costs are approximately $450/month which covers hangar, insurance, and maintenance reserve.',
+    aircraftType: 'Cessna 172S',
+    airportIcao: 'KSDL',
+    airportName: 'Scottsdale Airport',
+    airportCity: 'Scottsdale, AZ',
+    price: 45000,
+    sharePercent: 25,
+    status: 'ACTIVE',
+    createdAt: new Date().toISOString(),
+    nNumber: null,
+    make: 'Cessna',
+    model: '172S',
+    year: 2015,
+    totalTime: 2150,
+    engineTime: 450,
+    propTime: 450,
+    registrationType: 'Standard',
+    airworthiness: 'Current',
+    fuelType: '100LL',
+    sellerType: 'OWNER',
+    isVerified: false,
+    avionics: ['Garmin G1000', 'GFC 700 Autopilot'],
+    features: ['Well Maintained', 'Perfect for Training', 'Low Monthly Costs'],
+    upgrades: [],
+    user: { id: 'user3', name: 'Desert Flyers Club', username: 'desertflyers' },
+    images: ['https://images.unsplash.com/photo-1569154941061-e231b4725ef1?w=800&q=80'],
+  },
+  '4': {
+    id: '4',
+    type: 'AIRCRAFT_SALE',
+    title: '2020 Diamond DA40 NG',
+    description: 'Brand new Diamond DA40 NG with G1000 NXi, FIKI, and full de-ice. Low hours, excellent condition. Manufacturer warranty still valid.',
+    aircraftType: 'DA40',
+    airportIcao: 'KORD',
+    airportName: "Chicago O'Hare International",
+    airportCity: 'Chicago, IL',
+    price: 485000,
+    sharePercent: null,
+    status: 'ACTIVE',
+    createdAt: new Date().toISOString(),
+    nNumber: 'N888DG',
+    make: 'Diamond',
+    model: 'DA40 NG',
+    year: 2020,
+    totalTime: 380,
+    engineTime: 380,
+    propTime: 380,
+    registrationType: 'Standard',
+    airworthiness: 'Current',
+    fuelType: 'Jet-A',
+    sellerType: 'DEALER',
+    isVerified: true,
+    avionics: ['Garmin G1000 NXi', 'GFC 500 Autopilot', 'GTX 345 ADS-B'],
+    features: ['FIKI', 'Full De-Ice', 'Low Hours', 'Warranty'],
+    upgrades: ['G1000 NXi Upgrade'],
+    user: { id: 'user4', name: 'Midwest Aviation', username: 'mwav' },
+    images: ['https://images.unsplash.com/photo-1584634731339-252c581abfc5?w=800&q=80'],
+  },
+  '5': {
+    id: '5',
+    type: 'FOR_SALE',
+    title: '1967 Beechcraft Bonanza V35',
+    description: 'Classic V-tail Bonanza with recent renovation. New paint, interior, and avionics upgrade. Great flying aircraft with classic lines.',
+    aircraftType: 'V35',
+    airportIcao: 'KSNA',
+    airportName: 'John Wayne Airport',
+    airportCity: 'Santa Ana, CA',
+    price: 285000,
+    sharePercent: null,
+    status: 'ACTIVE',
+    createdAt: new Date().toISOString(),
+    nNumber: 'N5678B',
+    make: 'Beechcraft',
+    model: 'Bonanza V35',
+    year: 1967,
+    totalTime: 4850,
+    engineTime: 450,
+    propTime: 125,
+    registrationType: 'Standard',
+    airworthiness: 'Current',
+    fuelType: '100LL',
+    sellerType: 'OWNER',
+    isVerified: true,
+    avionics: ['Garmin GTN 650', 'G5 EI', 'PS Engineering Audio'],
+    features: ['New Paint', 'New Interior', 'Classic V-Tail'],
+    upgrades: ['Engine Upgrade', 'Avionics Upgrade'],
+    user: { id: 'user5', name: 'West Coast Aircraft', username: 'wca' },
+    images: ['https://images.unsplash.com/photo-1473968512647-3e447244af8f?w=800&q=80'],
+  },
+};
 
 export default function ListingDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -62,7 +223,12 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
       const data = await res.json();
       setListing(data.listing);
     } catch (err) {
-      setError('Failed to load listing');
+      // Fall back to demo data if API fails
+      if (DEMO_LISTINGS_DETAIL[id]) {
+        setListing(DEMO_LISTINGS_DETAIL[id]);
+      } else {
+        setError('Listing not found');
+      }
     } finally {
       setLoading(false);
     }
