@@ -265,7 +265,11 @@ export default function FlyingClubPage() {
 
   // Send chat message
   const handleSendChat = async () => {
-    if (!chatInput.trim() || selectedView === 'personal' || !session?.user?.id) return
+    console.log('Sending chat message:', { chatInput: chatInput.trim(), selectedView, isPersonal, hasSession: !!session?.user?.id })
+    if (!chatInput.trim() || selectedView === 'personal' || !session?.user?.id) {
+      console.log('Cannot send - failed condition')
+      return
+    }
     
     try {
       const res = await fetch(`/api/groups/${selectedView}/chat`, {
@@ -273,10 +277,17 @@ export default function FlyingClubPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: chatInput.trim() })
       })
+      console.log('Chat response:', res.status)
+      
       if (res.ok) {
         const newMessage = await res.json()
+        console.log('New message:', newMessage)
         setChatMessages([...chatMessages, newMessage])
         setChatInput('')
+      } else {
+        const error = await res.json()
+        console.error('Error response:', error)
+        alert(error.error || 'Failed to send message')
       }
     } catch (error) {
       console.error('Error sending message:', error)

@@ -11,10 +11,9 @@ export async function GET(request: Request, { params }: { params: Promise<{ grou
 
     const { groupId } = await params;
 
-    // Verify user is a member of this group
-    const users = await prisma.$queryRawUnsafe(`
-      SELECT id, name FROM [User] WHERE email = '${session.user.email}'
-    `) as any[];
+    // Get user by email
+    const userEmail = session.user.email;
+    const users = await prisma.$queryRaw`SELECT id, name FROM [User] WHERE email = ${userEmail}` as any[];
 
     if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -22,16 +21,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ grou
 
     const userId = users[0].id;
 
-    // Check membership
-    const memberships = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE userId = '${userId}' AND groupId = '${groupId}'
-    `) as any[];
+    // Check membership using Prisma
+    const membership = await prisma.groupMember.findFirst({
+      where: { userId, groupId }
+    });
 
-    if (!memberships || memberships.length === 0) {
+    if (!membership) {
       return NextResponse.json({ error: 'Not a member of this group' }, { status: 403 });
     }
 
-    // Fetch messages with user info
+    // Fetch messages with user info using raw SQL
     const messages = await prisma.$queryRawUnsafe(`
       SELECT 
         gcm.id,
@@ -41,20 +40,21 @@ export async function GET(request: Request, { params }: { params: Promise<{ grou
         gcm.createdAt,
         u.name as userName
       FROM GroupChatMessage gcm
-      JOIN [User] u ON gcm.userId = u.id
+      LEFT JOIN [User] u ON gcm.userId = u.id
       WHERE gcm.groupId = '${groupId}'
-      ORDER BY gcm.createdAt DESC
-      LIMIT 100
+      ORDER BY gcm.createdAt ASC
+      OFFSET 0 ROWS FETCH NEXT 100 ROWS ONLY
     `) as any[];
 
-    // Transform messages to include user info
-    const transformedMessages = (messages || []).reverse().map((msg: any) => {
-      const initials = msg.userName 
-        ? msg.userName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
+    // Transform messages
+    const colors = ['bg-primary', 'bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500'];
+    
+    const transformedMessages = (messages || []).map((msg: any) => {
+      const userName = msg.userName || 'Unknown';
+      const initials = userName 
+        ? userName.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()
         : '??';
       
-      // Generate color based on userId
-      const colors = ['bg-primary', 'bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500'];
       const colorIndex = msg.userId.charCodeAt(0) % colors.length;
       
       return {
@@ -62,7 +62,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ grou
         groupId: msg.groupId,
         userId: msg.userId,
         user: {
-          name: msg.userName || 'Unknown',
+          name: userName,
           initials,
           color: colors[colorIndex]
         },
@@ -93,10 +93,9 @@ export async function POST(request: Request, { params }: { params: Promise<{ gro
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    // Get user
-    const users = await prisma.$queryRawUnsafe(`
-      SELECT id, name FROM [User] WHERE email = '${session.user.email}'
-    `) as any[];
+    // Get user by email
+    const userEmail = session.user.email;
+    const users = await prisma.$queryRaw`SELECT id, name FROM [User] WHERE email = ${userEmail}` as any[];
 
     if (!users || users.length === 0) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
@@ -105,21 +104,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ gro
     const userId = users[0].id;
     const userName = users[0].name;
 
-    // Check membership
-    const memberships = await prisma.$queryRawUnsafe(`
-      SELECT * FROM GroupMember WHERE userId = '${userId}' AND groupId = '${groupId}'
-    `) as any[];
+    // Check membership using Prisma
+    const membership = await prisma.groupMember.findFirst({
+      where: { userId, groupId }
+    });
 
-    if (!memberships || memberships.length === 0) {
+    if (!membership) {
       return NextResponse.json({ error: 'Not a member of this group' }, { status: 403 });
     }
 
-    // Create message
-    const messageId = crypto.randomUUID();
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO GroupChatMessage (id, groupId, userId, message, createdAt)
-      VALUES ('${messageId}', '${groupId}', '${userId}', '${message.replace(/'/g, "''")}', GETDATE())
-    `);
+    // Create message using Prisma
+    const newMessage = await prisma.groupChatMessage.create({
+      data: {
+        groupId,
+        userId,
+        message: message.trim()
+      }
+    });
 
     // Generate response
     const initials = userName 
@@ -129,20 +130,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ gro
     const colors = ['bg-primary', 'bg-green-500', 'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-pink-500'];
     const colorIndex = userId.charCodeAt(0) % colors.length;
 
-    const newMessage = {
-      id: messageId,
-      groupId,
-      userId,
+    const response = {
+      id: newMessage.id,
+      groupId: newMessage.groupId,
+      userId: newMessage.userId,
       user: {
         name: userName || 'Unknown',
         initials,
         color: colors[colorIndex]
       },
-      message: message.trim(),
-      timestamp: new Date().toISOString()
+      message: newMessage.message,
+      timestamp: newMessage.createdAt
     };
 
-    return NextResponse.json(newMessage);
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error sending chat message:', error);
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
