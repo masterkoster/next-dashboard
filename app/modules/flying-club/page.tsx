@@ -170,20 +170,23 @@ export default function FlyingClubPage() {
       setLoading(true)
       try {
         if (session?.user?.id) {
-          // Fetch real groups
+          // Fetch real groups from API
           const groupsRes = await fetch('/api/groups')
           if (groupsRes.ok) {
             const groupsData = await groupsRes.json()
             setGroups(groupsData)
-            if (groupsData.length > 0 && selectedView === 'personal') {
-              // Stay on personal
-            }
           }
-          // Fetch personal bookings
+          // Fetch personal bookings from API
           const bookingsRes = await fetch('/api/bookings')
-          if (bookingsRes.ok) setBookings(await bookingsRes.json())
+          if (bookingsRes.ok) {
+            const bookingsData = await bookingsRes.json()
+            setBookings(bookingsData)
+          }
+          // Set empty for demo-like state when logged in
+          setMaintenance([])
+          setMembers([])
         } else {
-          // Demo mode
+          // Demo mode - only show demo data when NOT logged in
           setGroups(demoGroups)
           setBookings([...personalBookings, ...demoBookings])
           setMaintenance(demoMaintenance)
@@ -191,10 +194,13 @@ export default function FlyingClubPage() {
         }
       } catch (error) {
         console.error('Error fetching data:', error)
-        setGroups(demoGroups)
-        setBookings([...personalBookings, ...demoBookings])
-        setMaintenance(demoMaintenance)
-        setMembers(demoMembers)
+        if (!session?.user?.id) {
+          // Only load demo data on error if not logged in
+          setGroups(demoGroups)
+          setBookings([...personalBookings, ...demoBookings])
+          setMaintenance(demoMaintenance)
+          setMembers(demoMembers)
+        }
       }
       setLoading(false)
     }
@@ -207,7 +213,9 @@ export default function FlyingClubPage() {
     if (!session?.user?.id) return
     if (selectedView === 'personal') {
       // Fetch personal bookings
-      fetch('/api/bookings').then(r => r.ok && r.json()).then(setBookings)
+      fetch('/api/bookings').then(r => r.ok && r.json()).then(data => { if (data) setBookings(data) })
+      setMaintenance([])
+      setMembers([])
       return
     }
     
@@ -284,15 +292,9 @@ export default function FlyingClubPage() {
               >
                 <option value="personal">👤 Personal</option>
                 <optgroup label="✈️ Flying Clubs">
-                  {groups.map(group => (
+                  {(isDemo ? demoGroups : groups).map(group => (
                     <option key={group.id} value={group.id}>{group.name}</option>
                   ))}
-                  {isDemo && (
-                    <>
-                      <option value="demo-1">Sky High Flying Club</option>
-                      <option value="demo-2">Weekend Warriors</option>
-                    </>
-                  )}
                 </optgroup>
               </select>
               {isPersonal && (
