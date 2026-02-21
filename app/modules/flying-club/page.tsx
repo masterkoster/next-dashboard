@@ -1,6 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -26,80 +28,224 @@ import {
   MapPin,
   Fuel,
   BookOpen,
-  Settings
+  Settings,
+  Loader2
 } from "lucide-react"
 
-// Mock data structure
-const mockGroups = [
+// Types
+interface GroupAircraft {
+  id: string
+  nNumber: string
+  nickname: string | null
+  make: string | null
+  model: string | null
+  year: number | null
+  status: string | null
+  hourlyRate: number | null
+  hobbsHours: number | null
+  groupName?: string
+}
+
+interface Group {
+  id: string
+  name: string
+  description: string | null
+  role: string
+  aircraft: GroupAircraft[]
+  members?: number
+}
+
+interface Booking {
+  id: string
+  aircraftId: string
+  aircraft?: GroupAircraft
+  userId: string
+  user?: { name: string | null; email: string }
+  startTime: string
+  endTime: string
+  purpose: string | null
+}
+
+interface Maintenance {
+  id: string
+  aircraftId: string
+  aircraft?: GroupAircraft
+  description: string
+  status: string
+  priority: string
+  reportedDate: string
+  dueDate: string | null
+}
+
+interface FlightLog {
+  id: string
+  aircraftId: string
+  aircraft?: GroupAircraft
+  userId: string
+  user?: { name: string | null }
+  date: string
+  hobbsIn: number
+  hobbsOut: number
+  tachIn: number | null
+  tachOut: number | null
+  route: string | null
+  notes: string | null
+}
+
+interface Member {
+  id: string
+  userId: string
+  user: { id: string; name: string | null; email: string }
+  role: string
+  joinedAt: string
+}
+
+// Demo data
+const demoGroups: Group[] = [
   {
-    id: '1',
+    id: 'demo-1',
     name: 'Sky High Flying Club',
     description: 'A welcoming club for pilots of all experience levels',
+    role: 'ADMIN',
     aircraft: [
-      {
-        id: 'a1',
-        nNumber: 'N172SP',
-        nickname: 'Skyhawk',
-        make: 'Cessna',
-        model: '172S',
-        year: 2025,
-        status: 'Available',
-        hourlyRate: 165,
-        hobbsHours: 98.2
-      },
-      {
-        id: 'a2',
-        nNumber: 'N9876P',
-        nickname: 'Warrior',
-        make: 'Piper',
-        model: 'PA-28-161',
-        year: 2019,
-        status: 'Maintenance',
-        hourlyRate: 145,
-        hobbsHours: 1842.3
-      }
+      { id: 'a1', nNumber: 'N172SP', nickname: 'Skyhawk', make: 'Cessna', model: '172S', year: 2025, status: 'Available', hourlyRate: 165, hobbsHours: 98.2 },
+      { id: 'a2', nNumber: 'N9876P', nickname: 'Warrior', make: 'Piper', model: 'PA-28-161', year: 2019, status: 'Maintenance', hourlyRate: 145, hobbsHours: 1842.3 }
     ],
     members: 5
   },
   {
-    id: '2',
+    id: 'demo-2',
     name: 'Weekend Warriors',
     description: 'Casual flying group for weekend adventures',
+    role: 'MEMBER',
     aircraft: [
-      {
-        id: 'a3',
-        nNumber: 'N345AB',
-        nickname: 'Cherokee',
-        make: 'Piper',
-        model: 'PA-32-300',
-        year: 1978,
-        status: 'Available',
-        hourlyRate: 135,
-        hobbsHours: 4890.5
-      }
+      { id: 'a3', nNumber: 'N345AB', nickname: 'Cherokee', make: 'Piper', model: 'PA-32-300', year: 1978, status: 'Available', hourlyRate: 135, hobbsHours: 4890.5 }
     ],
     members: 2
   }
 ]
 
-const mockBookings = [
-  { id: 'b1', aircraft: 'N172SP', pilot: 'Demo Admin', date: '2024-02-23', time: '14:00 - 16:00', purpose: 'Local practice' },
-  { id: 'b2', aircraft: 'N345AB', pilot: 'Mike Wilson', date: '2024-02-24', time: '09:00 - 12:00', purpose: 'Cross country' },
-  { id: 'b3', aircraft: 'N172SP', pilot: 'Sarah Johnson', date: '2024-02-25', time: '10:30 - 13:30', purpose: 'IFR practice' }
+const demoBookings: Booking[] = [
+  { id: 'b1', aircraftId: 'a1', aircraft: demoGroups[0].aircraft[0], userId: 'u1', user: { name: 'Demo Admin', email: 'demo@test.com' }, startTime: '2026-02-23T14:00', endTime: '2026-02-23T16:00', purpose: 'Local practice' },
+  { id: 'b2', aircraftId: 'a3', aircraft: demoGroups[1].aircraft[0], userId: 'u2', user: { name: 'Mike Wilson', email: 'mike@test.com' }, startTime: '2026-02-24T09:00', endTime: '2026-02-24T12:00', purpose: 'Cross country' },
+  { id: 'b3', aircraftId: 'a1', aircraft: demoGroups[0].aircraft[0], userId: 'u3', user: { name: 'Sarah Johnson', email: 'sarah@test.com' }, startTime: '2026-02-25T10:30', endTime: '2026-02-25T13:30', purpose: 'IFR practice' }
 ]
 
-const mockMaintenance = [
-  { id: 'm1', aircraft: 'N9876P', description: 'Annual inspection', status: 'In Progress', dueDate: '2024-08-20', priority: 'high' },
-  { id: 'm2', aircraft: 'N172SP', description: 'Oil change', status: 'Needed', dueDate: '2024-03-01', priority: 'medium' }
+const demoMaintenance: Maintenance[] = [
+  { id: 'm1', aircraftId: 'a2', aircraft: demoGroups[0].aircraft[1], description: 'Annual inspection', status: 'In Progress', priority: 'high', reportedDate: '2026-01-15', dueDate: '2026-08-20' },
+  { id: 'm2', aircraftId: 'a1', aircraft: demoGroups[0].aircraft[0], description: 'Oil change', status: 'Needed', priority: 'medium', reportedDate: '2026-02-01', dueDate: '2026-03-01' }
+]
+
+const demoMembers: Member[] = [
+  { id: 'mb1', userId: 'u1', user: { id: 'u1', name: 'Demo Admin', email: 'demo@admin.com' }, role: 'ADMIN', joinedAt: '2024-01-01' },
+  { id: 'mb2', userId: 'u2', user: { id: 'u2', name: 'Frank Miller', email: 'frank@demo.com' }, role: 'MEMBER', joinedAt: '2024-03-15' },
+  { id: 'mb3', userId: 'u3', user: { id: 'u3', name: 'Sarah Johnson', email: 'sarah@demo.com' }, role: 'MEMBER', joinedAt: '2024-06-20' },
 ]
 
 export default function FlyingClubPage() {
+  const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedGroup, setSelectedGroup] = useState('all')
+  const [selectedGroupId, setSelectedGroupId] = useState<string>('all')
+  const [groups, setGroups] = useState<Group[]>([])
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [maintenance, setMaintenance] = useState<Maintenance[]>([])
+  const [members, setMembers] = useState<Member[]>([])
+  const [loading, setLoading] = useState(true)
 
+  // Fetch user's groups
+  useEffect(() => {
+    if (status === 'loading') return
+    
+    async function fetchData() {
+      setLoading(true)
+      try {
+        if (session?.user?.id) {
+          // Fetch real groups
+          const groupsRes = await fetch('/api/groups')
+          if (groupsRes.ok) {
+            const groupsData = await groupsRes.json()
+            setGroups(groupsData)
+            if (groupsData.length > 0 && selectedGroupId === 'all') {
+              setSelectedGroupId(groupsData[0].id)
+            }
+          }
+        } else {
+          // Demo mode
+          setGroups(demoGroups)
+          setBookings(demoBookings)
+          setMaintenance(demoMaintenance)
+          setMembers(demoMembers)
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        // Fall back to demo data
+        setGroups(demoGroups)
+        setBookings(demoBookings)
+        setMaintenance(demoMaintenance)
+        setMembers(demoMembers)
+      }
+      setLoading(false)
+    }
+    
+    fetchData()
+  }, [session, status])
+
+  // Fetch group-specific data when selectedGroupId changes
+  useEffect(() => {
+    if (!session?.user?.id || selectedGroupId === 'all') {
+      if (!session?.user?.id) {
+        setBookings(demoBookings)
+        setMaintenance(demoMaintenance)
+        setMembers(demoMembers)
+      }
+      return
+    }
+
+    async function fetchGroupData() {
+      try {
+        // Fetch bookings
+        const bookingsRes = await fetch(`/api/groups/${selectedGroupId}/bookings`)
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json()
+          setBookings(bookingsData)
+        }
+
+        // Fetch members
+        const membersRes = await fetch(`/api/groups/${selectedGroupId}/members`)
+        if (membersRes.ok) {
+          const membersData = await membersRes.json()
+          setMembers(membersData)
+        }
+      } catch (error) {
+        console.error('Error fetching group data:', error)
+      }
+    }
+
+    fetchGroupData()
+  }, [selectedGroupId, session])
+
+  const isDemo = !session?.user?.id
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
+
+  // Filter data by selected group
+  const filteredGroups = selectedGroupId === 'all' ? groups : groups.filter(g => g.id === selectedGroupId)
+  const allAircraft = filteredGroups.flatMap(g => g.aircraft)
+  const filteredBookings = selectedGroupId === 'all' 
+    ? bookings 
+    : bookings.filter(b => allAircraft.some(a => a.id === b.aircraftId))
+  const filteredMaintenance = selectedGroupId === 'all'
+    ? maintenance
+    : maintenance.filter(m => allAircraft.some(a => a.id === m.aircraftId))
+
+  if (status === 'loading' || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   const getDaysInMonth = () => {
     const year = currentMonth.getFullYear()
@@ -130,14 +276,14 @@ export default function FlyingClubPage() {
               <p className="text-muted-foreground mt-1">Manage your aviation group and aircraft</p>
             </div>
             <div className="flex items-center gap-3">
-              {mockGroups.length > 1 && (
+              {filteredGroups.length > 1 && (
                 <select
-                  value={selectedGroup}
-                  onChange={(e) => setSelectedGroup(e.target.value)}
+                  value={selectedGroupId}
+                  onChange={(e) => setSelectedGroupId(e.target.value)}
                   className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
                 >
                   <option value="all">All Groups</option>
-                  {mockGroups.map(group => (
+                  {filteredGroups.map(group => (
                     <option key={group.id} value={group.id}>{group.name}</option>
                   ))}
                 </select>
@@ -194,7 +340,7 @@ export default function FlyingClubPage() {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{mockBookings.length}</div>
+                  <div className="text-2xl font-bold">{filteredBookings.length}</div>
                   <p className="text-xs text-muted-foreground mt-1">Next: Today at 14:00</p>
                 </CardContent>
               </Card>
@@ -216,7 +362,7 @@ export default function FlyingClubPage() {
                   <Wrench className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-destructive">{mockMaintenance.length}</div>
+                  <div className="text-2xl font-bold text-destructive">{filteredMaintenance.length}</div>
                   <p className="text-xs text-muted-foreground mt-1">1 high priority</p>
                 </CardContent>
               </Card>
@@ -224,7 +370,7 @@ export default function FlyingClubPage() {
 
             {/* Groups Overview */}
             <div className="grid gap-6 lg:grid-cols-2">
-              {mockGroups.map((group) => (
+              {filteredGroups.map((group) => (
                 <Card key={group.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -293,19 +439,19 @@ export default function FlyingClubPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {mockBookings.map((booking) => (
+                    {filteredBookings.map((booking) => (
                       <div key={booking.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm">{booking.aircraft}</p>
+                            <p className="font-medium text-sm">{booking.aircraft?.nNumber || booking.aircraftId}</p>
                             <span className="text-xs text-muted-foreground">•</span>
-                            <p className="text-sm text-muted-foreground">{booking.pilot}</p>
+                            <p className="text-sm text-muted-foreground">{booking.user?.name || 'Unknown'}</p>
                           </div>
-                          <p className="text-xs text-muted-foreground">{booking.purpose}</p>
+                          <p className="text-xs text-muted-foreground">{booking.purpose || 'Flight'}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium">{booking.date}</p>
-                          <p className="text-xs text-muted-foreground">{booking.time}</p>
+                          <p className="text-sm font-medium">{booking.startTime ? new Date(booking.startTime).toLocaleDateString() : 'N/A'}</p>
+                          <p className="text-xs text-muted-foreground">{booking.startTime && booking.endTime ? `${new Date(booking.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(booking.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'N/A'}</p>
                         </div>
                       </div>
                     ))}
@@ -322,11 +468,11 @@ export default function FlyingClubPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {mockMaintenance.map((item) => (
+                    {filteredMaintenance.map((item) => (
                       <div key={item.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm">{item.aircraft}</p>
+                            <p className="font-medium text-sm">{item.aircraft?.nNumber || item.aircraftId}</p>
                             <Badge variant={item.status === 'In Progress' ? 'default' : 'secondary'} className="text-xs">
                               {item.status}
                             </Badge>
@@ -334,7 +480,7 @@ export default function FlyingClubPage() {
                           <p className="text-xs text-muted-foreground">{item.description}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium">Due: {item.dueDate}</p>
+                          <p className="text-sm font-medium">Due: {item.dueDate ? new Date(item.dueDate).toLocaleDateString() : 'TBD'}</p>
                           {item.priority === 'high' && (
                             <div className="flex items-center justify-end gap-1 mt-1">
                               <AlertCircle className="h-3 w-3 text-destructive" />
@@ -422,7 +568,7 @@ export default function FlyingClubPage() {
 
         {activeTab === 'aircraft' && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {mockGroups.flatMap(group => group.aircraft).map((aircraft) => (
+            {allAircraft.map((aircraft) => (
               <Card key={aircraft.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -495,21 +641,21 @@ export default function FlyingClubPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {mockBookings.map((booking) => (
+                {filteredBookings.map((booking) => (
                   <div key={booking.id} className="flex items-center justify-between rounded-lg border border-border p-4">
                     <div className="flex items-center gap-4">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
                         <Plane className="h-5 w-5 text-primary" />
                       </div>
                       <div className="space-y-1">
-                        <p className="font-medium text-sm">{booking.aircraft}</p>
-                        <p className="text-xs text-muted-foreground">{booking.purpose}</p>
+                        <p className="font-medium text-sm">{booking.aircraft?.nNumber || booking.aircraftId}</p>
+                        <p className="text-xs text-muted-foreground">{booking.purpose || 'Flight'}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="text-right">
-                        <p className="text-sm font-medium">{booking.pilot}</p>
-                        <p className="text-xs text-muted-foreground">{booking.date} • {booking.time}</p>
+                        <p className="text-sm font-medium">{booking.user?.name || 'Unknown'}</p>
+                        <p className="text-xs text-muted-foreground">{booking.startTime ? new Date(booking.startTime).toLocaleDateString() : 'N/A'}</p>
                       </div>
                       <Button variant="ghost" size="icon">
                         <MoreVertical className="h-4 w-4" />
@@ -535,7 +681,7 @@ export default function FlyingClubPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {mockMaintenance.map((item) => (
+                {filteredMaintenance.map((item) => (
                   <div key={item.id} className="flex items-center justify-between rounded-lg border border-border p-4">
                     <div className="flex items-center gap-4">
                       <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
@@ -545,7 +691,7 @@ export default function FlyingClubPage() {
                       </div>
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm">{item.aircraft}</p>
+                          <p className="font-medium text-sm">{item.aircraft?.nNumber || item.aircraftId}</p>
                           <Badge variant={item.status === 'In Progress' ? 'default' : 'secondary'}>
                             {item.status}
                           </Badge>
