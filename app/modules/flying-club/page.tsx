@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
@@ -100,6 +101,23 @@ interface Member {
   joinedAt: string
 }
 
+interface ChatMessage {
+  id: string
+  groupId: string
+  userId: string
+  user: { name: string; initials: string; color: string }
+  message: string
+  timestamp: string
+}
+
+// Demo chat messages
+const demoChatMessages: ChatMessage[] = [
+  { id: 'c1', groupId: 'demo-1', userId: 'u1', user: { name: 'Frank Miller', initials: 'FM', color: 'bg-primary' }, message: "Hey everyone! Anyone flying this weekend?", timestamp: '2026-02-21T10:30:00' },
+  { id: 'c2', groupId: 'demo-1', userId: 'u2', user: { name: 'Sarah Johnson', initials: 'SJ', color: 'bg-green-500' }, message: "I'm thinking Saturday morning for some IFR practice!", timestamp: '2026-02-21T10:45:00' },
+  { id: 'c3', groupId: 'demo-1', userId: 'u3', user: { name: 'Mike Wilson', initials: 'MW', color: 'bg-blue-500' }, message: "Count me in! The 182 is available", timestamp: '2026-02-21T11:00:00' },
+  { id: 'c4', groupId: 'demo-1', userId: 'u1', user: { name: 'Frank Miller', initials: 'FM', color: 'bg-primary' }, message: "Great! Let's meet at 8am", timestamp: '2026-02-21T11:15:00' },
+]
+
 // Demo data
 const demoGroups: Group[] = [
   {
@@ -160,6 +178,8 @@ export default function FlyingClubPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [maintenance, setMaintenance] = useState<Maintenance[]>([])
   const [members, setMembers] = useState<Member[]>([])
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
+  const [chatInput, setChatInput] = useState('')
   const [loading, setLoading] = useState(true)
 
   // Fetch user's groups
@@ -191,6 +211,7 @@ export default function FlyingClubPage() {
           setBookings([...personalBookings, ...demoBookings])
           setMaintenance(demoMaintenance)
           setMembers(demoMembers)
+          setChatMessages(demoChatMessages)
         }
       } catch (error) {
         console.error('Error fetching data:', error)
@@ -225,6 +246,15 @@ export default function FlyingClubPage() {
         if (bookingsRes.ok) setBookings(await bookingsRes.json())
         const membersRes = await fetch(`/api/groups/${selectedView}/members`)
         if (membersRes.ok) setMembers(await membersRes.json())
+        
+        // Fetch group chat messages
+        if (selectedView !== 'personal') {
+          const chatRes = await fetch(`/api/groups/${selectedView}/chat`)
+          if (chatRes.ok) {
+            const chatData = await chatRes.json()
+            setChatMessages(chatData)
+          }
+        }
       } catch (error) {
         console.error('Error fetching group data:', error)
       }
@@ -232,6 +262,26 @@ export default function FlyingClubPage() {
 
     fetchGroupData()
   }, [selectedView, session])
+
+  // Send chat message
+  const handleSendChat = async () => {
+    if (!chatInput.trim() || selectedView === 'personal' || !session?.user?.id) return
+    
+    try {
+      const res = await fetch(`/api/groups/${selectedView}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: chatInput.trim() })
+      })
+      if (res.ok) {
+        const newMessage = await res.json()
+        setChatMessages([...chatMessages, newMessage])
+        setChatInput('')
+      }
+    } catch (error) {
+      console.error('Error sending message:', error)
+    }
+  }
 
   const isDemo = !session?.user?.id
   const isPersonal = selectedView === 'personal'
@@ -446,56 +496,106 @@ export default function FlyingClubPage() {
                 </Card>
               ))}
 
-              {/* Second column: Quick Stats / Upcoming if only 1 or fewer clubs */}
+              {/* Second column: Group Chat when only 1 or fewer clubs */}
               {(selectedView === 'all' ? groups : [selectedGroup].filter(Boolean)).length < 2 && (
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Quick Overview</CardTitle>
-                    <CardDescription>Your aviation at a glance</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-border">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                          <Plane className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium">Total Aircraft</p>
-                          <p className="text-xs text-muted-foreground">Across all clubs</p>
-                        </div>
+                <Card className="flex flex-col h-[500px]">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-lg">Group Chat</CardTitle>
+                        <CardDescription>Chat with club members</CardDescription>
                       </div>
-                      <p className="text-2xl font-bold">{displayAircraft.length}</p>
+                      <Button variant="ghost" size="sm">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1 flex flex-col p-0">
+                    {/* Chat Messages */}
+                    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                      {(isDemo || chatMessages.length > 0) ? (
+                        chatMessages.length > 0 ? (
+                          chatMessages.map((msg) => (
+                            <div key={msg.id} className="flex gap-3">
+                              <div className={`h-8 w-8 rounded-full flex items-center justify-center text-white text-xs ${msg.user.color || 'bg-primary'}`}>
+                                {msg.user.initials}
+                              </div>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium">{msg.user.name}</p>
+                                  <span className="text-xs text-muted-foreground">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground bg-muted p-2 rounded-lg rounded-tl-none">{msg.message}</p>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <>
+                            <div className="flex gap-3">
+                              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm">FM</div>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium">Frank Miller</p>
+                                  <span className="text-xs text-muted-foreground">10:30 AM</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground bg-muted p-2 rounded-lg rounded-tl-none">Hey everyone! Anyone flying this weekend?</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-3">
+                              <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm">SJ</div>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium">Sarah Johnson</p>
+                                  <span className="text-xs text-muted-foreground">10:45 AM</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground bg-muted p-2 rounded-lg rounded-tl-none">I'm thinking Saturday morning for some IFR practice!</p>
+                              </div>
+                            </div>
+                            <div className="flex gap-3">
+                              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm">MW</div>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center gap-2">
+                                  <p className="text-sm font-medium">Mike Wilson</p>
+                                  <span className="text-xs text-muted-foreground">11:00 AM</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground bg-muted p-2 rounded-lg rounded-tl-none">Count me in! The 182 is available</p>
+                              </div>
+                            </div>
+                          </>
+                        )
+                      ) : (
+                        <div className="text-center text-muted-foreground py-8">
+                          <p className="text-sm">No messages yet</p>
+                          <p className="text-xs">Start a conversation with your club</p>
+                        </div>
+                      )}
                     </div>
                     
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-border">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
-                          <Calendar className="h-5 w-5 text-green-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium">Upcoming Bookings</p>
-                          <p className="text-xs text-muted-foreground">Next 7 days</p>
-                        </div>
+                    {/* Chat Input */}
+                    <div className="p-3 border-t">
+                      <div className="flex gap-2">
+                        <Input 
+                          placeholder="Type a message..." 
+                          className="flex-1"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          onKeyPress={(e) => e.key === 'Enter' && handleSendChat()}
+                          disabled={!session?.user?.id || selectedView === 'personal'}
+                        />
+                        <Button 
+                          size="sm" 
+                          disabled={!session?.user?.id || selectedView === 'personal' || !chatInput.trim()}
+                          onClick={handleSendChat}
+                        >
+                          Send
+                        </Button>
                       </div>
-                      <p className="text-2xl font-bold">{displayBookings.length}</p>
+                      {selectedView === 'personal' ? (
+                        <p className="text-xs text-muted-foreground mt-2 text-center">Select a club to chat with members</p>
+                      ) : !session?.user?.id && (
+                        <p className="text-xs text-muted-foreground mt-2 text-center">Sign in to chat</p>
+                      )}
                     </div>
-
-                    <div className="flex items-center justify-between p-3 rounded-lg border border-border">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
-                          <Users className="h-5 w-5 text-blue-500" />
-                        </div>
-                        <div>
-                          <p className="font-medium">Your Clubs</p>
-                          <p className="text-xs text-muted-foreground">Memberships</p>
-                        </div>
-                      </div>
-                      <p className="text-2xl font-bold">{groups.length}</p>
-                    </div>
-
-                    <Button variant="outline" className="w-full" onClick={() => setSelectedView('personal')}>
-                      View Personal Dashboard
-                    </Button>
                   </CardContent>
                 </Card>
               )}
