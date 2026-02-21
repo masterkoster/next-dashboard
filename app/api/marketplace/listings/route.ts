@@ -124,6 +124,9 @@ export async function GET(request: Request) {
     const query = url.searchParams.get('q');
     const take = Math.min(Number(url.searchParams.get('take')) || 60, 200);
 
+    // Check if this is a preview request (no filters = preview)
+    const isPreview = !type && !airport && !query;
+
     // Aircraft-specific filters
     const make = url.searchParams.get('make');
     const model = url.searchParams.get('model');
@@ -191,6 +194,11 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       listings: listings.map(sanitizeListing),
+    }, {
+      headers: {
+        // Cache for 1 hour (3600 seconds), stale-while-revalidate allows serving old content while fetching new
+        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+      },
     });
   } catch (error) {
     console.error('Marketplace GET failed', error);

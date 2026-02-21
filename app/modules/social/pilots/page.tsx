@@ -1,1 +1,5 @@
-export { default } from '../../pilot-directory/page';
+import { redirect } from 'next/navigation'
+
+export default function PilotsPage() {
+  redirect('/modules/social/messages')
+}
