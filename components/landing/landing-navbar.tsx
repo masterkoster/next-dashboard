@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import { useSession } from "next-auth/react"
 import { Plane, Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -14,6 +15,8 @@ const navLinks = [
 
 export function LandingNavbar() {
   const [open, setOpen] = useState(false)
+  const { data: session } = useSession()
+  const isLoggedIn = !!session?.user
 
   return (
     <header className="fixed top-0 z-50 w-full border-b border-border/50 bg-background/60 backdrop-blur-2xl">
@@ -41,12 +44,20 @@ export function LandingNavbar() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
-            <Link href="/api/auth/signin">Log in</Link>
-          </Button>
-          <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
-            <Link href="/signup">Start Free</Link>
-          </Button>
+          {isLoggedIn ? (
+            <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
+                <Link href="/api/auth/signin">Log in</Link>
+              </Button>
+              <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+                <Link href="/signup">Start Free</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile Menu Toggle */}
