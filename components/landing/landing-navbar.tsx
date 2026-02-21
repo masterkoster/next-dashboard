@@ -41,11 +41,11 @@ export function LandingNavbar() {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
-            Log in
+          <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground" asChild>
+            <Link href="/api/auth/signin">Log in</Link>
           </Button>
-          <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
-            Start Free
+          <Button size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+            <Link href="/signup">Start Free</Link>
           </Button>
         </div>
 
@@ -74,11 +74,11 @@ export function LandingNavbar() {
               </a>
             ))}
             <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
-              <Button variant="ghost" size="sm" className="justify-start text-muted-foreground">
-                Log in
+              <Button variant="ghost" size="sm" className="justify-start text-muted-foreground" asChild>
+                <Link href="/api/auth/signin" onClick={() => setOpen(false)}>Log in</Link>
               </Button>
-              <Button size="sm" className="bg-primary text-primary-foreground">
-                Start Free
+              <Button size="sm" className="bg-primary text-primary-foreground" asChild>
+                <Link href="/signup" onClick={() => setOpen(false)}>Start Free</Link>
               </Button>
             </div>
           </div>

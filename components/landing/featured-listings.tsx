@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Fuel, Users, Calculator, GraduationCap, ArrowRight, Check, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -159,9 +160,11 @@ export function FeaturedListings() {
                   </ul>
                 </div>
                 <div className="mt-7">
-                  <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
-                    Try {mod.title}
-                    <ArrowRight className="h-3.5 w-3.5" />
+                  <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90" asChild>
+                    <Link href={mod.title === 'Fuel Saver' ? '/modules/fuel-saver' : mod.title === 'Flying Club' ? '/modules/clubs' : mod.title === 'E6B Flight Computer' ? '/modules/e6b' : '/modules/training'}>
+                      Try {mod.title}
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Link>
                   </Button>
                 </div>
               </div>

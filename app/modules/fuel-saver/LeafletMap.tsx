@@ -59,6 +59,26 @@ interface AirportDetails {
     lastReported?: string;
     providerName?: string;
     providerPhone?: string;
+    community100ll?: {
+      price: number;
+      fbo: string | null;
+      date: string;
+      reportedAt: string;
+      daysAgo: number;
+    } | null;
+    communityJetA?: {
+      price: number;
+      fbo: string | null;
+      date: string;
+      reportedAt: string;
+      daysAgo: number;
+    } | null;
+    priceDivergence?: {
+      type: string;
+      airnavPrice: number;
+      communityPrice: number;
+      difference: string;
+    } | null;
   };
   landingFee?: { amount: number };
   hasTower?: boolean;
@@ -178,6 +198,16 @@ function inferStateFromCoords(lat: number, lon: number): string | null {
 function AirportPopup({ airport, onAddToRoute, onViewStateInfo }: { airport: Airport; onAddToRoute: () => void; onViewStateInfo?: (stateCode: string) => void }) {
   const [details, setDetails] = useState<AirportDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // Expose refresh function globally
+  useEffect(() => {
+    (window as any).refreshAirportDetails = (icao: string) => {
+      if (icao === airport.icao) {
+        setRefreshKey(k => k + 1);
+      }
+    };
+  }, [airport.icao]);
 
   useEffect(() => {
     async function fetchDetails() {
@@ -193,7 +223,7 @@ function AirportPopup({ airport, onAddToRoute, onViewStateInfo }: { airport: Air
       setLoading(false);
     }
     fetchDetails();
-  }, [airport.icao]);
+  }, [airport.icao, refreshKey]);
 
   const handleViewStateInfo = () => {
     if (onViewStateInfo) {
@@ -263,9 +293,38 @@ function AirportPopup({ airport, onAddToRoute, onViewStateInfo }: { airport: Air
                   <span className="ml-2">JetA: ${details.fuel.priceJetA.toFixed(2)}/gal</span>
                 )}
               </div>
+              
+              {/* Community-reported price (shown alongside AirNav if available) */}
+              {(details.fuel.community100ll || details.fuel.communityJetA) && (
+                <div className="mt-1 space-y-1">
+                  {details.fuel.community100ll && (
+                    <div className={`text-sm ${details.fuel.community100ll.daysAgo <= 30 ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
+                      <span className="text-green-600">●</span> ${details.fuel.community100ll.price.toFixed(2)}/gal community
+                      <span className="text-xs text-slate-400 ml-1">· {details.fuel.community100ll.daysAgo === 0 ? 'today' : `${details.fuel.community100ll.daysAgo}d ago`}</span>
+                      {details.fuel.community100ll.fbo && (
+                        <span className="text-xs text-slate-400"> @ {details.fuel.community100ll.fbo}</span>
+                      )}
+                    </div>
+                  )}
+                  {details.fuel.communityJetA && (
+                    <div className={`text-sm ${details.fuel.communityJetA.daysAgo <= 30 ? 'text-green-600 font-medium' : 'text-slate-500'}`}>
+                      <span className="text-green-600">●</span> ${details.fuel.communityJetA.price.toFixed(2)}/gal JetA community
+                      <span className="text-xs text-slate-400 ml-1">· {details.fuel.communityJetA.daysAgo === 0 ? 'today' : `${details.fuel.communityJetA.daysAgo}d ago`}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              {/* Price divergence warning */}
+              {details.fuel.priceDivergence && (
+                <div className="mt-1 text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+                  ⚠️ Community price is {details.fuel.priceDivergence.difference}
+                </div>
+              )}
+              
               {details.fuel.lastReported && (
                 <div className="text-xs text-slate-400">
-                  Updated: {details.fuel.lastReported}
+                  AirNav: {details.fuel.lastReported}
                 </div>
               )}
               {/* AirNav Attribution */}
@@ -337,57 +396,91 @@ function AirportPopup({ airport, onAddToRoute, onViewStateInfo }: { airport: Air
               {/* Submit price button */}
               <details className="mt-2">
                 <summary className="text-xs text-sky-500 cursor-pointer hover:text-sky-400">
-                  Submit updated price
+                  Paid a different price? Submit it
                 </summary>
                 <form 
-                  onSubmit={(e) => {
+                  onSubmit={async (e) => {
                     e.preventDefault();
                     const form = e.target as HTMLFormElement;
                     const price = parseFloat((form.elements.namedItem('price') as HTMLInputElement).value);
                     const fuelType = (form.elements.namedItem('fuelType') as HTMLSelectElement).value;
-                    if (price > 0) {
-                      // Emit event to update price
-                      const event = new CustomEvent('submitFuelPrice', { 
-                        detail: { 
-                          icao: details.icao, 
-                          price, 
-                          fuelType 
-                        } 
-                      });
-                      window.dispatchEvent(event);
-                      alert('Thanks! Price submitted.');
+                    const fbo = (form.elements.namedItem('fbo') as HTMLInputElement).value;
+                    const purchaseDate = (form.elements.namedItem('purchaseDate') as HTMLInputElement).value;
+                    
+                    if (price > 0 && purchaseDate) {
+                      try {
+                        const res = await fetch('/api/fuel-prices/community', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            icao: details.icao,
+                            price,
+                            fuelType,
+                            fbo: fbo || null,
+                            purchaseDate
+                          })
+                        });
+                        if (res.ok) {
+                          alert('Thanks! Price submitted. Other pilots will see your community price.');
+                          // Refresh the airport details
+                          (window as any).refreshAirportDetails?.(details.icao);
+                        } else {
+                          const err = await res.json();
+                          alert(err.error || 'Failed to submit price');
+                        }
+                      } catch (err) {
+                        console.error('Error submitting price:', err);
+                        alert('Failed to submit price. Please try again.');
+                      }
                     }
                   }}
                   className="mt-2 p-2 bg-slate-700 rounded"
                 >
-                  <div className="text-xs mb-2 text-slate-300">Submit your price (per gallon)</div>
-                  <div className="flex gap-2">
-                    <select 
-                      name="fuelType" 
-                      className="bg-slate-600 text-white text-xs px-2 py-1 rounded"
-                    >
-                      <option value="100LL">100LL</option>
-                      <option value="JetA">Jet A</option>
-                    </select>
-                    <input 
-                      type="number" 
-                      name="price" 
-                      step="0.01" 
-                      min="0" 
-                      max="20"
-                      placeholder="$0.00"
-                      className="bg-slate-600 text-white text-xs px-2 py-1 rounded w-20"
-                      required
-                    />
+                  <div className="text-xs mb-2 text-slate-300">Submit your actual price (per gallon)</div>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <select 
+                        name="fuelType" 
+                        className="bg-slate-600 text-white text-xs px-2 py-1 rounded"
+                      >
+                        <option value="100LL">100LL</option>
+                        <option value="JetA">Jet A</option>
+                      </select>
+                      <input 
+                        type="number" 
+                        name="price" 
+                        step="0.01" 
+                        min="0" 
+                        max="20"
+                        placeholder="$0.00"
+                        className="bg-slate-600 text-white text-xs px-2 py-1 rounded w-20"
+                        required
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <input 
+                        type="text" 
+                        name="fbo" 
+                        placeholder="FBO name (optional)"
+                        className="bg-slate-600 text-white text-xs px-2 py-1 rounded flex-1"
+                      />
+                      <input 
+                        type="date" 
+                        name="purchaseDate" 
+                        max={new Date().toISOString().split('T')[0]}
+                        className="bg-slate-600 text-white text-xs px-2 py-1 rounded w-28"
+                        required
+                      />
+                    </div>
                     <button 
                       type="submit"
-                      className="bg-sky-500 hover:bg-sky-600 text-white text-xs px-2 py-1 rounded"
+                      className="w-full bg-sky-500 hover:bg-sky-600 text-white text-xs px-2 py-2 rounded"
                     >
-                      Submit
+                      Submit Price
                     </button>
                   </div>
                   <div className="text-xs text-slate-400 mt-1">
-                    Prices help other pilots!
+                    Help other pilots know real prices!
                   </div>
                 </form>
               </details>

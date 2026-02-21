@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth, prisma } from '@/lib/auth';
+import { encryptMessage, getUserEncryptionKey } from '@/lib/server-encryption';
 
 export async function GET() {
   try {
@@ -37,8 +38,12 @@ export async function GET() {
     const listingMap = Object.fromEntries(listings.map(l => [l.id, l]));
 
     const conversationsWithListings = conversations.map(c => ({
-      ...c,
-      listing: c.listingId ? listingMap[c.listingId] : null,
+      id: c.id,
+      updatedAt: c.updatedAt.toISOString(),
+      listingId: c.listingId,
+      listing: c.listingId ? listingMap[c.listingId] || null : null,
+      participants: c.participants,
+      messages: c.messages.map(m => ({ ...m, createdAt: m.createdAt.toISOString() })),
     }));
 
     return NextResponse.json({ conversations: conversationsWithListings });
@@ -131,11 +136,18 @@ export async function POST(request: Request) {
     if (existingConversation) {
       // If there's an initial message, send it to existing conversation
       if (initialMessage) {
+        // Encrypt message for recipient
+        const recipientKey = await getUserEncryptionKey(recipientId);
+        const senderKey = await getUserEncryptionKey(session.user.id);
+        const encryptedForRecipient = encryptMessage(initialMessage, recipientKey);
+        const encryptedForSender = encryptMessage(initialMessage, senderKey);
+        
         await prisma.message.create({
           data: {
             conversationId: existingConversation.id,
             senderId: session.user.id,
-            body: initialMessage,
+            body: encryptedForRecipient,
+            bodyForSender: encryptedForSender,
           },
         });
       }
@@ -163,11 +175,18 @@ export async function POST(request: Request) {
 
     // Send initial message if provided
     if (initialMessage) {
+      // Encrypt message for recipient
+      const recipientKey = await getUserEncryptionKey(recipientId);
+      const senderKey = await getUserEncryptionKey(session.user.id);
+      const encryptedForRecipient = encryptMessage(initialMessage, recipientKey);
+      const encryptedForSender = encryptMessage(initialMessage, senderKey);
+      
       await prisma.message.create({
         data: {
           conversationId: conversation.id,
           senderId: session.user.id,
-          body: initialMessage,
+          body: encryptedForRecipient,
+          bodyForSender: encryptedForSender,
         },
       });
     }

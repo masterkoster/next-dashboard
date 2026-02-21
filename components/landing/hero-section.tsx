@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Fuel, Calculator, Users, GraduationCap, Search } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -75,9 +76,12 @@ export function HeroSection() {
             <Button
               size="lg"
               className="h-12 gap-2 rounded-xl bg-primary px-8 text-primary-foreground hover:bg-primary/90"
+              asChild
             >
-              Create Free Account
-              <ArrowRight className="h-4 w-4" />
+              <Link href="/signup">
+                Create Free Account
+                <ArrowRight className="h-4 w-4" />
+              </Link>
             </Button>
             <Button
               variant="outline"

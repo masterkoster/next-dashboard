@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
+import { prisma } from '@/lib/auth';
 
 let db: any = null;
 
@@ -139,6 +140,44 @@ export async function GET(request: Request, { params }: { params: Promise<{ icao
     
     const landingFeeAmount = feeData ? feeData.price : (DEMO_FEES[icaoUpper] || null);
     
+    // Get community-reported fuel prices (most recent for each type)
+    let communityPrices: any[] = [];
+    try {
+      communityPrices = await prisma.communityFuelPrice.findMany({
+        where: { icao: icaoUpper },
+        orderBy: { purchaseDate: 'desc' },
+        take: 10,
+      });
+    } catch (e) {
+      // Community table might not exist yet
+      console.log('Community prices not available:', e);
+    }
+    
+    // Get latest community price for each fuel type
+    const latestCommunityByType: Record<string, any> = {};
+    for (const p of communityPrices) {
+      if (!latestCommunityByType[p.fuelType]) {
+        latestCommunityByType[p.fuelType] = p;
+      }
+    }
+    
+    // Calculate price divergence (flag if > 15% difference)
+    const community100ll = latestCommunityByType['100LL'];
+    const communityJetA = latestCommunityByType['JetA'];
+    let priceDivergence: any = null;
+    
+    if (fuelPrice && community100ll) {
+      const diff = Math.abs(fuelPrice - Number(community100ll.price)) / fuelPrice;
+      if (diff > 0.15) {
+        priceDivergence = {
+          type: '100LL',
+          airnavPrice: fuelPrice,
+          communityPrice: Number(community100ll.price),
+          difference: `${(diff * 100).toFixed(0)}% ${community100ll.price > fuelPrice ? 'higher' : 'lower'}`
+        };
+      }
+    }
+    
     // If using demo prices, cache them for future use
     if (!fuelData && fuelPrice) {
       try {
@@ -179,7 +218,24 @@ export async function GET(request: Request, { params }: { params: Promise<{ icao
         lastUpdated: fuelData ? fuelData.last_updated : new Date().toISOString(),
         // Fuel provider info
         providerName: fuelPrices[0]?.fbo_name || null,
-        providerPhone: fuelPrices[0]?.phone || null
+        providerPhone: fuelPrices[0]?.phone || null,
+        // Community-reported prices
+        community100ll: community100ll ? {
+          price: Number(community100ll.price),
+          fbo: community100ll.fbo,
+          date: community100ll.purchaseDate,
+          reportedAt: community100ll.createdAt,
+          daysAgo: Math.floor((Date.now() - new Date(community100ll.purchaseDate).getTime()) / (1000 * 60 * 60 * 24))
+        } : null,
+        communityJetA: communityJetA ? {
+          price: Number(communityJetA.price),
+          fbo: communityJetA.fbo,
+          date: communityJetA.purchaseDate,
+          reportedAt: communityJetA.createdAt,
+          daysAgo: Math.floor((Date.now() - new Date(communityJetA.purchaseDate).getTime()) / (1000 * 60 * 60 * 24))
+        } : null,
+        // Price divergence warning
+        priceDivergence
       } : null,
       landingFee: landingFeeAmount ? {
         amount: landingFeeAmount,

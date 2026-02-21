@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { Check, Minus, ArrowRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -100,9 +101,12 @@ export function CategoriesSection() {
                     ? "bg-primary text-primary-foreground hover:bg-primary/90"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
                 }`}
+                asChild
               >
-                {plan.cta}
-                <ArrowRight className="h-3.5 w-3.5" />
+                <Link href={plan.name === "Free" ? "/signup" : "/signup?plan=" + plan.name.toLowerCase()}>
+                  {plan.cta}
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Link>
               </Button>
             </div>
           ))}

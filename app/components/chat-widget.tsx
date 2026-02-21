@@ -5,13 +5,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { getPusherClient } from '@/lib/pusher-client';
 import { checkMessageSafety } from '@/lib/message-safety';
-import {
-  ensureIdentityKeypair,
-  publishMyPublicKey,
-  decryptWithUser,
-  encryptForUser,
-  validateE2eeEnvelopeString,
-} from '@/lib/e2ee';
 import { MessageSquare, X } from 'lucide-react';
 
 type ConversationItem = {
@@ -123,8 +116,6 @@ export default function ChatWidget() {
   const [messageInput, setMessageInput] = useState('');
   const [userMeta, setUserMeta] = useState<Record<string, UserMeta>>({});
   const [airportCache, setAirportCache] = useState<Record<string, AirportDetails>>({});
-  const [decryptedBodies, setDecryptedBodies] = useState<Record<string, string>>({});
-  const [e2eeNotice, setE2eeNotice] = useState<string | null>(null);
   const [friends, setFriends] = useState<FriendWithStatus[]>([]);
 
   const currentUserId = session?.user?.id;
@@ -147,8 +138,6 @@ export default function ChatWidget() {
     const urlParams = new URLSearchParams(window.location.search);
     const newConversationId = urlParams.get('newConversation');
     
-    ensureIdentityKeypair().catch(() => {});
-    publishMyPublicKey().catch(() => {});
     loadConversations().then(() => {
       // If there's a newConversation param, open that conversation
       if (newConversationId) {
@@ -349,12 +338,14 @@ export default function ChatWidget() {
   async function openConversation(conversationId: string) {
     setActiveConversationId(conversationId);
     setView('chat');
-    setDecryptedBodies({});
-    setE2eeNotice(null);
     try {
       const res = await fetch(`/api/conversations/${conversationId}/messages`);
       const data = await res.json();
-      setMessages(data.messages || []);
+      // Deduplicate by message ID
+      const uniqueMessages = (data.messages || []).filter((msg: any, index: number, self: any[]) => 
+        index === self.findIndex((m) => m.id === msg.id)
+      );
+      setMessages(uniqueMessages);
     } catch (error) {
       console.error('Failed to load messages', error);
     }
@@ -384,70 +375,39 @@ export default function ChatWidget() {
   async function sendMessage() {
     if (!activeConversationId || !messageInput.trim()) return;
     try {
-      const peerId = otherParticipant?.id;
       const rawText = messageInput.trim();
+      if (!rawText) return;
 
       const safety = checkMessageSafety(rawText);
       if (!safety.ok) {
-        setE2eeNotice(safety.error);
+        alert(safety.error);
         return;
       }
 
-      if (!peerId) return;
-      const encrypted = await encryptForUser(peerId, rawText);
-      if (!encrypted.ok) {
-        setE2eeNotice(encrypted.reason);
-        return;
-      }
-
+      // Send plain text - server will encrypt it
       const res = await fetch(`/api/conversations/${activeConversationId}/messages`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: encrypted.envelopeString }),
+        body: JSON.stringify({ body: rawText }),
       });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || 'Failed to send message');
       }
-      setMessages((prev) => [...prev, data.message]);
       setMessageInput('');
+      // Refresh messages from server to avoid duplicates
+      const msgsRes = await fetch(`/api/conversations/${activeConversationId}/messages`);
+      const msgsData = await msgsRes.json();
+      // Deduplicate by message ID
+      const uniqueMessages = (msgsData.messages || []).filter((msg: any, index: number, self: any[]) => 
+        index === self.findIndex((m) => m.id === msg.id)
+      );
+      setMessages(uniqueMessages);
       loadConversations();
     } catch (error) {
       console.error(error);
     }
   }
-
-  useEffect(() => {
-    if (!currentUserId) return;
-    if (!activeConversationId) return;
-
-    let cancelled = false;
-    async function run() {
-      const peerId = otherParticipant?.id;
-      const next: Record<string, string> = {};
-
-      await Promise.all(
-        messages.map(async (message) => {
-          const validated = validateE2eeEnvelopeString(message.body, { maxLen: 50_000 });
-          if (!validated.ok) return;
-
-          const decryptPeerId = message.senderId === currentUserId ? peerId : message.senderId;
-          if (!decryptPeerId) return;
-          const plaintext = await decryptWithUser(decryptPeerId, message.body);
-          if (plaintext.ok) next[message.id] = plaintext.plaintext;
-        }),
-      );
-
-      if (!cancelled && Object.keys(next).length) {
-        setDecryptedBodies((prev) => ({ ...prev, ...next }));
-      }
-    }
-
-    run();
-    return () => {
-      cancelled = true;
-    };
-  }, [messages, activeConversationId, currentUserId, otherParticipant?.id]);
 
   async function respondToRequest(requestId: string, action: 'accept' | 'decline') {
     try {
@@ -487,7 +447,6 @@ export default function ChatWidget() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-700">
             <div className="flex items-center gap-2">
               <div className="text-white font-semibold">Messages</div>
-              <span className="text-[10px] px-2 py-0.5 rounded-full border border-slate-700 text-slate-300">E2EE</span>
             </div>
             <div className="flex items-center gap-2">
               {view === 'chat' && (
@@ -728,20 +687,13 @@ export default function ChatWidget() {
                     >
                       Full Page
                     </Link>
-                    <span className="text-[11px] text-slate-500">E2EE</span>
                   </div>
                 </div>
               </div>
-              {e2eeNotice && (
-                <div className="px-4 py-2 border-b border-slate-800 text-[11px] text-amber-200 bg-amber-500/10">
-                  {e2eeNotice}
-                </div>
-              )}
               <div className="flex-1 overflow-y-auto p-3 space-y-2">
                 {messages.map((message) => {
-                    const shown =
-                      decryptedBodies[message.id] ??
-                      'Encrypted message';
+                    const msgDate = new Date(message.createdAt);
+                    const timeStr = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                     return (
                   <div
                     key={message.id}
@@ -751,7 +703,8 @@ export default function ChatWidget() {
                         : 'bg-slate-800 text-slate-100'
                     }`}
                   >
-                    {shown}
+                    <div>{message.body}</div>
+                    <div className={`text-[10px] mt-1 opacity-60 ${message.senderId === currentUserId ? 'text-right' : ''}`}>{timeStr}</div>
                   </div>
                 );
                   })}

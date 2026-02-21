@@ -8,7 +8,6 @@ import { Search, Plane, Users, Send, MoreHorizontal, Phone, Video, ExternalLink,
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { validateE2eeEnvelopeString, decryptWithUser, ensureIdentityKeypair, publishMyPublicKey } from '@/lib/e2ee'
 
 type ConversationItem = {
   id: string
@@ -53,7 +52,7 @@ function MessagesContent() {
   const [search, setSearch] = useState('')
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
-  const [decryptedBodies, setDecryptedBodies] = useState<Record<string, string>>({})
+  const [messagesLoading, setMessagesLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const currentUserId = session?.user?.id
 
@@ -68,17 +67,57 @@ function MessagesContent() {
 
   useEffect(() => {
     if (session?.user?.id) {
-      // Initialize E2EE keys
-      ensureIdentityKeypair().catch(() => {})
-      publishMyPublicKey().catch(() => {})
       fetch('/api/conversations').then(r => r.json()).then(d => { setConversations(d.conversations || []); setLoading(false) }).catch(() => setLoading(false))
     }
   }, [session])
 
   useEffect(() => {
     if (selectedId) {
-      fetch(`/api/conversations/${selectedId}/messages`).then(r => r.json()).then(d => setMessages(d.messages || [])).catch(() => {})
+      setMessagesLoading(true)
+      fetch(`/api/conversations/${selectedId}/messages`)
+        .then(r => {
+          if (!r.ok) {
+            console.error('Messages fetch error:', r.status, r.statusText);
+            return r.json().then(err => { throw new Error(err.error || 'Failed to load') });
+          }
+          return r.json()
+        })
+        .then(d => {
+          // Deduplicate by message ID
+          const uniqueMessages = (d.messages || []).filter((msg: any, index: number, self: any[]) => 
+            index === self.findIndex((m) => m.id === msg.id)
+          )
+          setMessages(uniqueMessages)
+        })
+        .catch(err => {
+          console.error('Failed to load messages:', err);
+          setMessages([])
+        })
+        .finally(() => {
+          setMessagesLoading(false)
+        })
     }
+  }, [selectedId])
+
+  // Poll for new messages every 3 seconds
+  useEffect(() => {
+    if (!selectedId) return
+    
+    const interval = setInterval(() => {
+      fetch(`/api/conversations/${selectedId}/messages`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => {
+          if (d?.messages) {
+            const uniqueMessages = (d.messages || []).filter((msg: any, index: number, self: any[]) => 
+              index === self.findIndex((m) => m.id === msg.id)
+            )
+            setMessages(uniqueMessages)
+          }
+        })
+        .catch(() => {})
+    }, 3000)
+    
+    return () => clearInterval(interval)
   }, [selectedId])
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
@@ -89,35 +128,24 @@ function MessagesContent() {
   const otherParticipant = selectedConversation?.participants.find(p => p.user.id !== currentUserId)?.user
   const filteredConversations = tab === 'marketplace' ? marketplaceConversations : friendsConversations
 
-  // Decrypt messages when loaded
-  useEffect(() => {
-    if (!messages.length || !otherParticipant?.id || !currentUserId) return
-    
-    const decrypt = async () => {
-      const decrypted: Record<string, string> = {}
-      for (const msg of messages) {
-        const validation = validateE2eeEnvelopeString(msg.body)
-        if (validation.ok) {
-          try {
-            const result = await decryptWithUser(otherParticipant.id, msg.body)
-            decrypted[msg.id] = result.ok ? result.plaintext : msg.body
-          } catch {
-            decrypted[msg.id] = msg.body
-          }
-        } else {
-          decrypted[msg.id] = msg.body
-        }
-      }
-      setDecryptedBodies(decrypted)
-    }
-    decrypt()
-  }, [messages, otherParticipant?.id, currentUserId])
-
   async function handleSend() {
     if (!newMessage.trim() || !selectedId) return
-    await fetch(`/api/conversations/${selectedId}/messages`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ body: newMessage }) })
+    
+    // Send plain text - server will encrypt it
+    const res = await fetch(`/api/conversations/${selectedId}/messages`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ body: newMessage }) 
+    })
+    
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: 'Failed to send' }))
+      console.error('Send failed:', err.error)
+      return
+    }
+    
     setNewMessage('')
-    fetch(`/api/conversations/${selectedId}/messages`).then(r => r.json()).then(d => setMessages(d.messages || [])).catch(() => {})
+    // Polling will automatically fetch the new message
   }
 
   if (!session) return <div className="min-h-screen bg-background flex items-center justify-center"><p className="text-muted-foreground">Please sign in to view messages.</p></div>
@@ -193,11 +221,18 @@ function MessagesContent() {
                   </div>
                 )}
                 <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4">
-                  {messages.map((msg) => (
+                  {messages.map((msg) => {
+                    const msgDate = new Date(msg.createdAt);
+                    const timeStr = msgDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const dateStr = msgDate.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                    return (
                     <div key={msg.id} className={`flex ${msg.senderId === currentUserId ? 'justify-end' : 'justify-start'} mb-4`}>
-                      <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${msg.senderId === currentUserId ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>{decryptedBodies[msg.id] || msg.body}</div>
+                      <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${msg.senderId === currentUserId ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>
+                        <div>{msg.body}</div>
+                        <div className={`text-[10px] mt-1 opacity-70 ${msg.senderId === currentUserId ? 'text-right' : ''}`}>{timeStr} · {dateStr}</div>
+                      </div>
                     </div>
-                  ))}
+                  )})}
                   <div ref={messagesEndRef} />
                 </div>
                 <div className="px-4 lg:px-6 py-4 border-t border-border bg-card/50">

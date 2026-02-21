@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client"
 import bcrypt from "bcrypt"
 import crypto from "crypto"
 import { sendVerificationEmail } from "@/lib/email"
+import { createUserEncryptionKey } from "@/lib/server-encryption"
 
 // Singleton pattern to prevent multiple instances
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient | undefined }
@@ -119,6 +120,9 @@ export async function POST(request: Request) {
         // emailVerified is null by default (not verified)
       }
     })
+    
+    // Generate encryption key for message encryption
+    await createUserEncryptionKey(user.id)
     
     // Send verification email
     const emailResult = await sendVerificationEmail(

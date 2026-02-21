@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://your-domain.com'), // Replace with actual domain
+  metadataBase: new URL('https://koster.im'),
   title: {
     default: "AviationHub - Flight Planning, Fuel Prices & Aviation Tools",
     template: "%s | AviationHub"
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://your-domain.com",
+    url: "https://koster.im",
     siteName: "AviationHub",
     title: "AviationHub - Flight Planning, Fuel Prices & Aviation Tools",
     description: "Comprehensive aviation tools including fuel price planning, flight cost calculator, aircraft search, and flight history.",

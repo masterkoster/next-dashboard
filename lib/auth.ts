@@ -22,7 +22,7 @@ if (!authSecret) {
   }
   console.warn('AUTH_SECRET is not set. Sessions will be unstable across restarts.');
 }
-const siteUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "https://next-dashboard-davids-projects.vercel.app"
+const siteUrl = process.env.NEXTAUTH_URL || process.env.AUTH_URL || "https://koster.im"
 
 // Cookie names based on environment
 const isSecure = process.env.NODE_ENV === 'production'

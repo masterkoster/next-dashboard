@@ -64,6 +64,15 @@ model User {
   @@map("User")
 }
 
+// User encryption keys for server-side message encryption
+model UserKey {
+  userId      String   @id @db.NVarChar(36)
+  encryptionKey String @db.NVarChar(64) // 32-byte hex key (64 hex chars)
+  createdAt   DateTime @default(now())
+
+  @@map("UserKey")
+}
+
 model UserPresence {
   id        String   @id @default(uuid()) @db.NVarChar(36)
   userId    String   @unique @db.NVarChar(36)
@@ -221,7 +230,8 @@ model Message {
   id             String   @id @default(uuid()) @db.NVarChar(36)
   conversationId String   @db.NVarChar(36)
   senderId       String   @db.NVarChar(36)
-  body           String   @db.NVarChar(Max)
+  body           String   @db.NVarChar(Max)  // Encrypted for recipient
+  bodyForSender  String?  @db.NVarChar(Max)  // Encrypted for sender (so they can read their own messages)
   createdAt      DateTime @default(now())
 
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
@@ -631,6 +641,22 @@ model FuelPriceCache {
 
   @@index([price100ll])
   @@map("FuelPriceCache")
+}
+
+// Community-reported fuel prices (layered on top of AirNav data)
+model CommunityFuelPrice {
+  id            String   @id @default(uuid()) @db.NVarChar(36)
+  icao          String   @db.NVarChar(10)
+  fbo           String?  @db.NVarChar(100)
+  fuelType      String   @db.NVarChar(10) // 100LL, JetA
+  price         Decimal  @db.Decimal(6, 2)
+  purchaseDate  DateTime
+  userId        String?  @db.NVarChar(36) // Optional - can be anonymous
+  createdAt     DateTime @default(now())
+
+  @@index([icao, fuelType])
+  @@index([purchaseDate])
+  @@map("CommunityFuelPrice")
 }
 
 model AircraftCache {
