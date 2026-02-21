@@ -12,6 +12,7 @@ import {
   encryptForUser,
   validateE2eeEnvelopeString,
 } from '@/lib/e2ee';
+import { MessageSquare, X } from 'lucide-react';
 
 type ConversationItem = {
   id: string;
@@ -473,12 +474,12 @@ export default function ChatWidget() {
   if (!session?.user?.id) return null;
 
   return (
-    <div className="fixed bottom-5 right-5 z-50">
+    <div className="fixed bottom-6 right-6 z-50">
       <button
         onClick={() => setOpen((prev) => !prev)}
-        className="bg-emerald-500 hover:bg-emerald-400 text-white rounded-full px-4 py-3 shadow-lg"
+        className="relative w-14 h-14 rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 flex items-center justify-center transition-all duration-300 hover:scale-105 hover:shadow-xl"
       >
-        {open ? 'Close Chat' : 'Chat'}
+        {open ? <X className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
       </button>
 
       {open && (
