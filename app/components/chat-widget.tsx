@@ -489,14 +489,22 @@ export default function ChatWidget() {
               <div className="text-white font-semibold">Messages</div>
               <span className="text-[10px] px-2 py-0.5 rounded-full border border-slate-700 text-slate-300">E2EE</span>
             </div>
-            {view === 'chat' && (
-              <button
-                onClick={() => setView('list')}
-                className="text-xs text-slate-400 hover:text-white"
+            <div className="flex items-center gap-2">
+              {view === 'chat' && (
+                <button
+                  onClick={() => setView('list')}
+                  className="text-xs text-slate-400 hover:text-white"
+                >
+                  Back
+                </button>
+              )}
+              <a
+                href="/messages"
+                className="text-xs text-primary hover:underline"
               >
-                Back
-              </button>
-            )}
+                Expand
+              </a>
+            </div>
           </div>
 
           {view === 'list' && (
