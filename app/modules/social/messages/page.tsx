@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
@@ -41,7 +41,7 @@ function formatTime(dateStr: string) {
   return date.toLocaleDateString()
 }
 
-export default function MessagesPage() {
+function MessagesContent() {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
   const [conversations, setConversations] = useState<ConversationItem[]>([])
@@ -183,5 +183,21 @@ export default function MessagesPage() {
         </div>
       </main>
     </div>
+  )
+}
+
+function MessagesLoading() {
+  return (
+    <div className="h-screen flex items-center justify-center bg-background">
+      <div className="text-muted-foreground">Loading messages...</div>
+    </div>
+  )
+}
+
+export default function MessagesPage() {
+  return (
+    <Suspense fallback={<MessagesLoading />}>
+      <MessagesContent />
+    </Suspense>
   )
 }
