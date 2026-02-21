@@ -486,7 +486,7 @@ export default function ChatWidget() {
                             Accept
                           </button>
                           <Link
-                            href={`/modules/flying-club/groups/${encodeURIComponent(invite.group?.id || '')}`}
+                            href="/modules/flying-club"
                             className="flex-1 text-center text-xs bg-slate-700 text-slate-300 rounded-full py-1"
                           >
                             View

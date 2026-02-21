@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface FlightEvent {
   title: string;
@@ -16,6 +18,10 @@ interface FlightEvent {
 
 export default function CalendarSyncPage() {
   const { data: session, status } = useSession();
+  const router = useRouter();
+  const [userTier, setUserTier] = useState<string | null>(null);
+  const [loadingTier, setLoadingTier] = useState(true);
+  
   const [flight, setFlight] = useState<FlightEvent>({
     title: '',
     date: '',
@@ -27,6 +33,31 @@ export default function CalendarSyncPage() {
     notes: '',
   });
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
+
+  // Check user tier when session is available
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchUserTier();
+    } else if (status === 'unauthenticated') {
+      setLoadingTier(false);
+    }
+  }, [status]);
+
+  const fetchUserTier = async () => {
+    try {
+      const res = await fetch('/api/user/tier');
+      if (res.ok) {
+        const data = await res.json();
+        setUserTier(data.tier);
+      }
+    } catch (err) {
+      console.error('Failed to fetch tier');
+    } finally {
+      setLoadingTier(false);
+    }
+  };
+
+  const isProPlus = userTier === 'proplus' || userTier === 'pro';
 
   const generateGoogleCalendarLink = () => {
     const startDate = new Date(`${flight.date}T${flight.time}`);
@@ -89,10 +120,54 @@ END:VCALENDAR`;
     window.URL.revokeObjectURL(url);
   };
 
-  if (status === 'loading') {
+  if (status === 'loading' || loadingTier) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center">
         <div className="text-slate-400">Loading...</div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (status === 'unauthenticated') {
+    router.push('/login');
+    return null;
+  }
+
+  // Show upgrade prompt for non-Pro+ users
+  if (!isProPlus) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-slate-800 rounded-xl p-8 border border-slate-700 text-center">
+          <div className="text-5xl mb-4">📅</div>
+          <h1 className="text-2xl font-bold text-white mb-2">Calendar Sync</h1>
+          <p className="text-slate-400 mb-6">
+            Add your flights to Google or Apple Calendar to keep your schedule organized.
+          </p>
+          
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-6">
+            <p className="text-amber-400 font-medium mb-2">🔒 Pro+ Feature</p>
+            <p className="text-slate-400 text-sm">
+              Calendar Sync is available exclusively for Pro+ subscribers. 
+              Upgrade to unlock this feature and more!
+            </p>
+          </div>
+
+          <div className="space-y-3">
+            <Link
+              href="/pricing"
+              className="block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              View Pro+ Plans
+            </Link>
+            <Link
+              href="/dashboard"
+              className="block w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+            >
+              Back to Dashboard
+            </Link>
+          </div>
+        </div>
       </div>
     );
   }

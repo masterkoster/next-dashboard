@@ -7,9 +7,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import {
   Plane,
   Calendar,
@@ -32,7 +43,12 @@ import {
   Settings,
   Loader2,
   User,
-  Home
+  Home,
+  Copy,
+  Mail,
+  Trash2,
+  UserPlus,
+  X
 } from "lucide-react"
 
 // Types
@@ -78,6 +94,7 @@ interface Maintenance {
   priority: string
   reportedDate: string
   dueDate: string | null
+  isGrounded?: boolean
 }
 
 interface FlightLog {
@@ -87,9 +104,8 @@ interface FlightLog {
   userId: string
   user?: { name: string | null }
   date: string
-  hobbsIn: number
-  hobbsOut: number
-  route: string | null
+  hobbsTime: number | null
+  tachTime: number | null
   notes: string | null
 }
 
@@ -99,6 +115,33 @@ interface Member {
   user: { id: string; name: string | null; email: string }
   role: string
   joinedAt: string
+}
+
+interface Invite {
+  id: string
+  token: string
+  email: string | null
+  role: string
+  expiresAt: string | null
+}
+
+interface BillingData {
+  month: string
+  year: number
+  totalMembers: number
+  totalFlights: number
+  totalHobbs: number
+  totalCost: number
+  members: {
+    userId: string
+    name: string
+    email: string
+    flights: number
+    totalHobbs: number
+    totalTach: number
+    totalCost: number
+    details: { date: string; aircraft: string; hobbs: number; tach: number; cost: number }[]
+  }[]
 }
 
 interface ChatMessage {
@@ -154,10 +197,29 @@ const demoMaintenance: Maintenance[] = [
   { id: 'm2', aircraftId: 'a1', aircraft: demoGroups[0].aircraft[0], description: 'Oil change', status: 'Needed', priority: 'medium', reportedDate: '2026-02-01', dueDate: '2026-03-01' }
 ]
 
+const demoBillingData: BillingData = {
+  month: 'February',
+  year: 2026,
+  totalMembers: 3,
+  totalFlights: 8,
+  totalHobbs: 12.5,
+  totalCost: 1812.50,
+  members: [
+    { userId: 'u1', name: 'Demo Admin', email: 'demo@admin.com', flights: 4, totalHobbs: 6.2, totalTach: 5.8, totalCost: 899.00, details: [] },
+    { userId: 'u2', name: 'Frank Miller', email: 'frank@demo.com', flights: 2, totalHobbs: 3.5, totalTach: 3.2, totalCost: 507.50, details: [] },
+    { userId: 'u3', name: 'Sarah Johnson', email: 'sarah@demo.com', flights: 2, totalHobbs: 2.8, totalTach: 2.5, totalCost: 406.00, details: [] },
+  ]
+}
+
 const demoMembers: Member[] = [
   { id: 'mb1', userId: 'u1', user: { id: 'u1', name: 'Demo Admin', email: 'demo@admin.com' }, role: 'ADMIN', joinedAt: '2024-01-01' },
   { id: 'mb2', userId: 'u2', user: { id: 'u2', name: 'Frank Miller', email: 'frank@demo.com' }, role: 'MEMBER', joinedAt: '2024-03-15' },
   { id: 'mb3', userId: 'u3', user: { id: 'u3', name: 'Sarah Johnson', email: 'sarah@demo.com' }, role: 'MEMBER', joinedAt: '2024-06-20' },
+]
+
+const demoFlightLogs: FlightLog[] = [
+  { id: 'fl1', aircraftId: 'a1', aircraft: demoGroups[0].aircraft[0], userId: 'u1', user: { name: 'Demo Admin' }, date: '2026-02-20', hobbsTime: 1.5, tachTime: 1.3, notes: 'Local pattern work' },
+  { id: 'fl2', aircraftId: 'a1', aircraft: demoGroups[0].aircraft[0], userId: 'u2', user: { name: 'Frank Miller' }, date: '2026-02-18', hobbsTime: 2.3, tachTime: 2.0, notes: 'Cross country to KSFO' },
 ]
 
 // Personal demo data
@@ -178,9 +240,70 @@ export default function FlyingClubPage() {
   const [bookings, setBookings] = useState<Booking[]>([])
   const [maintenance, setMaintenance] = useState<Maintenance[]>([])
   const [members, setMembers] = useState<Member[]>([])
+  const [flightLogs, setFlightLogs] = useState<FlightLog[]>([])
+  const [invites, setInvites] = useState<Invite[]>([])
+  const [billingData, setBillingData] = useState<BillingData | null>(null)
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [loading, setLoading] = useState(true)
+  
+  // Modal states
+  const [showNewGroupModal, setShowNewGroupModal] = useState(false)
+  const [showAddAircraftModal, setShowAddAircraftModal] = useState(false)
+  const [showNewBookingModal, setShowNewBookingModal] = useState(false)
+  const [showReportIssueModal, setShowReportIssueModal] = useState(false)
+  const [showLogFlightModal, setShowLogFlightModal] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
+  const [selectedAircraft, setSelectedAircraft] = useState<GroupAircraft | null>(null)
+  
+  // Form states
+  const [formLoading, setFormLoading] = useState(false)
+  const [formError, setFormError] = useState('')
+  
+  // New Group form
+  const [newGroupName, setNewGroupName] = useState('')
+  const [newGroupDescription, setNewGroupDescription] = useState('')
+  const [newGroupDryRate, setNewGroupDryRate] = useState('')
+  const [newGroupWetRate, setNewGroupWetRate] = useState('')
+  
+  // Add Aircraft form
+  const [aircraftNNumber, setAircraftNNumber] = useState('')
+  const [aircraftNickname, setAircraftNickname] = useState('')
+  const [aircraftMake, setAircraftMake] = useState('')
+  const [aircraftModel, setAircraftModel] = useState('')
+  const [aircraftYear, setAircraftYear] = useState('')
+  const [aircraftHourlyRate, setAircraftHourlyRate] = useState('')
+  
+  // Booking form
+  const [bookingAircraftId, setBookingAircraftId] = useState('')
+  const [bookingStartTime, setBookingStartTime] = useState('')
+  const [bookingEndTime, setBookingEndTime] = useState('')
+  const [bookingPurpose, setBookingPurpose] = useState('')
+  
+  // Maintenance form
+  const [maintenanceAircraftId, setMaintenanceAircraftId] = useState('')
+  const [maintenanceDescription, setMaintenanceDescription] = useState('')
+  const [maintenanceNotes, setMaintenanceNotes] = useState('')
+  const [maintenanceGrounded, setMaintenanceGrounded] = useState(false)
+  
+  // Flight Log form
+  const [logAircraftId, setLogAircraftId] = useState('')
+  const [logDate, setLogDate] = useState('')
+  const [logTachStart, setLogTachStart] = useState('')
+  const [logTachEnd, setLogTachEnd] = useState('')
+  const [logHobbsStart, setLogHobbsStart] = useState('')
+  const [logHobbsEnd, setLogHobbsEnd] = useState('')
+  const [logNotes, setLogNotes] = useState('')
+  
+  // Invite form
+  const [inviteEmail, setInviteEmail] = useState('')
+  const [inviteRole, setInviteRole] = useState('MEMBER')
+  const [generatedInviteLink, setGeneratedInviteLink] = useState('')
+  
+  // Billing state
+  const [billingMonth, setBillingMonth] = useState(new Date().getMonth())
+  const [billingYear, setBillingYear] = useState(new Date().getFullYear())
 
   // Fetch user's groups
   useEffect(() => {
@@ -205,12 +328,14 @@ export default function FlyingClubPage() {
           // Set empty for demo-like state when logged in
           setMaintenance([])
           setMembers([])
+          setFlightLogs([])
         } else {
           // Demo mode - only show demo data when NOT logged in
           setGroups(demoGroups)
           setBookings([...personalBookings, ...demoBookings])
           setMaintenance(demoMaintenance)
           setMembers(demoMembers)
+          setFlightLogs(demoFlightLogs)
           setChatMessages(demoChatMessages)
         }
       } catch (error) {
@@ -221,6 +346,7 @@ export default function FlyingClubPage() {
           setBookings([...personalBookings, ...demoBookings])
           setMaintenance(demoMaintenance)
           setMembers(demoMembers)
+          setFlightLogs(demoFlightLogs)
         }
       }
       setLoading(false)
@@ -237,23 +363,34 @@ export default function FlyingClubPage() {
       fetch('/api/bookings').then(r => r.ok && r.json()).then(data => { if (data) setBookings(data) })
       setMaintenance([])
       setMembers([])
+      setFlightLogs([])
+      setInvites([])
       return
     }
     
     async function fetchGroupData() {
       try {
-        const bookingsRes = await fetch(`/api/groups/${selectedView}/bookings`)
-        if (bookingsRes.ok) setBookings(await bookingsRes.json())
-        const membersRes = await fetch(`/api/groups/${selectedView}/members`)
-        if (membersRes.ok) setMembers(await membersRes.json())
+        const [bookingsRes, membersRes, logsRes, chatRes] = await Promise.all([
+          fetch(`/api/groups/${selectedView}/bookings`),
+          fetch(`/api/groups/${selectedView}/members`),
+          fetch(`/api/groups/${selectedView}/logs`),
+          fetch(`/api/groups/${selectedView}/chat`)
+        ])
         
-        // Fetch group chat messages
-        if (selectedView !== 'personal') {
-          const chatRes = await fetch(`/api/groups/${selectedView}/chat`)
-          if (chatRes.ok) {
-            const chatData = await chatRes.json()
-            setChatMessages(chatData)
-          }
+        if (bookingsRes.ok) setBookings(await bookingsRes.json())
+        if (membersRes.ok) setMembers(await membersRes.json())
+        if (logsRes.ok) {
+          const logsData = await logsRes.json()
+          setFlightLogs(logsData.logs || [])
+          setMaintenance(logsData.maintenance || [])
+        }
+        if (chatRes.ok) setChatMessages(await chatRes.json())
+        
+        // Fetch invites if admin
+        const group = groups.find(g => g.id === selectedView)
+        if (group?.role === 'ADMIN') {
+          const invitesRes = await fetch(`/api/groups/${selectedView}/invites`)
+          if (invitesRes.ok) setInvites(await invitesRes.json())
         }
       } catch (error) {
         console.error('Error fetching group data:', error)
@@ -261,15 +398,33 @@ export default function FlyingClubPage() {
     }
 
     fetchGroupData()
-  }, [selectedView, session])
+  }, [selectedView, session, groups])
+  
+  // Fetch billing data
+  useEffect(() => {
+    if (!session?.user?.id || selectedView === 'personal') return
+    const group = groups.find(g => g.id === selectedView)
+    if (group?.role !== 'ADMIN') return
+    
+    async function fetchBilling() {
+      try {
+        const res = await fetch(`/api/billing?groupId=${selectedView}&month=${billingMonth}&year=${billingYear}`)
+        if (res.ok) {
+          setBillingData(await res.json())
+        }
+      } catch (error) {
+        console.error('Error fetching billing:', error)
+      }
+    }
+    
+    if (activeTab === 'billing') {
+      fetchBilling()
+    }
+  }, [activeTab, selectedView, billingMonth, billingYear, session, groups])
 
   // Send chat message
   const handleSendChat = async () => {
-    console.log('Sending chat message:', { chatInput: chatInput.trim(), selectedView, isPersonal, hasSession: !!session?.user?.id })
-    if (!chatInput.trim() || selectedView === 'personal' || !session?.user?.id) {
-      console.log('Cannot send - failed condition')
-      return
-    }
+    if (!chatInput.trim() || selectedView === 'personal' || !session?.user?.id) return
     
     try {
       const res = await fetch(`/api/groups/${selectedView}/chat`, {
@@ -277,34 +432,416 @@ export default function FlyingClubPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: chatInput.trim() })
       })
-      console.log('Chat response:', res.status)
       
       if (res.ok) {
         const newMessage = await res.json()
-        console.log('New message:', newMessage)
         setChatMessages([...chatMessages, newMessage])
         setChatInput('')
       } else {
         const error = await res.json()
-        console.error('Error response:', error)
         alert(error.error || 'Failed to send message')
       }
     } catch (error) {
       console.error('Error sending message:', error)
     }
   }
+  
+  // Create new group
+  const handleCreateGroup = async () => {
+    if (isDemo) {
+      setFormError('Please sign in to create a group')
+      return
+    }
+    if (!newGroupName.trim()) {
+      setFormError('Group name is required')
+      return
+    }
+    
+    setFormLoading(true)
+    setFormError('')
+    
+    try {
+      const res = await fetch('/api/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: newGroupName,
+          description: newGroupDescription,
+          dryRate: newGroupDryRate ? parseFloat(newGroupDryRate) : null,
+          wetRate: newGroupWetRate ? parseFloat(newGroupWetRate) : null,
+        })
+      })
+      
+      if (res.ok) {
+        const newGroup = await res.json()
+        setGroups([...groups, { ...newGroup, role: 'ADMIN', aircraft: [] }])
+        setShowNewGroupModal(false)
+        setNewGroupName('')
+        setNewGroupDescription('')
+        setNewGroupDryRate('')
+        setNewGroupWetRate('')
+        setSelectedView(newGroup.id)
+      } else {
+        const error = await res.json()
+        setFormError(error.error || 'Failed to create group')
+      }
+    } catch (error) {
+      setFormError('Failed to create group')
+    }
+    
+    setFormLoading(false)
+  }
+  
+  // Add aircraft
+  const handleAddAircraft = async () => {
+    if (isDemo) {
+      setFormError('Please sign in to add aircraft')
+      return
+    }
+    if (isPersonal || !selectedView || selectedView === 'personal') {
+      setFormError('Please select a flying club first')
+      return
+    }
+    if (!aircraftNNumber.trim()) {
+      setFormError('N-Number is required')
+      return
+    }
+    
+    setFormLoading(true)
+    setFormError('')
+    
+    try {
+      const res = await fetch(`/api/groups/${selectedView}/aircraft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nNumber: aircraftNNumber,
+          nickname: aircraftNickname || null,
+          make: aircraftMake || null,
+          model: aircraftModel || null,
+          year: aircraftYear ? parseInt(aircraftYear) : null,
+          hourlyRate: aircraftHourlyRate ? parseFloat(aircraftHourlyRate) : null,
+        })
+      })
+      
+      if (res.ok) {
+        const newAircraft = await res.json()
+        // Update groups state
+        setGroups(groups.map(g => 
+          g.id === selectedView 
+            ? { ...g, aircraft: [...g.aircraft, newAircraft] }
+            : g
+        ))
+        setShowAddAircraftModal(false)
+        resetAircraftForm()
+      } else {
+        const error = await res.json()
+        setFormError(error.error || 'Failed to add aircraft')
+      }
+    } catch (error) {
+      setFormError('Failed to add aircraft')
+    }
+    
+    setFormLoading(false)
+  }
+  
+  // Create booking
+  const handleCreateBooking = async () => {
+    if (isDemo) {
+      setFormError('Please sign in to create a booking')
+      return
+    }
+    if (isPersonal || !selectedView || selectedView === 'personal') {
+      setFormError('Please select a flying club first')
+      return
+    }
+    if (!bookingAircraftId || !bookingStartTime || !bookingEndTime) {
+      setFormError('Aircraft, start time, and end time are required')
+      return
+    }
+    
+    setFormLoading(true)
+    setFormError('')
+    
+    try {
+      const res = await fetch(`/api/groups/${selectedView}/bookings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          aircraftId: bookingAircraftId,
+          startTime: bookingStartTime,
+          endTime: bookingEndTime,
+          purpose: bookingPurpose || null,
+        })
+      })
+      
+      if (res.ok) {
+        const newBooking = await res.json()
+        setBookings([...bookings, newBooking])
+        setShowNewBookingModal(false)
+        resetBookingForm()
+      } else {
+        const error = await res.json()
+        setFormError(error.error || 'Failed to create booking')
+      }
+    } catch (error) {
+      setFormError('Failed to create booking')
+    }
+    
+    setFormLoading(false)
+  }
+  
+  // Report maintenance
+  const handleReportMaintenance = async () => {
+    if (isDemo) {
+      setFormError('Please sign in to report issues')
+      return
+    }
+    if (isPersonal || !selectedView || selectedView === 'personal') {
+      setFormError('Please select a flying club first')
+      return
+    }
+    if (!maintenanceAircraftId || !maintenanceDescription.trim()) {
+      setFormError('Aircraft and description are required')
+      return
+    }
+    
+    setFormLoading(true)
+    setFormError('')
+    
+    try {
+      const res = await fetch('/api/maintenance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          aircraftId: maintenanceAircraftId,
+          description: maintenanceDescription,
+          notes: maintenanceNotes || null,
+          groupId: selectedView,
+          isGrounded: maintenanceGrounded,
+        })
+      })
+      
+      if (res.ok) {
+        // Refresh maintenance data
+        const logsRes = await fetch(`/api/groups/${selectedView}/logs`)
+        if (logsRes.ok) {
+          const logsData = await logsRes.json()
+          setMaintenance(logsData.maintenance || [])
+        }
+        setShowReportIssueModal(false)
+        resetMaintenanceForm()
+      } else {
+        const error = await res.json()
+        setFormError(error.error || 'Failed to report issue')
+      }
+    } catch (error) {
+      setFormError('Failed to report issue')
+    }
+    
+    setFormLoading(false)
+  }
+  
+  // Log flight
+  const handleLogFlight = async () => {
+    if (isDemo) {
+      setFormError('Please sign in to log flights')
+      return
+    }
+    if (isPersonal || !selectedView || selectedView === 'personal') {
+      setFormError('Please select a flying club first')
+      return
+    }
+    if (!logAircraftId || !logDate) {
+      setFormError('Aircraft and date are required')
+      return
+    }
+    
+    setFormLoading(true)
+    setFormError('')
+    
+    try {
+      const res = await fetch(`/api/groups/${selectedView}/logs`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          aircraftId: logAircraftId,
+          date: logDate,
+          tachStart: logTachStart ? parseFloat(logTachStart) : null,
+          tachEnd: logTachEnd ? parseFloat(logTachEnd) : null,
+          hobbsStart: logHobbsStart ? parseFloat(logHobbsStart) : null,
+          hobbsEnd: logHobbsEnd ? parseFloat(logHobbsEnd) : null,
+          notes: logNotes || null,
+        })
+      })
+      
+      if (res.ok) {
+        const newLog = await res.json()
+        setFlightLogs([newLog, ...flightLogs])
+        setShowLogFlightModal(false)
+        resetLogFlightForm()
+      } else {
+        const error = await res.json()
+        setFormError(error.error || 'Failed to log flight')
+      }
+    } catch (error) {
+      setFormError('Failed to log flight')
+    }
+    
+    setFormLoading(false)
+  }
+  
+  // Create invite
+  const handleCreateInvite = async () => {
+    if (isDemo) {
+      setFormError('Please sign in to invite members')
+      return
+    }
+    if (isPersonal || !selectedView || selectedView === 'personal') {
+      setFormError('Please select a flying club first')
+      return
+    }
+    setFormLoading(true)
+    setFormError('')
+    
+    try {
+      const res = await fetch(`/api/groups/${selectedView}/invites`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: inviteEmail || null,
+          role: inviteRole,
+          expiresInDays: 7,
+        })
+      })
+      
+      if (res.ok) {
+        const invite = await res.json()
+        const inviteLink = `${window.location.origin}/join/${invite.token}`
+        setGeneratedInviteLink(inviteLink)
+        // Refresh invites
+        const invitesRes = await fetch(`/api/groups/${selectedView}/invites`)
+        if (invitesRes.ok) setInvites(await invitesRes.json())
+      } else {
+        const error = await res.json()
+        setFormError(error.error || 'Failed to create invite')
+      }
+    } catch (error) {
+      setFormError('Failed to create invite')
+    }
+    
+    setFormLoading(false)
+  }
+  
+  // Delete invite
+  const handleDeleteInvite = async (inviteId: string) => {
+    try {
+      const res = await fetch(`/api/groups/${selectedView}/invites?inviteId=${inviteId}`, {
+        method: 'DELETE'
+      })
+      if (res.ok) {
+        setInvites(invites.filter(i => i.id !== inviteId))
+      }
+    } catch (error) {
+      console.error('Error deleting invite:', error)
+    }
+  }
+  
+  // Remove member
+  const handleRemoveMember = async (memberId: string) => {
+    if (!confirm('Are you sure you want to remove this member?')) return
+    
+    try {
+      const res = await fetch(`/api/groups/${selectedView}/members?memberId=${memberId}`, {
+        method: 'DELETE'
+      })
+      if (res.ok) {
+        setMembers(members.filter(m => m.id !== memberId))
+      }
+    } catch (error) {
+      console.error('Error removing member:', error)
+    }
+  }
+  
+  // Reset forms
+  const resetAircraftForm = () => {
+    setAircraftNNumber('')
+    setAircraftNickname('')
+    setAircraftMake('')
+    setAircraftModel('')
+    setAircraftYear('')
+    setAircraftHourlyRate('')
+    setFormError('')
+  }
+  
+  const resetBookingForm = () => {
+    setBookingAircraftId('')
+    setBookingStartTime('')
+    setBookingEndTime('')
+    setBookingPurpose('')
+    setFormError('')
+    setSelectedDate(null)
+    setSelectedAircraft(null)
+  }
+  
+  const resetMaintenanceForm = () => {
+    setMaintenanceAircraftId('')
+    setMaintenanceDescription('')
+    setMaintenanceNotes('')
+    setMaintenanceGrounded(false)
+    setFormError('')
+  }
+  
+  const resetLogFlightForm = () => {
+    setLogAircraftId('')
+    setLogDate('')
+    setLogTachStart('')
+    setLogTachEnd('')
+    setLogHobbsStart('')
+    setLogHobbsEnd('')
+    setLogNotes('')
+    setFormError('')
+  }
+  
+  const resetInviteForm = () => {
+    setInviteEmail('')
+    setInviteRole('MEMBER')
+    setGeneratedInviteLink('')
+    setFormError('')
+  }
+  
+  // Open booking modal with pre-selected date/aircraft
+  const openBookingModal = (date?: Date, aircraft?: GroupAircraft) => {
+    if (date) {
+      setSelectedDate(date)
+      const dateStr = date.toISOString().slice(0, 16)
+      setBookingStartTime(dateStr)
+      const endDate = new Date(date.getTime() + 2 * 60 * 60 * 1000)
+      setBookingEndTime(endDate.toISOString().slice(0, 16))
+    }
+    if (aircraft) {
+      setSelectedAircraft(aircraft)
+      setBookingAircraftId(aircraft.id)
+    }
+    setShowNewBookingModal(true)
+  }
 
   const isDemo = !session?.user?.id
   const isPersonal = selectedView === 'personal'
   const selectedGroup = groups.find(g => g.id === selectedView)
+  const isAdmin = selectedGroup?.role === 'ADMIN' || (isDemo && !isPersonal)
+  
+  // Helper to check if actions are allowed (show buttons but may need login)
+  const canPerformActions = !isPersonal // Actions are allowed when a club is selected
   
   // Filter data based on selected view
   const displayAircraft = isPersonal ? personalAircraft : (selectedGroup?.aircraft || [])
   const displayBookings = isPersonal 
     ? personalBookings 
     : bookings.filter(b => displayAircraft.some(a => a.id === b.aircraftId))
-  const displayMaintenance = isPersonal ? [] : maintenance.filter(m => displayAircraft.some(a => a.id === m.aircraftId))
+  const displayMaintenance = isPersonal ? [] : maintenance
   const displayMembers = isPersonal ? [] : members
+  const displayFlightLogs = isPersonal ? [] : flightLogs
 
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -334,6 +871,12 @@ export default function FlyingClubPage() {
     }
     return days
   }
+  
+  // Get bookings for a specific day
+  const getBookingsForDay = (day: number) => {
+    const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+    return displayBookings.filter(b => b.startTime?.startsWith(dateStr))
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -358,18 +901,73 @@ export default function FlyingClubPage() {
                   ))}
                 </optgroup>
               </select>
-              {isPersonal && (
-                <Button size="sm" variant="outline">
-                  <Plus className="mr-1 h-3 w-3" />
-                  Add Aircraft
-                </Button>
-              )}
-              {!isPersonal && (
-                <Button size="sm">
-                  <Plus className="mr-1 h-3 w-3" />
-                  New Group
-                </Button>
-              )}
+              {/* New Group button - always visible */}
+              <Button size="sm" type="button" onClick={() => setShowNewGroupModal(true)}>
+                <Plus className="mr-1 h-3 w-3" />
+                New Group
+              </Button>
+              <Dialog open={showNewGroupModal} onOpenChange={(open) => { setShowNewGroupModal(open); if (!open) setFormError('') }}>
+                <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Create New Flying Club</DialogTitle>
+                      <DialogDescription>
+                        Set up a new flying club to manage aircraft, members, and bookings.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="groupName">Club Name *</Label>
+                        <Input 
+                          id="groupName" 
+                          value={newGroupName} 
+                          onChange={(e) => setNewGroupName(e.target.value)}
+                          placeholder="e.g., Sky High Flying Club"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="groupDescription">Description</Label>
+                        <Textarea 
+                          id="groupDescription" 
+                          value={newGroupDescription} 
+                          onChange={(e) => setNewGroupDescription(e.target.value)}
+                          placeholder="A brief description of your club..."
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="dryRate">Dry Rate ($/hr)</Label>
+                          <Input 
+                            id="dryRate" 
+                            type="number"
+                            value={newGroupDryRate} 
+                            onChange={(e) => setNewGroupDryRate(e.target.value)}
+                            placeholder="e.g., 120"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="wetRate">Wet Rate ($/hr)</Label>
+                          <Input 
+                            id="wetRate" 
+                            type="number"
+                            value={newGroupWetRate} 
+                            onChange={(e) => setNewGroupWetRate(e.target.value)}
+                            placeholder="e.g., 145"
+                          />
+                        </div>
+                      </div>
+                      {formError && (
+                        <p className="text-sm text-destructive">{formError}</p>
+                      )}
+                    </div>
+                    <DialogFooter>
+                      <Button variant="outline" onClick={() => setShowNewGroupModal(false)}>Cancel</Button>
+                      <Button onClick={handleCreateGroup} disabled={formLoading}>
+                        {formLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Create Club
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
             </div>
           </div>
 
@@ -407,8 +1005,10 @@ export default function FlyingClubPage() {
                   <Plane className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">3</div>
-                  <p className="text-xs text-muted-foreground mt-1">2 available, 1 maintenance</p>
+                  <div className="text-2xl font-bold">{displayAircraft.length}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {displayAircraft.filter(a => a.status === 'Available').length} available
+                  </p>
                 </CardContent>
               </Card>
 
@@ -419,7 +1019,9 @@ export default function FlyingClubPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{displayBookings.length}</div>
-                  <p className="text-xs text-muted-foreground mt-1">Next: Today at 14:00</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {displayBookings.length > 0 ? `Next: ${new Date(displayBookings[0]?.startTime || '').toLocaleDateString()}` : 'No bookings'}
+                  </p>
                 </CardContent>
               </Card>
 
@@ -429,8 +1031,10 @@ export default function FlyingClubPage() {
                   <Users className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">7</div>
-                  <p className="text-xs text-muted-foreground mt-1">Across 2 groups</p>
+                  <div className="text-2xl font-bold">{isPersonal ? 1 : displayMembers.length}</div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {isPersonal ? 'Personal account' : `${displayMembers.filter(m => m.role === 'ADMIN').length} admins`}
+                  </p>
                 </CardContent>
               </Card>
 
@@ -440,8 +1044,12 @@ export default function FlyingClubPage() {
                   <Wrench className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-destructive">{displayMaintenance.length}</div>
-                  <p className="text-xs text-muted-foreground mt-1">1 high priority</p>
+                  <div className={`text-2xl font-bold ${displayMaintenance.length > 0 ? 'text-destructive' : ''}`}>
+                    {displayMaintenance.length}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {displayMaintenance.filter(m => m.priority === 'high').length} high priority
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -471,14 +1079,22 @@ export default function FlyingClubPage() {
                       </div>
                       <div className="flex items-center gap-1.5 text-muted-foreground">
                         <Users className="h-4 w-4" />
-                        <span>{group.members} members</span>
+                        <span>{displayMembers.length || group.members} members</span>
                       </div>
                     </div>
 
                     <Separator />
 
                     <div className="space-y-3">
-                      <p className="text-sm font-medium">Aircraft</p>
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Aircraft</p>
+                        {isAdmin && (
+                          <Button variant="ghost" size="sm" type="button" onClick={() => setShowAddAircraftModal(true)}>
+                            <Plus className="h-3 w-3 mr-1" />
+                            Add
+                          </Button>
+                        )}
+                      </div>
                       {group.aircraft.map((aircraft) => (
                         <div key={aircraft.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                           <div className="space-y-1">
@@ -500,8 +1116,8 @@ export default function FlyingClubPage() {
                       ))}
                     </div>
 
-                    <Button variant="outline" className="w-full">
-                      View Group Details
+                    <Button variant="outline" className="w-full" onClick={() => setActiveTab('aircraft')}>
+                      View All Aircraft
                     </Button>
                   </CardContent>
                 </Card>
@@ -524,56 +1140,21 @@ export default function FlyingClubPage() {
                   <CardContent className="flex-1 flex flex-col p-0">
                     {/* Chat Messages */}
                     <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                      {(isDemo || chatMessages.length > 0) ? (
-                        chatMessages.length > 0 ? (
-                          chatMessages.map((msg) => (
-                            <div key={msg.id} className="flex gap-3">
-                              <div className={`h-8 w-8 rounded-full flex items-center justify-center text-white text-xs ${msg.user.color || 'bg-primary'}`}>
-                                {msg.user.initials}
-                              </div>
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium">{msg.user.name}</p>
-                                  <span className="text-xs text-muted-foreground">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                                </div>
-                                <p className="text-sm text-muted-foreground bg-muted p-2 rounded-lg rounded-tl-none">{msg.message}</p>
-                              </div>
+                      {chatMessages.length > 0 ? (
+                        chatMessages.map((msg) => (
+                          <div key={msg.id} className="flex gap-3">
+                            <div className={`h-8 w-8 rounded-full flex items-center justify-center text-white text-xs ${msg.user.color || 'bg-primary'}`}>
+                              {msg.user.initials}
                             </div>
-                          ))
-                        ) : (
-                          <>
-                            <div className="flex gap-3">
-                              <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm">FM</div>
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium">Frank Miller</p>
-                                  <span className="text-xs text-muted-foreground">10:30 AM</span>
-                                </div>
-                                <p className="text-sm text-muted-foreground bg-muted p-2 rounded-lg rounded-tl-none">Hey everyone! Anyone flying this weekend?</p>
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-medium">{msg.user.name}</p>
+                                <span className="text-xs text-muted-foreground">{new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                               </div>
+                              <p className="text-sm text-muted-foreground bg-muted p-2 rounded-lg rounded-tl-none">{msg.message}</p>
                             </div>
-                            <div className="flex gap-3">
-                              <div className="h-8 w-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm">SJ</div>
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium">Sarah Johnson</p>
-                                  <span className="text-xs text-muted-foreground">10:45 AM</span>
-                                </div>
-                                <p className="text-sm text-muted-foreground bg-muted p-2 rounded-lg rounded-tl-none">I'm thinking Saturday morning for some IFR practice!</p>
-                              </div>
-                            </div>
-                            <div className="flex gap-3">
-                              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm">MW</div>
-                              <div className="flex-1 space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <p className="text-sm font-medium">Mike Wilson</p>
-                                  <span className="text-xs text-muted-foreground">11:00 AM</span>
-                                </div>
-                                <p className="text-sm text-muted-foreground bg-muted p-2 rounded-lg rounded-tl-none">Count me in! The 182 is available</p>
-                              </div>
-                            </div>
-                          </>
-                        )
+                          </div>
+                        ))
                       ) : (
                         <div className="text-center text-muted-foreground py-8">
                           <p className="text-sm">No messages yet</p>
@@ -619,12 +1200,12 @@ export default function FlyingClubPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Upcoming Bookings</CardTitle>
-                    <Button variant="ghost" size="sm">View All</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setActiveTab('bookings')}>View All</Button>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {displayBookings.map((booking) => (
+                    {displayBookings.slice(0, 5).map((booking) => (
                       <div key={booking.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -640,6 +1221,9 @@ export default function FlyingClubPage() {
                         </div>
                       </div>
                     ))}
+                    {displayBookings.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">No upcoming bookings</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -648,12 +1232,12 @@ export default function FlyingClubPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Maintenance Status</CardTitle>
-                    <Button variant="ghost" size="sm">View All</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setActiveTab('maintenance')}>View All</Button>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {displayMaintenance.map((item) => (
+                    {displayMaintenance.slice(0, 5).map((item) => (
                       <div key={item.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -665,7 +1249,7 @@ export default function FlyingClubPage() {
                           <p className="text-xs text-muted-foreground">{item.description}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium">Due: {item.dueDate}</p>
+                          <p className="text-sm font-medium">Due: {item.dueDate || 'N/A'}</p>
                           {item.priority === 'high' && (
                             <div className="flex items-center justify-end gap-1 mt-1">
                               <AlertCircle className="h-3 w-3 text-destructive" />
@@ -675,6 +1259,9 @@ export default function FlyingClubPage() {
                         </div>
                       </div>
                     ))}
+                    {displayMaintenance.length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">No maintenance items</p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -705,6 +1292,12 @@ export default function FlyingClubPage() {
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
+                  {canPerformActions && (
+                    <Button size="sm" className="ml-4" onClick={() => openBookingModal()}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      New Booking
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -722,29 +1315,42 @@ export default function FlyingClubPage() {
 
                 {/* Calendar days */}
                 <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
-                  {getDaysInMonth().map((day, index) => (
-                    <div
-                      key={index}
-                      className={`bg-card min-h-[100px] p-2 ${
-                        day ? 'hover:bg-muted/50 cursor-pointer transition-colors' : ''
-                      }`}
-                    >
-                      {day && (
-                        <>
-                          <span className="text-sm font-medium">{day}</span>
-                          {/* Show bookings on certain days */}
-                          {(day === 23 || day === 24 || day === 25) && (
+                  {getDaysInMonth().map((day, index) => {
+                    const dayBookings = day ? getBookingsForDay(day) : []
+                    return (
+                      <div
+                        key={index}
+                        className={`bg-card min-h-[100px] p-2 ${
+                          day ? 'hover:bg-muted/50 cursor-pointer transition-colors' : ''
+                        }`}
+                        onClick={() => {
+                          if (day && canPerformActions) {
+                            const clickedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day, 9, 0)
+                            openBookingModal(clickedDate)
+                          }
+                        }}
+                      >
+                        {day && (
+                          <>
+                            <span className="text-sm font-medium">{day}</span>
                             <div className="mt-2 space-y-1">
-                              <div className="rounded bg-primary/10 border border-primary/20 px-2 py-1">
-                                <p className="text-xs font-medium text-primary">N172SP</p>
-                                <p className="text-xs text-muted-foreground">14:00</p>
-                              </div>
+                              {dayBookings.slice(0, 2).map(booking => (
+                                <div key={booking.id} className="rounded bg-primary/10 border border-primary/20 px-2 py-1">
+                                  <p className="text-xs font-medium text-primary">{booking.aircraft?.nNumber}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(booking.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                  </p>
+                                </div>
+                              ))}
+                              {dayBookings.length > 2 && (
+                                <p className="text-xs text-muted-foreground">+{dayBookings.length - 2} more</p>
+                              )}
                             </div>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  ))}
+                          </>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </CardContent>
@@ -752,58 +1358,77 @@ export default function FlyingClubPage() {
         )}
 
         {activeTab === 'aircraft' && (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {displayAircraft.map((aircraft) => (
-              <Card key={aircraft.id}>
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2">
-                        {aircraft.nNumber}
-                        <Badge variant={aircraft.status === 'Available' ? 'secondary' : 'destructive'}>
-                          {aircraft.status}
-                        </Badge>
-                      </CardTitle>
-                      <CardDescription className="mt-1">
-                        {aircraft.year} {aircraft.make} {aircraft.model}
-                      </CardDescription>
+          <div className="space-y-4">
+            {isAdmin && canPerformActions && (
+              <div className="flex justify-end">
+                <Button onClick={() => setShowAddAircraftModal(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Aircraft
+                </Button>
+              </div>
+            )}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {displayAircraft.map((aircraft) => (
+                <Card key={aircraft.id}>
+                  <CardHeader>
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          {aircraft.nNumber}
+                          <Badge variant={aircraft.status === 'Available' ? 'secondary' : 'destructive'}>
+                            {aircraft.status}
+                          </Badge>
+                        </CardTitle>
+                        <CardDescription className="mt-1">
+                          {aircraft.year} {aircraft.make} {aircraft.model}
+                        </CardDescription>
+                      </div>
                     </div>
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1.5">
-                      <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      <span>${aircraft.hourlyRate}/hr</span>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-4 text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                        <span>${aircraft.hourlyRate}/hr</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>{aircraft.hobbsHours} hrs</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span>{aircraft.hobbsHours} hrs</span>
-                    </div>
-                  </div>
 
-                  <Separator />
+                    <Separator />
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Next Maintenance</span>
-                      <span className="font-medium">250 hrs</span>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-muted-foreground">Next Maintenance</span>
+                        <span className="font-medium">250 hrs</span>
+                      </div>
+                      <Progress value={75} className="h-2" />
                     </div>
-                    <Progress value={75} className="h-2" />
-                  </div>
 
-                  <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1">
-                      <Calendar className="mr-2 h-4 w-4" />
-                      Book
-                    </Button>
-                    <Button variant="outline" size="icon">
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => {
+                          if (canPerformActions) {
+                            openBookingModal(undefined, aircraft)
+                          }
+                        }}
+                        disabled={aircraft.status !== 'Available' || isPersonal}
+                      >
+                        <Calendar className="mr-2 h-4 w-4" />
+                        Book
+                      </Button>
+                      <Button variant="outline" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
         )}
 
@@ -817,10 +1442,12 @@ export default function FlyingClubPage() {
                     <Filter className="mr-2 h-4 w-4" />
                     Filter
                   </Button>
-                  <Button size="sm">
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Booking
-                  </Button>
+                  {canPerformActions && (
+                    <Button size="sm" type="button" onClick={() => setShowNewBookingModal(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      New Booking
+                    </Button>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -848,6 +1475,9 @@ export default function FlyingClubPage() {
                     </div>
                   </div>
                 ))}
+                {displayBookings.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">No bookings yet</p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -858,10 +1488,97 @@ export default function FlyingClubPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Maintenance Tracking</CardTitle>
-                <Button size="sm">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Report Issue
-                </Button>
+                {canPerformActions && (
+                  <>
+                  <Button size="sm" type="button" onClick={() => setShowReportIssueModal(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Report Issue
+                  </Button>
+                  <Dialog open={showReportIssueModal} onOpenChange={(open) => { setShowReportIssueModal(open); if (!open) resetMaintenanceForm() }}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Report Maintenance Issue</DialogTitle>
+                        <DialogDescription>
+                          Report a maintenance issue or squawk for an aircraft.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="maintenanceAircraft">Aircraft *</Label>
+                          <select
+                            id="maintenanceAircraft"
+                            value={maintenanceAircraftId}
+                            onChange={(e) => setMaintenanceAircraftId(e.target.value)}
+                            className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                          >
+                            <option value="">Select aircraft...</option>
+                            {displayAircraft.map(aircraft => (
+                              <option key={aircraft.id} value={aircraft.id}>
+                                {aircraft.nNumber} - {aircraft.make} {aircraft.model}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="description">Description *</Label>
+                          <Textarea 
+                            id="description" 
+                            value={maintenanceDescription} 
+                            onChange={(e) => setMaintenanceDescription(e.target.value)}
+                            placeholder="Describe the issue..."
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Quick Select</Label>
+                          <div className="flex flex-wrap gap-2">
+                            {['Oil top-up needed', 'Low tire pressure', 'Rough idle', 'Alternator issue', 'Radio static'].map(issue => (
+                              <Button 
+                                key={issue}
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => setMaintenanceDescription(issue)}
+                              >
+                                {issue}
+                              </Button>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="notes">Additional Notes</Label>
+                          <Textarea 
+                            id="notes" 
+                            value={maintenanceNotes} 
+                            onChange={(e) => setMaintenanceNotes(e.target.value)}
+                            placeholder="Any additional details..."
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="grounded"
+                            checked={maintenanceGrounded}
+                            onChange={(e) => setMaintenanceGrounded(e.target.checked)}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="grounded" className="text-sm font-normal">
+                            Ground aircraft (prevents new bookings)
+                          </Label>
+                        </div>
+                        {formError && (
+                          <p className="text-sm text-destructive">{formError}</p>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowReportIssueModal(false)}>Cancel</Button>
+                        <Button onClick={handleReportMaintenance} disabled={formLoading}>
+                          {formLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          Report Issue
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  </>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -880,13 +1597,16 @@ export default function FlyingClubPage() {
                           <Badge variant={item.status === 'In Progress' ? 'default' : 'secondary'}>
                             {item.status}
                           </Badge>
+                          {item.isGrounded && (
+                            <Badge variant="destructive">Grounded</Badge>
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">{item.description}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="text-right">
-                        <p className="text-sm font-medium">Due: {item.dueDate}</p>
+                        <p className="text-sm font-medium">Due: {item.dueDate || 'N/A'}</p>
                         {item.priority === 'high' && (
                           <div className="flex items-center justify-end gap-1 mt-1">
                             <AlertCircle className="h-3 w-3 text-destructive" />
@@ -900,35 +1620,603 @@ export default function FlyingClubPage() {
                     </div>
                   </div>
                 ))}
+                {displayMaintenance.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-8">No maintenance items</p>
+                )}
               </div>
             </CardContent>
           </Card>
         )}
 
-        {['flights', 'billing', 'members'].includes(activeTab) && (
+        {activeTab === 'flights' && (
           <Card>
             <CardHeader>
-              <CardTitle>{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</CardTitle>
-              <CardDescription>Manage your {activeTab} here</CardDescription>
+              <div className="flex items-center justify-between">
+                <CardTitle>Flight Logs</CardTitle>
+                {canPerformActions && (
+                  <>
+                  <Button size="sm" type="button" onClick={() => setShowLogFlightModal(true)}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Log Flight
+                  </Button>
+                  <Dialog open={showLogFlightModal} onOpenChange={(open) => { setShowLogFlightModal(open); if (!open) resetLogFlightForm() }}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Log Flight</DialogTitle>
+                        <DialogDescription>
+                          Record your flight details.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="logAircraft">Aircraft *</Label>
+                            <select
+                              id="logAircraft"
+                              value={logAircraftId}
+                              onChange={(e) => setLogAircraftId(e.target.value)}
+                              className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                            >
+                              <option value="">Select aircraft...</option>
+                              {displayAircraft.map(aircraft => (
+                                <option key={aircraft.id} value={aircraft.id}>
+                                  {aircraft.nNumber}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="logDate">Date *</Label>
+                            <Input 
+                              id="logDate" 
+                              type="date"
+                              value={logDate} 
+                              onChange={(e) => setLogDate(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="tachStart">Tach Start</Label>
+                            <Input 
+                              id="tachStart" 
+                              type="number"
+                              step="0.1"
+                              value={logTachStart} 
+                              onChange={(e) => setLogTachStart(e.target.value)}
+                              placeholder="e.g., 1234.5"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="tachEnd">Tach End</Label>
+                            <Input 
+                              id="tachEnd" 
+                              type="number"
+                              step="0.1"
+                              value={logTachEnd} 
+                              onChange={(e) => setLogTachEnd(e.target.value)}
+                              placeholder="e.g., 1236.0"
+                            />
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="hobbsStart">Hobbs Start</Label>
+                            <Input 
+                              id="hobbsStart" 
+                              type="number"
+                              step="0.1"
+                              value={logHobbsStart} 
+                              onChange={(e) => setLogHobbsStart(e.target.value)}
+                              placeholder="e.g., 456.7"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="hobbsEnd">Hobbs End</Label>
+                            <Input 
+                              id="hobbsEnd" 
+                              type="number"
+                              step="0.1"
+                              value={logHobbsEnd} 
+                              onChange={(e) => setLogHobbsEnd(e.target.value)}
+                              placeholder="e.g., 458.5"
+                            />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="logNotes">Notes</Label>
+                          <Textarea 
+                            id="logNotes" 
+                            value={logNotes} 
+                            onChange={(e) => setLogNotes(e.target.value)}
+                            placeholder="Route, weather, remarks..."
+                          />
+                        </div>
+                        {formError && (
+                          <p className="text-sm text-destructive">{formError}</p>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowLogFlightModal(false)}>Cancel</Button>
+                        <Button onClick={handleLogFlight} disabled={formLoading}>
+                          {formLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          Log Flight
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  </>
+                )}
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                  {activeTab === 'flights' && <BookOpen className="h-8 w-8 text-muted-foreground" />}
-                  {activeTab === 'billing' && <DollarSign className="h-8 w-8 text-muted-foreground" />}
-                  {activeTab === 'members' && <Users className="h-8 w-8 text-muted-foreground" />}
-                </div>
-                <h3 className="text-lg font-semibold mb-2">No {activeTab} yet</h3>
-                <p className="text-sm text-muted-foreground mb-4">Get started by adding your first {activeTab.slice(0, -1)}</p>
-                <Button>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1, -1)}
-                </Button>
+              <div className="space-y-2">
+                {displayFlightLogs.map((log) => (
+                  <div key={log.id} className="flex items-center justify-between rounded-lg border border-border p-4">
+                    <div className="flex items-center gap-4">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                        <BookOpen className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="space-y-1">
+                        <p className="font-medium text-sm">{log.aircraft?.nNumber || log.aircraftId}</p>
+                        <p className="text-xs text-muted-foreground">{log.notes || 'No notes'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6">
+                      <div className="text-right">
+                        <p className="text-sm font-medium">{log.user?.name || 'Unknown'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(log.date).toLocaleDateString()} • {log.hobbsTime || 0}h Hobbs
+                        </p>
+                      </div>
+                      <Button variant="ghost" size="icon">
+                        <MoreVertical className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {displayFlightLogs.length === 0 && (
+                  <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="rounded-full bg-muted p-4 mb-4">
+                      <BookOpen className="h-8 w-8 text-muted-foreground" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">No flight logs yet</h3>
+                    <p className="text-sm text-muted-foreground mb-4">Get started by logging your first flight</p>
+                    {canPerformActions && (
+                      <Button onClick={() => setShowLogFlightModal(true)}>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Log Flight
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
         )}
+
+        {activeTab === 'billing' && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Monthly Billing</CardTitle>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={billingMonth}
+                    onChange={(e) => setBillingMonth(parseInt(e.target.value))}
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                  >
+                    {MONTHS.map((month, i) => (
+                      <option key={i} value={i}>{month}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={billingYear}
+                    onChange={(e) => setBillingYear(parseInt(e.target.value))}
+                    className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                  >
+                    {[2024, 2025, 2026].map(year => (
+                      <option key={year} value={year}>{year}</option>
+                    ))}
+                  </select>
+                  <Button variant="outline" size="sm">
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                  </Button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {!isAdmin ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Only admins can view billing</p>
+              ) : billingData || isDemo ? (
+                <div className="space-y-6">
+                  {/* Summary */}
+                  <div className="grid grid-cols-4 gap-4">
+                    <div className="rounded-lg border p-4">
+                      <p className="text-sm text-muted-foreground">Total Members</p>
+                      <p className="text-2xl font-bold">{(billingData || demoBillingData).totalMembers}</p>
+                    </div>
+                    <div className="rounded-lg border p-4">
+                      <p className="text-sm text-muted-foreground">Total Flights</p>
+                      <p className="text-2xl font-bold">{(billingData || demoBillingData).totalFlights}</p>
+                    </div>
+                    <div className="rounded-lg border p-4">
+                      <p className="text-sm text-muted-foreground">Total Hobbs</p>
+                      <p className="text-2xl font-bold">{(billingData || demoBillingData).totalHobbs.toFixed(1)}h</p>
+                    </div>
+                    <div className="rounded-lg border p-4">
+                      <p className="text-sm text-muted-foreground">Total Billed</p>
+                      <p className="text-2xl font-bold">${(billingData || demoBillingData).totalCost.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  
+                  {/* Member breakdown */}
+                  <div className="space-y-2">
+                    {(billingData || demoBillingData).members.map((member) => (
+                      <div key={member.userId} className="rounded-lg border p-4">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">{member.name}</p>
+                            <p className="text-sm text-muted-foreground">{member.email}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-bold">${member.totalCost.toFixed(2)}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {member.flights} flights • {member.totalHobbs.toFixed(1)}h
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="rounded-full bg-muted p-4 mb-4">
+                    <DollarSign className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">No billing data</h3>
+                  <p className="text-sm text-muted-foreground">No flights recorded for this period</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {activeTab === 'members' && (
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Members</CardTitle>
+                {isAdmin && canPerformActions && (
+                  <>
+                  <Button size="sm" type="button" onClick={() => setShowInviteModal(true)}>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Invite Member
+                  </Button>
+                  <Dialog open={showInviteModal} onOpenChange={(open) => { setShowInviteModal(open); if (!open) resetInviteForm() }}>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Invite Member</DialogTitle>
+                        <DialogDescription>
+                          Create an invite link or send directly to an email.
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="inviteEmail">Email (optional)</Label>
+                          <Input 
+                            id="inviteEmail" 
+                            type="email"
+                            value={inviteEmail} 
+                            onChange={(e) => setInviteEmail(e.target.value)}
+                            placeholder="member@example.com"
+                          />
+                          <p className="text-xs text-muted-foreground">Leave blank to generate a shareable link</p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="inviteRole">Role</Label>
+                          <select
+                            id="inviteRole"
+                            value={inviteRole}
+                            onChange={(e) => setInviteRole(e.target.value)}
+                            className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm"
+                          >
+                            <option value="MEMBER">Member</option>
+                            <option value="ADMIN">Admin</option>
+                          </select>
+                        </div>
+                        {generatedInviteLink && (
+                          <div className="space-y-2">
+                            <Label>Invite Link</Label>
+                            <div className="flex gap-2">
+                              <Input value={generatedInviteLink} readOnly />
+                              <Button 
+                                variant="outline" 
+                                size="icon"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(generatedInviteLink)
+                                  alert('Copied to clipboard!')
+                                }}
+                              >
+                                <Copy className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                        {formError && (
+                          <p className="text-sm text-destructive">{formError}</p>
+                        )}
+                      </div>
+                      <DialogFooter>
+                        <Button variant="outline" onClick={() => setShowInviteModal(false)}>Close</Button>
+                        <Button onClick={handleCreateInvite} disabled={formLoading}>
+                          {formLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                          {generatedInviteLink ? 'Generate New Link' : 'Create Invite'}
+                        </Button>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
+                  </>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {isPersonal ? (
+                <p className="text-sm text-muted-foreground text-center py-8">Select a club to view members</p>
+              ) : (
+                <div className="space-y-4">
+                  {/* Members list */}
+                  <div className="space-y-2">
+                    {displayMembers.map((member) => (
+                      <div key={member.id} className="flex items-center justify-between rounded-lg border border-border p-4">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                            <User className="h-5 w-5 text-primary" />
+                          </div>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm">{member.user.name || member.user.email}</p>
+                              <Badge variant={member.role === 'ADMIN' ? 'default' : 'secondary'}>
+                                {member.role}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{member.user.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-xs text-muted-foreground">
+                            Joined {new Date(member.joinedAt).toLocaleDateString()}
+                          </p>
+                          {isAdmin && !isDemo && member.userId !== session?.user?.id ? (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => handleRemoveMember(member.id)}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          ) : isAdmin && isDemo && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => alert('Sign in to remove members')}
+                            >
+                              <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Pending invites */}
+                  {isAdmin && invites.length > 0 && (
+                    <>
+                      <Separator />
+                      <div>
+                        <h4 className="text-sm font-medium mb-3">Pending Invites</h4>
+                        <div className="space-y-2">
+                          {invites.map((invite) => (
+                            <div key={invite.id} className="flex items-center justify-between rounded-lg border border-dashed border-border p-3">
+                              <div className="flex items-center gap-3">
+                                <Mail className="h-4 w-4 text-muted-foreground" />
+                                <div>
+                                  <p className="text-sm">{invite.email || 'Open invite link'}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {invite.role} • Expires {invite.expiresAt ? new Date(invite.expiresAt).toLocaleDateString() : 'Never'}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                onClick={() => handleDeleteInvite(invite.id)}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  
+                  {displayMembers.length === 0 && (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="rounded-full bg-muted p-4 mb-4">
+                        <Users className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <h3 className="text-lg font-semibold mb-2">No members yet</h3>
+                      <p className="text-sm text-muted-foreground mb-4">Invite members to join your club</p>
+                      {isAdmin && (
+                        <Button onClick={() => setShowInviteModal(true)}>
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Invite Member
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
       </main>
+      
+      {/* New Booking Modal (used from calendar/aircraft) */}
+      <Dialog open={showNewBookingModal} onOpenChange={(open) => { setShowNewBookingModal(open); if (!open) resetBookingForm() }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Booking</DialogTitle>
+            <DialogDescription>
+              Book an aircraft for your flight.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="bookingAircraft2">Aircraft *</Label>
+              <select
+                id="bookingAircraft2"
+                value={bookingAircraftId}
+                onChange={(e) => setBookingAircraftId(e.target.value)}
+                className="w-full h-10 rounded-lg border border-input bg-background px-3 text-sm"
+              >
+                <option value="">Select aircraft...</option>
+                {displayAircraft.filter(a => a.status === 'Available').map(aircraft => (
+                  <option key={aircraft.id} value={aircraft.id}>
+                    {aircraft.nNumber} - {aircraft.make} {aircraft.model}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startTime2">Start Time *</Label>
+                <Input 
+                  id="startTime2" 
+                  type="datetime-local"
+                  value={bookingStartTime} 
+                  onChange={(e) => setBookingStartTime(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endTime2">End Time *</Label>
+                <Input 
+                  id="endTime2" 
+                  type="datetime-local"
+                  value={bookingEndTime} 
+                  onChange={(e) => setBookingEndTime(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="purpose2">Purpose</Label>
+              <Input 
+                id="purpose2" 
+                value={bookingPurpose} 
+                onChange={(e) => setBookingPurpose(e.target.value)}
+                placeholder="e.g., Cross country, Pattern work, IFR practice"
+              />
+            </div>
+            {formError && (
+              <p className="text-sm text-destructive">{formError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNewBookingModal(false)}>Cancel</Button>
+            <Button onClick={handleCreateBooking} disabled={formLoading}>
+              {formLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Create Booking
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add Aircraft Modal */}
+      <Dialog open={showAddAircraftModal} onOpenChange={(open) => { setShowAddAircraftModal(open); if (!open) resetAircraftForm() }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Aircraft</DialogTitle>
+            <DialogDescription>
+              Add a new aircraft to your flying club.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="nNumber">N-Number *</Label>
+              <Input 
+                id="nNumber" 
+                value={aircraftNNumber} 
+                onChange={(e) => setAircraftNNumber(e.target.value.toUpperCase())}
+                placeholder="e.g., N172SP"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="nickname">Nickname</Label>
+              <Input 
+                id="nickname" 
+                value={aircraftNickname} 
+                onChange={(e) => setAircraftNickname(e.target.value)}
+                placeholder="e.g., Skyhawk"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="make">Make</Label>
+                <Input 
+                  id="make" 
+                  value={aircraftMake} 
+                  onChange={(e) => setAircraftMake(e.target.value)}
+                  placeholder="e.g., Cessna"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="model">Model</Label>
+                <Input 
+                  id="model" 
+                  value={aircraftModel} 
+                  onChange={(e) => setAircraftModel(e.target.value)}
+                  placeholder="e.g., 172S"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="year">Year</Label>
+                <Input 
+                  id="year" 
+                  type="number"
+                  value={aircraftYear} 
+                  onChange={(e) => setAircraftYear(e.target.value)}
+                  placeholder="e.g., 2020"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="hourlyRate">Hourly Rate ($)</Label>
+                <Input 
+                  id="hourlyRate" 
+                  type="number"
+                  value={aircraftHourlyRate} 
+                  onChange={(e) => setAircraftHourlyRate(e.target.value)}
+                  placeholder="e.g., 145"
+                />
+              </div>
+            </div>
+            {formError && (
+              <p className="text-sm text-destructive">{formError}</p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddAircraftModal(false)}>Cancel</Button>
+            <Button onClick={handleAddAircraft} disabled={formLoading}>
+              {formLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Add Aircraft
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

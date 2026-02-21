@@ -42,8 +42,6 @@ export const APP_MODULES: AppModule[] = [
     icon: '👥',
     menu: [
       { label: 'Dashboard', href: '/modules/flying-club' },
-      { label: 'Groups', href: '/modules/flying-club/groups/new' },
-      { label: 'Maintenance', href: '/modules/flying-club/maintenance' },
     ],
   },
   {

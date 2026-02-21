@@ -154,10 +154,10 @@ Each entry should have:
   - Priority: high
   - Notes: Real-time precipitation radar with Leaflet map, layer controls, animation
 
-- [ ] Calendar Sync
-  - Status: in_progress
+- [x] Calendar Sync
+  - Status: completed
   - Priority: medium
-  - Notes: Google/Apple calendar integration for flight scheduling
+  - Notes: Google/Apple calendar integration with Pro+ gating, ICS file export
 
 - [ ] Post-Flight Playback
   - Status: pending
@@ -203,7 +203,7 @@ Each entry should have:
 
 ## 📊 PROJECT STATUS
 
-### ✅ COMPLETED: 95%
+### ✅ COMPLETED: 96%
 All core features and Pro+ functionality are built and working.
 
 ### 🚀 READY FOR:
