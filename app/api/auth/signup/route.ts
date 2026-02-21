@@ -16,7 +16,17 @@ export const runtime = 'nodejs'
 
 export async function POST(request: Request) {
   try {
-    const { name, email, password, username } = await request.json()
+    let body
+    try {
+      body = await request.json()
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid request body" },
+        { status: 400 }
+      )
+    }
+    
+    const { name, email, password, username } = body
     
     if (!email || !password || !username) {
       return NextResponse.json(
@@ -49,9 +59,18 @@ export async function POST(request: Request) {
     }
     
     // Check if email exists
-    const existingEmail = await prisma.user.findUnique({
-      where: { email: normalizedEmail }
-    })
+    let existingEmail
+    try {
+      existingEmail = await prisma.user.findUnique({
+        where: { email: normalizedEmail }
+      })
+    } catch (dbError) {
+      console.error("Database error checking email:", dbError)
+      return NextResponse.json(
+        { error: "Database error. Please try again." },
+        { status: 500 }
+      )
+    }
     
     if (existingEmail) {
       return NextResponse.json(
@@ -61,9 +80,18 @@ export async function POST(request: Request) {
     }
     
     // Check if username exists
-    const existingUsername = await prisma.user.findUnique({
-      where: { username: normalizedUsername }
-    })
+    let existingUsername
+    try {
+      existingUsername = await prisma.user.findUnique({
+        where: { username: normalizedUsername }
+      })
+    } catch (dbError) {
+      console.error("Database error checking username:", dbError)
+      return NextResponse.json(
+        { error: "Database error. Please try again." },
+        { status: 500 }
+      )
+    }
     
     if (existingUsername) {
       return NextResponse.json(
@@ -117,6 +145,13 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error("Signup error:", error)
     const errorMessage = error instanceof Error ? error.message : String(error)
+    // Check for specific Prisma/database errors
+    if (errorMessage.includes('column') || errorMessage.includes('table')) {
+      return NextResponse.json(
+        { error: "Database schema mismatch. Please contact support." },
+        { status: 500 }
+      )
+    }
     return NextResponse.json(
       { error: errorMessage },
       { status: 500 }
