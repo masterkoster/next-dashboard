@@ -8,6 +8,7 @@ import { Search, Plane, Users, Send, MoreHorizontal, Phone, Video, ExternalLink,
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { validateE2eeEnvelopeString, decryptWithUser } from '@/lib/e2ee'
 
 type ConversationItem = {
   id: string
@@ -52,6 +53,7 @@ function MessagesContent() {
   const [search, setSearch] = useState('')
   const [newMessage, setNewMessage] = useState('')
   const [loading, setLoading] = useState(true)
+  const [decryptedBodies, setDecryptedBodies] = useState<Record<string, string>>({})
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const currentUserId = session?.user?.id
 
@@ -83,6 +85,29 @@ function MessagesContent() {
   const selectedConversation = conversations.find(c => c.id === selectedId)
   const otherParticipant = selectedConversation?.participants.find(p => p.user.id !== currentUserId)?.user
   const filteredConversations = tab === 'marketplace' ? marketplaceConversations : friendsConversations
+
+  // Decrypt messages when loaded
+  useEffect(() => {
+    if (!messages.length || !otherParticipant?.id || !currentUserId) return
+    
+    const decrypt = async () => {
+      const decrypted: Record<string, string> = {}
+      for (const msg of messages) {
+        if (validateE2eeEnvelopeString(msg.body)) {
+          try {
+            const result = await decryptWithUser(otherParticipant.id, msg.body)
+            decrypted[msg.id] = result.ok ? result.plaintext : msg.body
+          } catch {
+            decrypted[msg.id] = msg.body
+          }
+        } else {
+          decrypted[msg.id] = msg.body
+        }
+      }
+      setDecryptedBodies(decrypted)
+    }
+    decrypt()
+  }, [messages, otherParticipant?.id, currentUserId])
 
   async function handleSend() {
     if (!newMessage.trim() || !selectedId) return
@@ -166,7 +191,7 @@ function MessagesContent() {
                 <div className="flex-1 overflow-y-auto px-4 lg:px-6 py-4">
                   {messages.map((msg) => (
                     <div key={msg.id} className={`flex ${msg.senderId === currentUserId ? 'justify-end' : 'justify-start'} mb-4`}>
-                      <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${msg.senderId === currentUserId ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>{msg.body}</div>
+                      <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${msg.senderId === currentUserId ? 'bg-primary text-primary-foreground' : 'bg-secondary'}`}>{decryptedBodies[msg.id] || msg.body}</div>
                     </div>
                   ))}
                   <div ref={messagesEndRef} />
