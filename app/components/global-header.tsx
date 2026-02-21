@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { Plane, Search, Bell, ChevronDown, LogOut } from "lucide-react";
+import { Plane, Search, Bell, ChevronDown, LogOut, MessageCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { AppSwitcher } from "./app-switcher";
@@ -67,6 +67,14 @@ export function GlobalHeader() {
           >
             <Bell className="h-4 w-4" />
           </button>
+
+          <Link
+            href="/messages"
+            className="hidden h-10 w-10 items-center justify-center rounded-xl border border-border bg-card/80 text-muted-foreground transition hover:text-foreground sm:flex"
+            aria-label="Messages"
+          >
+            <MessageCircle className="h-4 w-4" />
+          </Link>
 
           <AppSwitcher isProPlus={isProPlus} />
 

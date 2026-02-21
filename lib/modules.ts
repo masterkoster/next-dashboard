@@ -79,7 +79,7 @@ export const APP_MODULES: AppModule[] = [
     menu: [
       { label: 'Overview', href: '/modules/social/overview' },
       { label: 'Pilots', href: '/modules/social/pilots' },
-      { label: 'Messages', href: '/modules/social/messages' },
+      { label: 'Messages', href: '/messages' },
     ],
   },
 ];

@@ -53,7 +53,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             onResolved={() => {}}
           />
           <LoginModal />
-          <ChatWidget />
+          {/* ChatWidget moved to header as /messages link */}
         </>
       </AuthModalProvider>
     </SessionProvider>

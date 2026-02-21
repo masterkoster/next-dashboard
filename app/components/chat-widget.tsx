@@ -714,7 +714,7 @@ export default function ChatWidget() {
                   )}
                   <div className="flex items-center gap-2">
                     <Link
-                      href={`/modules/social/messages?newConversation=${activeConversationId}`}
+                      href={`/messages?newConversation=${activeConversationId}`}
                       className="text-[10px] text-primary hover:underline"
                       target="_blank"
                     >
