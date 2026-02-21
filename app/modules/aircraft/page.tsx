@@ -390,7 +390,9 @@ export default function AircraftPage() {
                   <CardDescription>Connect with other pilots and share aircraft access</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button className="w-full">Browse Clubs</Button>
+                  <Button className="w-full" asChild>
+                    <Link href="/modules/flying-club">Browse Clubs</Link>
+                  </Button>
                 </CardContent>
               </Card>
               <Card className="border-primary/50 bg-primary/5">
@@ -399,7 +401,9 @@ export default function AircraftPage() {
                   <CardDescription>Start your own flying club and manage members</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Button variant="outline" className="w-full">Create Club</Button>
+                  <Button variant="outline" className="w-full" asChild>
+                    <Link href="/modules/flying-club">Create Club</Link>
+                  </Button>
                 </CardContent>
               </Card>
             </div>
@@ -426,7 +430,9 @@ export default function AircraftPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">View</Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href="/modules/flying-club">View</Link>
+                        </Button>
                         <Button size="sm">Request Join</Button>
                       </div>
                     </div>
