@@ -6,7 +6,6 @@ import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
@@ -30,7 +29,9 @@ import {
   Fuel,
   BookOpen,
   Settings,
-  Loader2
+  Loader2,
+  User,
+  Home
 } from "lucide-react"
 
 // Types
@@ -87,8 +88,6 @@ interface FlightLog {
   date: string
   hobbsIn: number
   hobbsOut: number
-  tachIn: number | null
-  tachOut: number | null
   route: string | null
   notes: string | null
 }
@@ -143,28 +142,25 @@ const demoMembers: Member[] = [
   { id: 'mb3', userId: 'u3', user: { id: 'u3', name: 'Sarah Johnson', email: 'sarah@demo.com' }, role: 'MEMBER', joinedAt: '2024-06-20' },
 ]
 
+// Personal demo data
+const personalAircraft: GroupAircraft[] = [
+  { id: 'p1', nNumber: 'N12345', nickname: 'My Skyhawk', make: 'Cessna', model: '172S', year: 2020, status: 'Available', hourlyRate: 145, hobbsHours: 450.5 },
+]
+
+const personalBookings: Booking[] = [
+  { id: 'pb1', aircraftId: 'p1', aircraft: personalAircraft[0], userId: 'u1', user: { name: 'Demo User', email: 'demo@test.com' }, startTime: '2026-02-22T10:00', endTime: '2026-02-22T12:00', purpose: 'Personal flight' },
+]
+
 export default function FlyingClubPage() {
   const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedGroupId, setSelectedGroupId] = useState<string>('all')
+  const [selectedView, setSelectedView] = useState<string>('personal')
   const [groups, setGroups] = useState<Group[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
   const [maintenance, setMaintenance] = useState<Maintenance[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
-  
-  // Modal states
-  const [showNewGroupModal, setShowNewGroupModal] = useState(false)
-  const [showNewBookingModal, setShowNewBookingModal] = useState(false)
-  const [showNewAircraftModal, setShowNewAircraftModal] = useState(false)
-  const [showNewMaintenanceModal, setShowNewMaintenanceModal] = useState(false)
-  const [showInviteModal, setShowInviteModal] = useState(false)
-  
-  // Form states
-  const [newGroupName, setNewGroupName] = useState('')
-  const [newGroupDescription, setNewGroupDescription] = useState('')
-  const [submitting, setSubmitting] = useState(false)
 
   // Fetch user's groups
   useEffect(() => {
@@ -179,22 +175,24 @@ export default function FlyingClubPage() {
           if (groupsRes.ok) {
             const groupsData = await groupsRes.json()
             setGroups(groupsData)
-            if (groupsData.length > 0 && selectedGroupId === 'all') {
-              setSelectedGroupId(groupsData[0].id)
+            if (groupsData.length > 0 && selectedView === 'personal') {
+              // Stay on personal
             }
           }
+          // Fetch personal bookings
+          const bookingsRes = await fetch('/api/bookings')
+          if (bookingsRes.ok) setBookings(await bookingsRes.json())
         } else {
           // Demo mode
           setGroups(demoGroups)
-          setBookings(demoBookings)
+          setBookings([...personalBookings, ...demoBookings])
           setMaintenance(demoMaintenance)
           setMembers(demoMembers)
         }
       } catch (error) {
         console.error('Error fetching data:', error)
-        // Fall back to demo data
         setGroups(demoGroups)
-        setBookings(demoBookings)
+        setBookings([...personalBookings, ...demoBookings])
         setMaintenance(demoMaintenance)
         setMembers(demoMembers)
       }
@@ -204,53 +202,43 @@ export default function FlyingClubPage() {
     fetchData()
   }, [session, status])
 
-  // Fetch group-specific data when selectedGroupId changes
+  // Fetch group-specific data when view changes
   useEffect(() => {
-    if (!session?.user?.id || selectedGroupId === 'all') {
-      if (!session?.user?.id) {
-        setBookings(demoBookings)
-        setMaintenance(demoMaintenance)
-        setMembers(demoMembers)
-      }
+    if (!session?.user?.id) return
+    if (selectedView === 'personal') {
+      // Fetch personal bookings
+      fetch('/api/bookings').then(r => r.ok && r.json()).then(setBookings)
       return
     }
-
+    
     async function fetchGroupData() {
       try {
-        // Fetch bookings
-        const bookingsRes = await fetch(`/api/groups/${selectedGroupId}/bookings`)
-        if (bookingsRes.ok) {
-          const bookingsData = await bookingsRes.json()
-          setBookings(bookingsData)
-        }
-
-        // Fetch members
-        const membersRes = await fetch(`/api/groups/${selectedGroupId}/members`)
-        if (membersRes.ok) {
-          const membersData = await membersRes.json()
-          setMembers(membersData)
-        }
+        const bookingsRes = await fetch(`/api/groups/${selectedView}/bookings`)
+        if (bookingsRes.ok) setBookings(await bookingsRes.json())
+        const membersRes = await fetch(`/api/groups/${selectedView}/members`)
+        if (membersRes.ok) setMembers(await membersRes.json())
       } catch (error) {
         console.error('Error fetching group data:', error)
       }
     }
 
     fetchGroupData()
-  }, [selectedGroupId, session])
+  }, [selectedView, session])
 
   const isDemo = !session?.user?.id
+  const isPersonal = selectedView === 'personal'
+  const selectedGroup = groups.find(g => g.id === selectedView)
+  
+  // Filter data based on selected view
+  const displayAircraft = isPersonal ? personalAircraft : (selectedGroup?.aircraft || [])
+  const displayBookings = isPersonal 
+    ? personalBookings 
+    : bookings.filter(b => displayAircraft.some(a => a.id === b.aircraftId))
+  const displayMaintenance = isPersonal ? [] : maintenance.filter(m => displayAircraft.some(a => a.id === m.aircraftId))
+  const displayMembers = isPersonal ? [] : members
+
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-
-  // Filter data by selected group
-  const filteredGroups = selectedGroupId === 'all' ? groups : groups.filter(g => g.id === selectedGroupId)
-  const allAircraft = filteredGroups.flatMap(g => g.aircraft)
-  const filteredBookings = selectedGroupId === 'all' 
-    ? bookings 
-    : bookings.filter(b => allAircraft.some(a => a.id === b.aircraftId))
-  const filteredMaintenance = selectedGroupId === 'all'
-    ? maintenance
-    : maintenance.filter(m => allAircraft.some(a => a.id === m.aircraftId))
 
   if (status === 'loading' || loading) {
     return (
@@ -278,52 +266,6 @@ export default function FlyingClubPage() {
     return days
   }
 
-  // Create new group
-  const handleCreateGroup = async () => {
-    if (!newGroupName.trim()) return
-    setSubmitting(true)
-    try {
-      const res = await fetch('/api/groups', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: newGroupName, description: newGroupDescription })
-      })
-      if (res.ok) {
-        const newGroup = await res.json()
-        setGroups([...groups, { ...newGroup, role: 'ADMIN', aircraft: [], members: 1 }])
-        setShowNewGroupModal(false)
-        setNewGroupName('')
-        setNewGroupDescription('')
-      } else {
-        const data = await res.json()
-        alert(data.error || 'Failed to create group')
-      }
-    } catch (error) {
-      console.error('Error creating group:', error)
-      alert('Failed to create group')
-    }
-    setSubmitting(false)
-  }
-
-  // Refresh data
-  const refreshData = async () => {
-    try {
-      const groupsRes = await fetch('/api/groups')
-      if (groupsRes.ok) {
-        const groupsData = await groupsRes.json()
-        setGroups(groupsData)
-      }
-      if (selectedGroupId !== 'all') {
-        const bookingsRes = await fetch(`/api/groups/${selectedGroupId}/bookings`)
-        if (bookingsRes.ok) setBookings(await bookingsRes.json())
-        const membersRes = await fetch(`/api/groups/${selectedGroupId}/members`)
-        if (membersRes.ok) setMembers(await membersRes.json())
-      }
-    } catch (error) {
-      console.error('Error refreshing data:', error)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -335,22 +277,36 @@ export default function FlyingClubPage() {
               <p className="text-muted-foreground mt-1">Manage your aviation group and aircraft</p>
             </div>
             <div className="flex items-center gap-3">
-              {filteredGroups.length > 1 && (
-                <select
-                  value={selectedGroupId}
-                  onChange={(e) => setSelectedGroupId(e.target.value)}
-                  className="h-10 rounded-lg border border-input bg-background px-3 text-sm"
-                >
-                  <option value="all">All Groups</option>
-                  {filteredGroups.map(group => (
+              <select
+                value={selectedView}
+                onChange={(e) => setSelectedView(e.target.value)}
+                className="h-10 rounded-lg border border-input bg-background px-3 text-sm min-w-[200px]"
+              >
+                <option value="personal">👤 Personal</option>
+                <optgroup label="✈️ Flying Clubs">
+                  {groups.map(group => (
                     <option key={group.id} value={group.id}>{group.name}</option>
                   ))}
-                </select>
+                  {isDemo && (
+                    <>
+                      <option value="demo-1">Sky High Flying Club</option>
+                      <option value="demo-2">Weekend Warriors</option>
+                    </>
+                  )}
+                </optgroup>
+              </select>
+              {isPersonal && (
+                <Button size="sm" variant="outline">
+                  <Plus className="mr-1 h-3 w-3" />
+                  Add Aircraft
+                </Button>
               )}
-              <Button onClick={() => setShowNewGroupModal(true)} disabled={isDemo}>
-                <Plus className="mr-2 h-4 w-4" />
-                New Group
-              </Button>
+              {!isPersonal && (
+                <Button size="sm">
+                  <Plus className="mr-1 h-3 w-3" />
+                  New Group
+                </Button>
+              )}
             </div>
           </div>
 
@@ -399,7 +355,7 @@ export default function FlyingClubPage() {
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{filteredBookings.length}</div>
+                  <div className="text-2xl font-bold">{displayBookings.length}</div>
                   <p className="text-xs text-muted-foreground mt-1">Next: Today at 14:00</p>
                 </CardContent>
               </Card>
@@ -421,15 +377,16 @@ export default function FlyingClubPage() {
                   <Wrench className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-destructive">{filteredMaintenance.length}</div>
+                  <div className="text-2xl font-bold text-destructive">{displayMaintenance.length}</div>
                   <p className="text-xs text-muted-foreground mt-1">1 high priority</p>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Groups Overview */}
+            {/* Groups Overview - Only show for clubs */}
+            {!isPersonal && (
             <div className="grid gap-6 lg:grid-cols-2">
-              {filteredGroups.map((group) => (
+              {(selectedView === 'all' ? groups : [selectedGroup].filter(Boolean)).map((group) => group && (
                 <Card key={group.id}>
                   <CardHeader>
                     <div className="flex items-start justify-between">
@@ -486,6 +443,7 @@ export default function FlyingClubPage() {
                 </Card>
               ))}
             </div>
+            )}
 
             {/* Upcoming Bookings & Maintenance */}
             <div className="grid gap-6 lg:grid-cols-2">
@@ -498,7 +456,7 @@ export default function FlyingClubPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {filteredBookings.map((booking) => (
+                    {displayBookings.map((booking) => (
                       <div key={booking.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -506,7 +464,7 @@ export default function FlyingClubPage() {
                             <span className="text-xs text-muted-foreground">•</span>
                             <p className="text-sm text-muted-foreground">{booking.user?.name || 'Unknown'}</p>
                           </div>
-                          <p className="text-xs text-muted-foreground">{booking.purpose || 'Flight'}</p>
+                          <p className="text-xs text-muted-foreground">{booking.purpose}</p>
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-medium">{booking.startTime ? new Date(booking.startTime).toLocaleDateString() : 'N/A'}</p>
@@ -527,7 +485,7 @@ export default function FlyingClubPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {filteredMaintenance.map((item) => (
+                    {displayMaintenance.map((item) => (
                       <div key={item.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -539,7 +497,7 @@ export default function FlyingClubPage() {
                           <p className="text-xs text-muted-foreground">{item.description}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-sm font-medium">Due: {item.dueDate ? new Date(item.dueDate).toLocaleDateString() : 'TBD'}</p>
+                          <p className="text-sm font-medium">Due: {item.dueDate}</p>
                           {item.priority === 'high' && (
                             <div className="flex items-center justify-end gap-1 mt-1">
                               <AlertCircle className="h-3 w-3 text-destructive" />
@@ -627,7 +585,7 @@ export default function FlyingClubPage() {
 
         {activeTab === 'aircraft' && (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {allAircraft.map((aircraft) => (
+            {displayAircraft.map((aircraft) => (
               <Card key={aircraft.id}>
                 <CardHeader>
                   <div className="flex items-start justify-between">
@@ -700,7 +658,7 @@ export default function FlyingClubPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {filteredBookings.map((booking) => (
+                {displayBookings.map((booking) => (
                   <div key={booking.id} className="flex items-center justify-between rounded-lg border border-border p-4">
                     <div className="flex items-center gap-4">
                       <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
@@ -708,7 +666,7 @@ export default function FlyingClubPage() {
                       </div>
                       <div className="space-y-1">
                         <p className="font-medium text-sm">{booking.aircraft?.nNumber || booking.aircraftId}</p>
-                        <p className="text-xs text-muted-foreground">{booking.purpose || 'Flight'}</p>
+                        <p className="text-xs text-muted-foreground">{booking.purpose}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-6">
@@ -740,7 +698,7 @@ export default function FlyingClubPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-2">
-                {filteredMaintenance.map((item) => (
+                {displayMaintenance.map((item) => (
                   <div key={item.id} className="flex items-center justify-between rounded-lg border border-border p-4">
                     <div className="flex items-center gap-4">
                       <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
@@ -794,12 +752,7 @@ export default function FlyingClubPage() {
                 </div>
                 <h3 className="text-lg font-semibold mb-2">No {activeTab} yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">Get started by adding your first {activeTab.slice(0, -1)}</p>
-                <Button onClick={() => {
-                  if (activeTab === 'bookings') setShowNewBookingModal(true)
-                  else if (activeTab === 'aircraft') setShowNewAircraftModal(true)
-                  else if (activeTab === 'maintenance') setShowNewMaintenanceModal(true)
-                  else if (activeTab === 'members') setShowInviteModal(true)
-                }}>
+                <Button>
                   <Plus className="mr-2 h-4 w-4" />
                   Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1, -1)}
                 </Button>
@@ -808,41 +761,6 @@ export default function FlyingClubPage() {
           </Card>
         )}
       </main>
-
-      {/* New Group Modal */}
-      {showNewGroupModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
-            <h2 className="text-xl font-semibold mb-4">Create New Group</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Group Name</label>
-                <Input 
-                  value={newGroupName}
-                  onChange={(e) => setNewGroupName(e.target.value)}
-                  placeholder="e.g., Sky High Flying Club"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Description</label>
-                <Input 
-                  value={newGroupDescription}
-                  onChange={(e) => setNewGroupDescription(e.target.value)}
-                  placeholder="A welcoming club for pilots..."
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <div className="mt-6 flex justify-end gap-3">
-              <Button variant="outline" onClick={() => setShowNewGroupModal(false)}>Cancel</Button>
-              <Button onClick={handleCreateGroup} disabled={submitting || !newGroupName.trim()}>
-                {submitting ? 'Creating...' : 'Create Group'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }
