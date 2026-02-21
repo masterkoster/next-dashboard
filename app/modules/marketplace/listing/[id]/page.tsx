@@ -277,7 +277,7 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
         const data = await res.json();
         // Show success and redirect to messages
         alert('Message sent! Redirecting to your messages...');
-        window.location.href = `/modules/social?newConversation=${data.conversationId}`;
+        window.location.href = `/modules/social/messages?newConversation=${data.conversationId}`;
       } else {
         const error = await res.json();
         alert(error.error || 'Failed to send message. Please try again.');
