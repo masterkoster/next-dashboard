@@ -32,7 +32,8 @@ import {
   LayoutDashboard,
   EyeOff,
   Loader2,
-  Navigation
+  Navigation,
+  User
 } from "lucide-react"
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from "recharts"
 
@@ -217,8 +218,16 @@ export default function PilotDashboard() {
               <Bell className="h-5 w-5" />
               <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
             </Button>
-            <Button variant="ghost" size="icon">
-              <Settings className="h-5 w-5" />
+            <Button variant="ghost" size="sm" asChild>
+              <Link href="/profile" className="gap-2">
+                <User className="h-4 w-4" />
+                <span className="hidden md:inline">Profile</span>
+              </Link>
+            </Button>
+            <Button variant="ghost" size="icon" asChild>
+              <Link href="/settings">
+                <Settings className="h-5 w-5" />
+              </Link>
             </Button>
           </div>
         </div>

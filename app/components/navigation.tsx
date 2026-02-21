@@ -7,6 +7,7 @@ import { signOut, useSession } from 'next-auth/react';
 import { useAuthModal } from './AuthModalContext';
 
 const modules = [
+  { id: 'aircraft', label: 'Aircraft', href: '/modules/aircraft' },
   { id: 'flying-club', label: 'Flying Club', href: '/modules/flying-club' },
   { id: 'social', label: 'Social', href: '/modules/social' },
   { id: 'fuel-saver', label: 'Fuel Saver', href: '/modules/fuel-saver' },
