@@ -6,6 +6,7 @@ import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
@@ -152,6 +153,18 @@ export default function FlyingClubPage() {
   const [maintenance, setMaintenance] = useState<Maintenance[]>([])
   const [members, setMembers] = useState<Member[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Modal states
+  const [showNewGroupModal, setShowNewGroupModal] = useState(false)
+  const [showNewBookingModal, setShowNewBookingModal] = useState(false)
+  const [showNewAircraftModal, setShowNewAircraftModal] = useState(false)
+  const [showNewMaintenanceModal, setShowNewMaintenanceModal] = useState(false)
+  const [showInviteModal, setShowInviteModal] = useState(false)
+  
+  // Form states
+  const [newGroupName, setNewGroupName] = useState('')
+  const [newGroupDescription, setNewGroupDescription] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   // Fetch user's groups
   useEffect(() => {
@@ -265,6 +278,52 @@ export default function FlyingClubPage() {
     return days
   }
 
+  // Create new group
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim()) return
+    setSubmitting(true)
+    try {
+      const res = await fetch('/api/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: newGroupName, description: newGroupDescription })
+      })
+      if (res.ok) {
+        const newGroup = await res.json()
+        setGroups([...groups, { ...newGroup, role: 'ADMIN', aircraft: [], members: 1 }])
+        setShowNewGroupModal(false)
+        setNewGroupName('')
+        setNewGroupDescription('')
+      } else {
+        const data = await res.json()
+        alert(data.error || 'Failed to create group')
+      }
+    } catch (error) {
+      console.error('Error creating group:', error)
+      alert('Failed to create group')
+    }
+    setSubmitting(false)
+  }
+
+  // Refresh data
+  const refreshData = async () => {
+    try {
+      const groupsRes = await fetch('/api/groups')
+      if (groupsRes.ok) {
+        const groupsData = await groupsRes.json()
+        setGroups(groupsData)
+      }
+      if (selectedGroupId !== 'all') {
+        const bookingsRes = await fetch(`/api/groups/${selectedGroupId}/bookings`)
+        if (bookingsRes.ok) setBookings(await bookingsRes.json())
+        const membersRes = await fetch(`/api/groups/${selectedGroupId}/members`)
+        if (membersRes.ok) setMembers(await membersRes.json())
+      }
+    } catch (error) {
+      console.error('Error refreshing data:', error)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -288,7 +347,7 @@ export default function FlyingClubPage() {
                   ))}
                 </select>
               )}
-              <Button>
+              <Button onClick={() => setShowNewGroupModal(true)} disabled={isDemo}>
                 <Plus className="mr-2 h-4 w-4" />
                 New Group
               </Button>
@@ -735,7 +794,12 @@ export default function FlyingClubPage() {
                 </div>
                 <h3 className="text-lg font-semibold mb-2">No {activeTab} yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">Get started by adding your first {activeTab.slice(0, -1)}</p>
-                <Button>
+                <Button onClick={() => {
+                  if (activeTab === 'bookings') setShowNewBookingModal(true)
+                  else if (activeTab === 'aircraft') setShowNewAircraftModal(true)
+                  else if (activeTab === 'maintenance') setShowNewMaintenanceModal(true)
+                  else if (activeTab === 'members') setShowInviteModal(true)
+                }}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1, -1)}
                 </Button>
@@ -744,6 +808,41 @@ export default function FlyingClubPage() {
           </Card>
         )}
       </main>
+
+      {/* New Group Modal */}
+      {showNewGroupModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
+            <h2 className="text-xl font-semibold mb-4">Create New Group</h2>
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium">Group Name</label>
+                <Input 
+                  value={newGroupName}
+                  onChange={(e) => setNewGroupName(e.target.value)}
+                  placeholder="e.g., Sky High Flying Club"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium">Description</label>
+                <Input 
+                  value={newGroupDescription}
+                  onChange={(e) => setNewGroupDescription(e.target.value)}
+                  placeholder="A welcoming club for pilots..."
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-3">
+              <Button variant="outline" onClick={() => setShowNewGroupModal(false)}>Cancel</Button>
+              <Button onClick={handleCreateGroup} disabled={submitting || !newGroupName.trim()}>
+                {submitting ? 'Creating...' : 'Create Group'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
