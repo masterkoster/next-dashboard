@@ -17,10 +17,13 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     }
 
     const { id } = await params;
+    console.log('Loading messages for conversation:', id);
+    
     const participant = await prisma.conversationParticipant.findFirst({
       where: { conversationId: id, userId: session.user.id },
     });
     if (!participant) {
+      console.log('Not a participant in conversation:', id);
       return NextResponse.json({ error: 'Not authorized' }, { status: 403 });
     }
 
@@ -36,6 +39,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
       },
     });
 
+    console.log('Found messages:', messages.length);
     return NextResponse.json({ messages });
   } catch (error) {
     console.error('Messages GET failed', error);
