@@ -388,6 +388,7 @@ export default function FlyingClubPage() {
             {/* Groups Overview - Only show for clubs */}
             {!isPersonal && (
             <div className="grid gap-6 lg:grid-cols-2">
+              {/* First column: Groups */}
               {(selectedView === 'all' ? groups : [selectedGroup].filter(Boolean)).map((group) => group && (
                 <Card key={group.id}>
                   <CardHeader>
@@ -444,6 +445,60 @@ export default function FlyingClubPage() {
                   </CardContent>
                 </Card>
               ))}
+
+              {/* Second column: Quick Stats / Upcoming if only 1 or fewer clubs */}
+              {(selectedView === 'all' ? groups : [selectedGroup].filter(Boolean)).length < 2 && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Overview</CardTitle>
+                    <CardDescription>Your aviation at a glance</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
+                          <Plane className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Total Aircraft</p>
+                          <p className="text-xs text-muted-foreground">Across all clubs</p>
+                        </div>
+                      </div>
+                      <p className="text-2xl font-bold">{displayAircraft.length}</p>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10">
+                          <Calendar className="h-5 w-5 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Upcoming Bookings</p>
+                          <p className="text-xs text-muted-foreground">Next 7 days</p>
+                        </div>
+                      </div>
+                      <p className="text-2xl font-bold">{displayBookings.length}</p>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-border">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/10">
+                          <Users className="h-5 w-5 text-blue-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Your Clubs</p>
+                          <p className="text-xs text-muted-foreground">Memberships</p>
+                        </div>
+                      </div>
+                      <p className="text-2xl font-bold">{groups.length}</p>
+                    </div>
+
+                    <Button variant="outline" className="w-full" onClick={() => setSelectedView('personal')}>
+                      View Personal Dashboard
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </div>
             )}
 
