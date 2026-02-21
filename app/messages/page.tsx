@@ -8,7 +8,7 @@ import { Search, Plane, Users, Send, MoreHorizontal, Phone, Video, ExternalLink,
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { validateE2eeEnvelopeString, decryptWithUser } from '@/lib/e2ee'
+import { validateE2eeEnvelopeString, decryptWithUser, ensureIdentityKeypair, publishMyPublicKey } from '@/lib/e2ee'
 
 type ConversationItem = {
   id: string
@@ -68,6 +68,9 @@ function MessagesContent() {
 
   useEffect(() => {
     if (session?.user?.id) {
+      // Initialize E2EE keys
+      ensureIdentityKeypair().catch(() => {})
+      publishMyPublicKey().catch(() => {})
       fetch('/api/conversations').then(r => r.json()).then(d => { setConversations(d.conversations || []); setLoading(false) }).catch(() => setLoading(false))
     }
   }, [session])
@@ -93,7 +96,8 @@ function MessagesContent() {
     const decrypt = async () => {
       const decrypted: Record<string, string> = {}
       for (const msg of messages) {
-        if (validateE2eeEnvelopeString(msg.body)) {
+        const validation = validateE2eeEnvelopeString(msg.body)
+        if (validation.ok) {
           try {
             const result = await decryptWithUser(otherParticipant.id, msg.body)
             decrypted[msg.id] = result.ok ? result.plaintext : msg.body
