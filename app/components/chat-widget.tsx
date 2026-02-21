@@ -711,7 +711,16 @@ export default function ChatWidget() {
                   ) : (
                     <span className="text-sm text-slate-300">Conversation</span>
                   )}
-                  <span className="text-[11px] text-slate-500">E2EE</span>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/modules/social/messages?newConversation=${activeConversationId}`}
+                      className="text-[10px] text-primary hover:underline"
+                      target="_blank"
+                    >
+                      Full Page
+                    </Link>
+                    <span className="text-[11px] text-slate-500">E2EE</span>
+                  </div>
                 </div>
               </div>
               {e2eeNotice && (
