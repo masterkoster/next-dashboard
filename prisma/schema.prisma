@@ -537,6 +537,18 @@ model Booking {
   @@map("Booking")
 }
 
+model GroupChatMessage {
+  id        String   @id @default(uuid()) @db.NVarChar(36)
+  groupId   String   @db.NVarChar(36)
+  userId    String   @db.NVarChar(36)
+  message   String   @db.NVarChar(1000)
+  createdAt DateTime @default(now())
+
+  @@index([groupId, createdAt])
+  @@index([userId])
+  @@map("GroupChatMessage")
+}
+
 model FlightLog {
   id             String    @id(map: "PK__FlightLo__3213E83FB28F28FC") @default("newid()", map: "DF__FlightLog__id__2FCF1A8A") @db.NVarChar(36)
   aircraftId     String    @db.NVarChar(36)
