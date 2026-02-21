@@ -999,10 +999,15 @@ export default function FlyingClubPage() {
           <div className="space-y-6">
             {/* Stats Overview */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-              <Card>
+              <Card 
+                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
+                onClick={() => setActiveTab('aircraft')}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Total Aircraft</CardTitle>
-                  <Plane className="h-4 w-4 text-muted-foreground" />
+                  <div className="rounded-full p-2 bg-primary/10 hover:bg-primary/20 transition-colors">
+                    <Plane className="h-4 w-4 text-primary" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{displayAircraft.length}</div>
@@ -1012,10 +1017,15 @@ export default function FlyingClubPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card 
+                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
+                onClick={() => setActiveTab('bookings')}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Upcoming Bookings</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div className="rounded-full p-2 bg-blue-500/10 hover:bg-blue-500/20 transition-colors">
+                    <Calendar className="h-4 w-4 text-blue-500" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{displayBookings.length}</div>
@@ -1025,10 +1035,15 @@ export default function FlyingClubPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card 
+                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
+                onClick={() => setActiveTab('members')}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Active Members</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
+                  <div className="rounded-full p-2 bg-green-500/10 hover:bg-green-500/20 transition-colors">
+                    <Users className="h-4 w-4 text-green-500" />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className="text-2xl font-bold">{isPersonal ? 1 : displayMembers.length}</div>
@@ -1038,10 +1053,15 @@ export default function FlyingClubPage() {
                 </CardContent>
               </Card>
 
-              <Card>
+              <Card 
+                className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50"
+                onClick={() => setActiveTab('maintenance')}
+              >
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                   <CardTitle className="text-sm font-medium">Maintenance Items</CardTitle>
-                  <Wrench className="h-4 w-4 text-muted-foreground" />
+                  <div className={`rounded-full p-2 transition-colors ${displayMaintenance.length > 0 ? 'bg-destructive/10 hover:bg-destructive/20' : 'bg-orange-500/10 hover:bg-orange-500/20'}`}>
+                    <Wrench className={`h-4 w-4 ${displayMaintenance.length > 0 ? 'text-destructive' : 'text-orange-500'}`} />
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <div className={`text-2xl font-bold ${displayMaintenance.length > 0 ? 'text-destructive' : ''}`}>
