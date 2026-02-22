@@ -4,6 +4,7 @@ import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Plane } from "lucide-react";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -49,12 +50,22 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+              <Plane className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <span className="text-foreground">AviationHub</span>
+          </Link>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white">Welcome Back</h1>
-            <p className="mt-2 text-slate-400">Sign in to your account</p>
+            <h1 className="text-2xl font-bold text-foreground">Welcome Back</h1>
+            <p className="mt-2 text-muted-foreground">Sign in to your account</p>
           </div>
 
           <form 
@@ -64,7 +75,7 @@ export default function LoginPage() {
           >
             {error && (
               <div 
-                className="rounded-xl border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300"
+                className="rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
                 role="alert"
                 aria-live="polite"
               >
@@ -75,7 +86,7 @@ export default function LoginPage() {
             <div>
               <label 
                 htmlFor="username" 
-                className="block text-sm font-medium text-slate-300"
+                className="block text-sm font-medium text-foreground"
               >
                 Username
               </label>
@@ -85,7 +96,7 @@ export default function LoginPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="mt-1 w-full rounded-xl border border-input bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="your username"
                 required
                 autoComplete="username"
@@ -98,7 +109,7 @@ export default function LoginPage() {
             <div>
               <label 
                 htmlFor="password" 
-                className="block text-sm font-medium text-slate-300"
+                className="block text-sm font-medium text-foreground"
               >
                 Password
               </label>
@@ -108,7 +119,7 @@ export default function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="mt-1 w-full rounded-xl border border-input bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="••••••••"
                 required
                 minLength={6}
@@ -124,13 +135,13 @@ export default function LoginPage() {
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-emerald-500 focus:ring-emerald-500"
+                  className="w-4 h-4 rounded border-input bg-background text-primary focus:ring-primary"
                 />
-                <span className="text-sm text-slate-300">Remember me for 30 days</span>
+                <span className="text-sm text-muted-foreground">Remember me</span>
               </label>
               <Link 
                 href="/forgot-password" 
-                className="text-sm text-emerald-400 hover:text-emerald-300"
+                className="text-sm text-primary hover:underline"
               >
                 Forgot password?
               </Link>
@@ -139,7 +150,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition-all hover:bg-emerald-400 disabled:opacity-50"
+              className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
               aria-label={loading ? "Signing in" : "Sign in to your account"}
               aria-busy={loading}
             >
@@ -147,11 +158,11 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-slate-400">
+          <p className="mt-6 text-center text-muted-foreground">
             Don&apos;t have an account?{" "}
             <Link 
               href="/signup" 
-              className="font-medium text-emerald-400 hover:text-emerald-300"
+              className="font-medium text-primary hover:underline"
             >
               Sign up
             </Link>

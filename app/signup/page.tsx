@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Plane } from "lucide-react";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -67,13 +68,13 @@ export default function SignupPage() {
 
   if (created) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
+      <div className="min-h-screen flex items-center justify-center bg-background px-4">
         <div className="w-full max-w-md">
-          <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8 text-center">
+          <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
             <div className="text-6xl mb-4">📧</div>
-            <h1 className="text-2xl font-bold text-white mb-2">Check Your Email!</h1>
-            <p className="text-slate-400 mb-6">
-              We&apos;ve sent a verification link to <strong className="text-white">{email}</strong>.
+            <h1 className="text-2xl font-bold text-foreground mb-2">Check Your Email!</h1>
+            <p className="text-muted-foreground mb-6">
+              We&apos;ve sent a verification link to <strong className="text-foreground">{email}</strong>.
               Click the link to verify your account and start using AviationHub.
             </p>
             <div className="space-y-3">
@@ -81,20 +82,20 @@ export default function SignupPage() {
                 href="https://mail.google.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition-all hover:bg-emerald-400"
+                className="block w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground transition-all hover:bg-primary/90"
               >
                 Open Gmail
               </a>
               <button
                 onClick={() => router.push("/login")}
-                className="block w-full text-center text-slate-400 hover:text-white py-2"
+                className="block w-full text-center text-muted-foreground hover:text-foreground py-2"
               >
                 Go to Login
               </button>
             </div>
-            <p className="mt-6 text-sm text-slate-500">
+            <p className="mt-6 text-sm text-muted-foreground">
               Didn&apos;t receive it?{' '}
-              <Link href="/verify-email" className="text-emerald-400 hover:underline">
+              <Link href="/verify-email" className="text-primary hover:underline">
                 Resend verification email
               </Link>
             </p>
@@ -105,12 +106,22 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4 py-8">
       <div className="w-full max-w-md">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900 p-8">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold">
+            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+              <Plane className="w-6 h-6 text-primary-foreground" />
+            </div>
+            <span className="text-foreground">AviationHub</span>
+          </Link>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-white">Create Account</h1>
-            <p className="mt-2 text-slate-400">Get started with AviationHub</p>
+            <h1 className="text-2xl font-bold text-foreground">Create Account</h1>
+            <p className="mt-2 text-muted-foreground">Get started with AviationHub</p>
           </div>
 
           <form 
@@ -120,7 +131,7 @@ export default function SignupPage() {
           >
             {error && (
               <div 
-                className="rounded-xl border border-red-800 bg-red-900/30 px-4 py-3 text-sm text-red-300"
+                className="rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"
                 role="alert"
                 aria-live="polite"
               >
@@ -131,7 +142,7 @@ export default function SignupPage() {
             <div>
               <label 
                 htmlFor="fullName" 
-                className="block text-sm font-medium text-slate-300"
+                className="block text-sm font-medium text-foreground"
               >
                 Full Name
               </label>
@@ -141,7 +152,7 @@ export default function SignupPage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="mt-1 w-full rounded-xl border border-input bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="John Doe"
                 autoComplete="name"
                 autoFocus
@@ -152,9 +163,9 @@ export default function SignupPage() {
             <div>
               <label
                 htmlFor="username"
-                className="block text-sm font-medium text-slate-300"
+                className="block text-sm font-medium text-foreground"
               >
-                Username <span className="text-red-400">*</span>
+                Username <span className="text-destructive">*</span>
               </label>
               <input
                 id="username"
@@ -162,7 +173,7 @@ export default function SignupPage() {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ''))}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="mt-1 w-full rounded-xl border border-input bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="johndoe123"
                 required
                 minLength={3}
@@ -173,7 +184,7 @@ export default function SignupPage() {
                 aria-label="Username - letters and numbers only"
                 aria-describedby="username-help"
               />
-              <p id="username-help" className="mt-1 text-xs text-slate-500">
+              <p id="username-help" className="mt-1 text-xs text-muted-foreground">
                 Letters and numbers only. This is what you&apos;ll use to log in.
               </p>
             </div>
@@ -181,7 +192,7 @@ export default function SignupPage() {
             <div>
               <label 
                 htmlFor="email" 
-                className="block text-sm font-medium text-slate-300"
+                className="block text-sm font-medium text-foreground"
               >
                 Email
               </label>
@@ -191,7 +202,7 @@ export default function SignupPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="mt-1 w-full rounded-xl border border-input bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="you@example.com"
                 required
                 autoComplete="email"
@@ -204,7 +215,7 @@ export default function SignupPage() {
             <div>
               <label 
                 htmlFor="password" 
-                className="block text-sm font-medium text-slate-300"
+                className="block text-sm font-medium text-foreground"
               >
                 Password
               </label>
@@ -214,7 +225,7 @@ export default function SignupPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                className="mt-1 w-full rounded-xl border border-input bg-background px-4 py-3 text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder="••••••••"
                 required
                 minLength={6}
@@ -223,7 +234,7 @@ export default function SignupPage() {
                 aria-label="Password - minimum 6 characters"
                 aria-describedby="password-help"
               />
-              <p id="password-help" className="mt-1 text-xs text-slate-500">
+              <p id="password-help" className="mt-1 text-xs text-muted-foreground">
                 Minimum 6 characters
               </p>
             </div>
@@ -231,7 +242,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading || !agreedToTerms}
-              className="w-full rounded-xl bg-emerald-500 py-3 font-semibold text-white transition-all hover:bg-emerald-400 disabled:opacity-50"
+              className="w-full rounded-xl bg-primary py-3 font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-50"
               aria-label={loading ? "Creating account" : "Create account"}
               aria-busy={loading}
               aria-disabled={!agreedToTerms}
@@ -239,13 +250,13 @@ export default function SignupPage() {
               {loading ? "Creating account..." : "Create Account"}
             </button>
 
-            <div className="bg-slate-800 rounded-lg p-3 text-xs text-slate-400">
+            <div className="bg-muted rounded-lg p-3 text-xs text-muted-foreground">
               <label className="flex items-start gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={agreedToTerms}
                   onChange={(e) => setAgreedToTerms(e.target.checked)}
-                  className="mt-0.5 w-4 h-4 rounded"
+                  className="mt-0.5 w-4 h-4 rounded border-input bg-background text-primary focus:ring-primary"
                   aria-label="Agree to terms of use"
                   aria-required="true"
                 />
@@ -258,9 +269,9 @@ export default function SignupPage() {
             </div>
           </form>
 
-          <p className="mt-6 text-center text-slate-400">
+          <p className="mt-6 text-center text-muted-foreground">
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-emerald-400 hover:text-emerald-300">
+            <Link href="/login" className="font-medium text-primary hover:underline">
               Sign in
             </Link>
           </p>
