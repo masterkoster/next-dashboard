@@ -2010,22 +2010,17 @@ function FuelSaverContent() {
   };
 
   return (
-    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
+    <div className="h-[100vh] bg-background text-foreground flex flex-col overflow-hidden">
       {/* Top Bar */}
-      <div className="w-full px-3 py-2 bg-card border-b border-border flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h1 className="text-lg font-bold">Flight Planner & Fuel Saver</h1>
+      <div className="w-full px-2 py-1.5 bg-card border-b border-border flex-shrink-0">
+        <div className="flex items-center justify-between h-8">
+          <div className="flex items-center gap-3">
+            <h1 className="text-base font-bold">Flight Planner</h1>
             <div className="flex items-center gap-1 text-sm">
-              <a href="/modules/fuel-saver" className="px-2 py-1 rounded bg-primary/10 text-primary font-medium">Fuel Map</a>
-              <a href="/modules/fuel-saver/airport-lookup" className="px-2 py-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground">Airport Lookup</a>
-              <a href="/modules/fuel-saver/favorites" className="px-2 py-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground">Favorites</a>
+              <a href="/modules/fuel-saver" className="px-2 py-0.5 rounded bg-primary/10 text-primary font-medium text-xs">Fuel Map</a>
+              <a href="/modules/fuel-saver/airport-lookup" className="px-2 py-0.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground text-xs">Airport Lookup</a>
+              <a href="/modules/fuel-saver/favorites" className="px-2 py-0.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground text-xs">Favorites</a>
             </div>
-            {status !== 'authenticated' && (
-              <span className="text-[10px] bg-amber-500/20 text-amber-600 px-2 py-1 rounded-full">
-                DEMO
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-2">
             {status === 'authenticated' ? (
@@ -2067,13 +2062,6 @@ function FuelSaverContent() {
 
       {/* Main Content: Sidebar left, Map right */}
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Email Verification Banner */}
-        {status === 'authenticated' && (
-          <div className="px-4 pt-2">
-            <VerificationBanner email={session?.user?.email} />
-          </div>
-        )}
-
         {/* Toggle Arrow Button - floats over the map */}
         <button
           onClick={() => setShowPanel(!showPanel)}
