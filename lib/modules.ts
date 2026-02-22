@@ -28,6 +28,11 @@ export const APP_MODULES: AppModule[] = [
     description: 'Plan efficient fuel stops with real-time pricing.',
     href: '/modules/fuel-saver',
     icon: '⛽',
+    menu: [
+      { label: 'Fuel Map', href: '/modules/fuel-saver' },
+      { label: 'Airport Lookup', href: '/modules/fuel-saver/airport-lookup' },
+      { label: 'Favorites', href: '/modules/fuel-saver/favorites' },
+    ],
   },
   {
     id: 'flying-club',
