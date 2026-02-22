@@ -329,9 +329,9 @@ export default function TripFinder({
   const hasValidRoute = waypoints.length >= 2 && aircraft;
 
   return (
-    <div className="bg-slate-800 border-t border-slate-700">
+    <div className="bg-background border-t border-border">
       {/* Mode Tabs */}
-      <div className="flex border-b border-slate-700">
+      <div className="flex border-b border-border">
         {[
           { id: 'plan', label: '🗺️ Plan' },
           { id: 'find', label: '🔍 Find' },
@@ -342,8 +342,8 @@ export default function TripFinder({
             onClick={() => { setMode(tab.id as FinderMode); setResults([]); }}
             className={`flex-1 py-2 text-xs font-medium transition-colors ${
               mode === tab.id 
-                ? 'bg-slate-700 text-white' 
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-secondary text-foreground' 
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             {tab.label}
@@ -365,17 +365,17 @@ export default function TripFinder({
             // ==================== PLAN MODE ====================
             <>
               {tripStats && (
-                <div className="bg-slate-700/50 rounded p-2 text-xs space-y-1">
+                <div className="bg-secondary/50 rounded p-2 text-xs space-y-1">
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Distance:</span>
-                    <span className="text-white">{tripStats.totalDistance.toFixed(0)} NM</span>
+                    <span className="text-muted-foreground">Distance:</span>
+                    <span className="text-foreground">{tripStats.totalDistance.toFixed(0)} NM</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Time:</span>
-                    <span className="text-white">{tripStats.totalTime.toFixed(1)} hrs</span>
+                    <span className="text-muted-foreground">Time:</span>
+                    <span className="text-foreground">{tripStats.totalTime.toFixed(1)} hrs</span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-slate-400">Stops needed:</span>
+                    <span className="text-muted-foreground">Stops needed:</span>
                     <span className="text-amber-400">~{tripStats.legsNeeded}</span>
                   </div>
                 </div>
@@ -385,36 +385,36 @@ export default function TripFinder({
                 <div className="flex gap-1 text-xs">
                   <button
                     onClick={() => setTimeMode('per_leg')}
-                    className={`flex-1 py-1.5 rounded ${timeMode === 'per_leg' ? 'bg-sky-600 text-white' : 'bg-slate-700 text-slate-300'}`}
+                    className={`flex-1 py-1.5 rounded ${timeMode === 'per_leg' ? 'bg-sky-600 text-foreground' : 'bg-secondary text-slate-300'}`}
                   >
                     Per Leg
                   </button>
                   <button
                     onClick={() => setTimeMode('per_day')}
-                    className={`flex-1 py-1.5 rounded ${timeMode === 'per_day' ? 'bg-sky-600 text-white' : 'bg-slate-700 text-slate-300'}`}
+                    className={`flex-1 py-1.5 rounded ${timeMode === 'per_day' ? 'bg-sky-600 text-foreground' : 'bg-secondary text-slate-300'}`}
                   >
                     Per Day
                   </button>
                 </div>
 
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Max hours</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Max hours</label>
                   <input
                     type="number"
                     value={maxHours}
                     onChange={(e) => setMaxHours(Number(e.target.value))}
                     min={1}
                     max={12}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                    className="w-full bg-secondary border border-border rounded px-2 py-1.5 text-foreground text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Stop at</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Stop at</label>
                   <select
                     value={airportSize}
                     onChange={(e) => setAirportSize(e.target.value as AirportSize)}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                    className="w-full bg-secondary border border-border rounded px-2 py-1.5 text-foreground text-sm"
                   >
                     <option value="large">{AIRPORT_SIZES.large.label}</option>
                     <option value="medium">{AIRPORT_SIZES.medium.label}</option>
@@ -425,7 +425,7 @@ export default function TripFinder({
                 <button
                   onClick={handlePlanTrip}
                   disabled={isCalculating || waypoints.length < 2}
-                  className="w-full bg-sky-600 hover:bg-sky-500 disabled:bg-slate-600 text-white py-2 rounded text-sm font-medium"
+                  className="w-full bg-sky-600 hover:bg-sky-500 disabled:bg-muted text-foreground py-2 rounded text-sm font-medium"
                 >
                   {isCalculating ? 'Finding...' : '🛫 Find Stops'}
                 </button>
@@ -437,15 +437,15 @@ export default function TripFinder({
                     <button
                       key={i}
                       onClick={() => onAddWaypoint(stop.airport)}
-                      className="w-full bg-slate-700 hover:bg-slate-600 rounded p-2 text-left"
+                      className="w-full bg-secondary hover:bg-slate-600 rounded p-2 text-left"
                     >
                       <div className="flex justify-between items-center">
                         <div>
-                          <span className="font-medium text-white">{stop.airport.icao}</span>
-                          <span className="text-slate-400 ml-2 text-xs">{stop.airport.name?.substring(0, 15)}</span>
+                          <span className="font-medium text-foreground">{stop.airport.icao}</span>
+                          <span className="text-muted-foreground ml-2 text-xs">{stop.airport.name?.substring(0, 15)}</span>
                         </div>
                         <div className="text-right text-xs">
-                          <div className="text-slate-400">{stop.distanceFromPrevious.toFixed(0)} NM</div>
+                          <div className="text-muted-foreground">{stop.distanceFromPrevious.toFixed(0)} NM</div>
                           <div className="text-amber-400">${(stop.fuelCost + stop.landingFee).toFixed(0)}</div>
                         </div>
                       </div>
@@ -459,32 +459,32 @@ export default function TripFinder({
             <>
               <div className="space-y-2">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Budget ($)</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Budget ($)</label>
                   <input
                     type="number"
                     value={findBudget}
                     onChange={(e) => setFindBudget(Number(e.target.value))}
                     min={50}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                    className="w-full bg-secondary border border-border rounded px-2 py-1.5 text-foreground text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Max hours</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Max hours</label>
                   <input
                     type="number"
                     value={findMaxHours}
                     onChange={(e) => setFindMaxHours(Number(e.target.value))}
                     min={0.5}
                     step={0.5}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                    className="w-full bg-secondary border border-border rounded px-2 py-1.5 text-foreground text-sm"
                   />
                 </div>
 
                 <button
                   onClick={handleFindDestinations}
                   disabled={isCalculating}
-                  className="w-full bg-sky-600 hover:bg-sky-500 disabled:bg-slate-600 text-white py-2 rounded text-sm font-medium"
+                  className="w-full bg-sky-600 hover:bg-sky-500 disabled:bg-muted text-foreground py-2 rounded text-sm font-medium"
                 >
                   {isCalculating ? 'Searching...' : '🔍 Find Destinations'}
                 </button>
@@ -496,16 +496,16 @@ export default function TripFinder({
                     <button
                       key={i}
                       onClick={() => onAddWaypoint(r.airport)}
-                      className="w-full bg-slate-700 hover:bg-slate-600 rounded p-2 text-left"
+                      className="w-full bg-secondary hover:bg-slate-600 rounded p-2 text-left"
                     >
                       <div className="flex justify-between">
                         <div>
-                          <span className="font-medium text-white">{r.airport.icao}</span>
-                          <span className="text-slate-400 ml-2 text-xs">{r.airport.name?.substring(0, 12)}</span>
+                          <span className="font-medium text-foreground">{r.airport.icao}</span>
+                          <span className="text-muted-foreground ml-2 text-xs">{r.airport.name?.substring(0, 12)}</span>
                         </div>
                         <div className="text-right">
                           <div className="text-amber-400">${r.totalCost.toFixed(0)}</div>
-                          <div className="text-slate-400 text-xs">{r.distance.toFixed(0)} NM</div>
+                          <div className="text-muted-foreground text-xs">{r.distance.toFixed(0)} NM</div>
                         </div>
                       </div>
                     </button>
@@ -516,39 +516,39 @@ export default function TripFinder({
           ) : mode === 'cheapest' ? (
             // ==================== CHEAPEST MODE ====================
             <>
-              <div className="text-xs text-slate-400 bg-slate-700/50 rounded p-2">
+              <div className="text-xs text-muted-foreground bg-secondary/50 rounded p-2">
                 Find cheapest fuel stops, even if it means a slight detour. Optimizes total trip cost.
               </div>
 
               <div className="space-y-2">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Max detour (NM)</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Max detour (NM)</label>
                   <input
                     type="number"
                     value={maxDetour}
                     onChange={(e) => setMaxDetour(Number(e.target.value))}
                     min={5}
                     max={50}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                    className="w-full bg-secondary border border-border rounded px-2 py-1.5 text-foreground text-sm"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Min savings to worth it ($)</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Min savings to worth it ($)</label>
                   <input
                     type="number"
                     value={fuelPriceThreshold}
                     onChange={(e) => setFuelPriceThreshold(Number(e.target.value))}
                     min={5}
                     max={100}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-sm"
+                    className="w-full bg-secondary border border-border rounded px-2 py-1.5 text-foreground text-sm"
                   />
                 </div>
 
                 <button
                   onClick={handleFindCheapestFuel}
                   disabled={isCalculating || waypoints.length < 2}
-                  className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-600 text-white py-2 rounded text-sm font-medium"
+                  className="w-full bg-emerald-600 hover:bg-emerald-500 disabled:bg-muted text-foreground py-2 rounded text-sm font-medium"
                 >
                   {isCalculating ? 'Optimizing...' : '⛽ Find Cheapest Fuel'}
                 </button>
@@ -560,35 +560,35 @@ export default function TripFinder({
                     <div className="text-emerald-400 font-bold text-lg">
                       Save ${results[0].totalSavings.toFixed(0)}
                     </div>
-                    <div className="text-slate-400 text-xs">
+                    <div className="text-muted-foreground text-xs">
                       Direct: ${results[0].directCost.toFixed(0)} → Optimized: ${results[0].optimizedCost.toFixed(0)}
                     </div>
                   </div>
 
                   {results[0].stops.length > 0 ? (
                     <>
-                      <div className="text-xs text-slate-400">Suggested stops:</div>
+                      <div className="text-xs text-muted-foreground">Suggested stops:</div>
                       {results[0].stops.map((stop: any, i: number) => (
                         <button
                           key={i}
                           onClick={() => onAddWaypoint(stop.airport)}
-                          className="w-full bg-slate-700 hover:bg-slate-600 rounded p-2 text-left"
+                          className="w-full bg-secondary hover:bg-slate-600 rounded p-2 text-left"
                         >
                           <div className="flex justify-between items-center">
                             <div>
-                              <span className="font-medium text-white">{stop.airport.icao}</span>
-                              <span className="text-slate-400 ml-2 text-xs">${stop.fuelPrice.toFixed(2)}/gal</span>
+                              <span className="font-medium text-foreground">{stop.airport.icao}</span>
+                              <span className="text-muted-foreground ml-2 text-xs">${stop.fuelPrice.toFixed(2)}/gal</span>
                             </div>
                             <div className="text-right text-xs">
                               <div className="text-emerald-400">Save ${stop.savings.toFixed(0)}</div>
-                              <div className="text-slate-400">+{stop.detourDistance.toFixed(0)} NM</div>
+                              <div className="text-muted-foreground">+{stop.detourDistance.toFixed(0)} NM</div>
                             </div>
                           </div>
                         </button>
                       ))}
                     </>
                   ) : (
-                    <div className="text-center py-2 text-slate-400 text-xs">
+                    <div className="text-center py-2 text-muted-foreground text-xs">
                       No cheaper fuel stops found on this route
                     </div>
                   )}
