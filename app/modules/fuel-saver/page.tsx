@@ -477,7 +477,7 @@ export default function FuelSaverPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-[1800px] p-4 lg:p-6">
+        <div className="mx-auto max-w-[1800px] p-4">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-foreground">Flight Planner</h1>
@@ -489,22 +489,6 @@ export default function FuelSaverPage() {
                   Demo Mode
                 </Badge>
               )}
-              <select
-                value={selectedAircraft.name}
-                onChange={(e) => {
-                  const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value)
-                  if (ac) setSelectedAircraft(ac)
-                }}
-                className="h-9 rounded-lg border border-input bg-background px-3 text-sm min-w-[160px]"
-              >
-                {[...new Set(AIRCRAFT_PROFILES.map(p => p.manufacturer))].map(mfr => (
-                  <optgroup key={mfr} label={mfr}>
-                    {AIRCRAFT_PROFILES.filter(p => p.manufacturer === mfr).map(p => (
-                      <option key={p.name} value={p.name}>{p.name}</option>
-                    ))}
-                  </optgroup>
-                ))}
-              </select>
               <Button variant="outline" size="sm" onClick={() => setShowSavedPlans(true)}>
                 <FolderOpen className="h-4 w-4 mr-1" />
                 <span className="hidden sm:inline">Load</span>
@@ -549,10 +533,10 @@ export default function FuelSaverPage() {
       <main className="mx-auto max-w-[1800px]">
         <div className="flex flex-col lg:flex-row">
           {/* Left Panel */}
-          <div className={`w-full lg:w-[400px] border-r border-border bg-card p-4 lg:p-6 space-y-4 ${showPanel ? '' : 'hidden lg:hidden'}`}>
+          <div className={`w-full lg:w-[380px] border-r border-border bg-card p-4 space-y-4 ${showPanel ? '' : 'hidden lg:hidden'}`}>
             
             {activeTab === 'plan' && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Search */}
                 <Card>
                   <CardHeader className="pb-3">
@@ -597,6 +581,152 @@ export default function FuelSaverPage() {
                         ))}
                       </div>
                     )}
+                    </CardContent>
+                </Card>
+
+                {/* Aircraft Selector */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Plane className="h-4 w-4" />
+                      Aircraft
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <select
+                      value={selectedAircraft.name}
+                      onChange={(e) => {
+                        const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value)
+                        if (ac) setSelectedAircraft(ac)
+                      }}
+                      className="w-full h-9 rounded-lg border border-input bg-background px-3 text-sm"
+                    >
+                      {[...new Set(AIRCRAFT_PROFILES.map(p => p.manufacturer))].map(mfr => (
+                        <optgroup key={mfr} label={mfr}>
+                          {AIRCRAFT_PROFILES.filter(p => p.manufacturer === mfr).map(p => (
+                            <option key={p.name} value={p.name}>{p.name}</option>
+                          ))}
+                        </optgroup>
+                      ))}
+                    </select>
+                    <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+                      <div className="p-2 bg-muted rounded">
+                        <p className="text-xs text-muted-foreground">Capacity</p>
+                        <p className="font-semibold text-sm">{selectedAircraft.fuelCapacity} gal</p>
+                      </div>
+                      <div className="p-2 bg-muted rounded">
+                        <p className="text-xs text-muted-foreground">Burn</p>
+                        <p className="font-semibold text-sm">{selectedAircraft.burnRate} gph</p>
+                      </div>
+                      <div className="p-2 bg-muted rounded">
+                        <p className="text-xs text-muted-foreground">Speed</p>
+                        <p className="font-semibold text-sm">{selectedAircraft.speed} kts</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Import Flight Plan */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Download className="h-4 w-4" />
+                      Import Flight Plan
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div>
+                      <Label className="text-xs">Import from GPX, FPL, or JSON</Label>
+                      <Input
+                        type="file"
+                        accept=".gpx,.fpl,.json,.txt"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0]
+                          if (!file) return
+                          
+                          try {
+                            const text = await file.text()
+                            let importedWaypoints: Waypoint[] = []
+                            
+                            if (file.name.endsWith('.gpx')) {
+                              // Parse GPX
+                              const parser = new DOMParser()
+                              const doc = parser.parseFromString(text, 'text/xml')
+                              const wpts = doc.querySelectorAll('wpt')
+                              
+                              wpts.forEach((wpt, i) => {
+                                const lat = parseFloat(wpt.getAttribute('lat') || '0')
+                                const lon = parseFloat(wpt.getAttribute('lon') || '0')
+                                const name = wpt.querySelector('name')?.textContent || `WPT${i + 1}`
+                                
+                                importedWaypoints.push({
+                                  id: crypto.randomUUID(),
+                                  icao: name.substring(0, 4).toUpperCase(),
+                                  name,
+                                  latitude: lat,
+                                  longitude: lon,
+                                  sequence: i
+                                })
+                              })
+                            } else if (file.name.endsWith('.json')) {
+                              // Parse JSON
+                              const data = JSON.parse(text)
+                              const route = data.route || data.plan?.route || []
+                              
+                              route.forEach((wp: any, i: number) => {
+                                importedWaypoints.push({
+                                  id: crypto.randomUUID(),
+                                  icao: wp.id?.substring(0, 4).toUpperCase() || wp.icao?.substring(0, 4).toUpperCase() || 'WPT',
+                                  name: wp.name || wp.id || `WPT${i + 1}`,
+                                  latitude: wp.lat || wp.latitude,
+                                  longitude: wp.lon || wp.longitude,
+                                  sequence: i
+                                })
+                              })
+                            } else {
+                              // Parse FPL (simple line-by-line)
+                              const lines = text.split('\n')
+                              let seq = 0
+                              for (const line of lines) {
+                                const match = line.match(/([A-Z]{4,5})/g)
+                                if (match) {
+                                  for (const wpId of match) {
+                                    const airport = DEMO_AIRPORTS.find(a => a.icao === wpId)
+                                    if (airport) {
+                                      importedWaypoints.push({
+                                        id: crypto.randomUUID(),
+                                        icao: airport.icao,
+                                        name: airport.name,
+                                        city: airport.city,
+                                        latitude: airport.latitude,
+                                        longitude: airport.longitude,
+                                        sequence: seq++
+                                      })
+                                    }
+                                  }
+                                }
+                              }
+                            }
+                            
+                            if (importedWaypoints.length > 0) {
+                              setWaypoints(importedWaypoints)
+                              setMapCenter([importedWaypoints[0].latitude, importedWaypoints[0].longitude])
+                              setMapZoom(6)
+                              setActiveTab('route')
+                            } else {
+                              alert('No waypoints found in file')
+                            }
+                          } catch (err) {
+                            console.error('Import error:', err)
+                            alert('Failed to parse file')
+                          }
+                        }}
+                        className="mt-1"
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Import from ForeFlight, Garmin Pilot, flightplandatabase.com, etc.
+                    </p>
                   </CardContent>
                 </Card>
 
