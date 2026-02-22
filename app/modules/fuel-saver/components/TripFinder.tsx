@@ -361,15 +361,7 @@ export default function TripFinder({
             </div>
           )}
 
-          {!waypoints[0] ? (
-            <div className="text-center py-3 text-slate-400 text-sm">
-              Add a departure airport to start
-            </div>
-          ) : !aircraft ? (
-            <div className="text-center py-3 text-slate-400 text-sm">
-              Select an aircraft
-            </div>
-          ) : mode === 'plan' ? (
+          {waypoints[0] && aircraft && mode === 'plan' ? (
             // ==================== PLAN MODE ====================
             <>
               {tripStats && (
