@@ -2012,13 +2012,18 @@ function FuelSaverContent() {
   return (
     <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
       {/* Top Bar */}
-      <div className="w-full p-2 bg-card border-b border-border flex-shrink-0">
+      <div className="w-full px-3 py-2 bg-card border-b border-border flex-shrink-0">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <h1 className="text-lg font-bold">Flight Planner & Fuel Saver</h1>
+            <div className="flex items-center gap-1 text-sm">
+              <a href="/modules/fuel-saver" className="px-2 py-1 rounded bg-primary/10 text-primary font-medium">Fuel Map</a>
+              <a href="/modules/fuel-saver/airport-lookup" className="px-2 py-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground">Airport Lookup</a>
+              <a href="/modules/fuel-saver/favorites" className="px-2 py-1 rounded hover:bg-secondary text-muted-foreground hover:text-foreground">Favorites</a>
+            </div>
             {status !== 'authenticated' && (
               <span className="text-[10px] bg-amber-500/20 text-amber-600 px-2 py-1 rounded-full">
-                DEMO MODE
+                DEMO
               </span>
             )}
           </div>
