@@ -2744,22 +2744,26 @@ function FuelSaverContent() {
                 </div>
               )}
               
-              {/* NOTAMs Panel - shown in sidebar when there are waypoints */}
-              {waypoints.length > 0 && (
-                <NotamsPanel 
-                  waypoints={waypoints} 
-                  isPro={isPro}
+              {/* Trip Finder - only in Tools tab */}
+              {activeTab === 'e6b' && (
+                <>
+                  {/* NOTAMs Panel - shown in sidebar when there are waypoints */}
+                  {waypoints.length > 0 && (
+                    <NotamsPanel 
+                      waypoints={waypoints} 
+                      isPro={isPro}
+                    />
+                  )}
+                  
+                  <TripFinder
+                  airports={airports}
+                  waypoints={waypoints}
+                  aircraft={selectedAircraft}
+                  fuelPrices={fuelPrices}
+                  onAddWaypoint={(airport) => addWaypoint(airport)}
                 />
+                </>
               )}
-
-              {/* Trip Finder - always available */}
-              <TripFinder 
-                airports={airports}
-                waypoints={waypoints}
-                aircraft={selectedAircraft}
-                fuelPrices={fuelPrices}
-                onAddWaypoint={(airport) => addWaypoint(airport)}
-              />
             </div>
 
             {/* Bottom Actions - Load/Save/Import */}
