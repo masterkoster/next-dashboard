@@ -2650,11 +2650,7 @@ function FuelSaverContent() {
                     </div>
                   </div>
 
-                  {waypoints.length === 0 ? (
-                    <div className="text-center py-2 text-muted-foreground/60 text-xs">
-                      <p>No waypoints</p>
-                    </div>
-                  ) : (
+                  {waypoints.length > 0 && (
                     <div className="space-y-1">
                       {waypoints.map((wp, i) => {
                         const legInfo = routeStats?.legs?.[i];
