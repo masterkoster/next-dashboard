@@ -3,10 +3,27 @@ import { Button } from "@/components/ui/button"
 import Link from "next/link"
 
 const footerLinks = {
-  Tools: ["Fuel Saver", "E6B Calculator", "Training Tracker", "Flying Club"],
-  Resources: ["Getting Started", "FAQ", "Changelog", "Blog"],
-  Company: ["About", "Contact", "Careers"],
-  Legal: ["Privacy Policy", "Terms of Service"],
+  Tools: [
+    { label: "Fuel Saver", href: "/modules/fuel-saver" },
+    { label: "E6B Calculator", href: "/modules/e6b" },
+    { label: "Training Tracker", href: "/modules/training" },
+    { label: "Flying Club", href: "/modules/flying-club" },
+  ],
+  Resources: [
+    { label: "Getting Started", href: "/welcome" },
+    { label: "FAQ", href: "/faq" },
+    { label: "Changelog", href: "#" },
+    { label: "Blog", href: "#" },
+  ],
+  Company: [
+    { label: "About", href: "#" },
+    { label: "Contact", href: "/support" },
+    { label: "Careers", href: "#" },
+  ],
+  Legal: [
+    { label: "Privacy Policy", href: "/privacy" },
+    { label: "Terms of Service", href: "/terms" },
+  ],
 }
 
 export function FooterSection() {
@@ -58,12 +75,12 @@ export function FooterSection() {
                 </h3>
                 <ul className="mt-4 flex flex-col gap-2.5">
                   {links.map((link) => (
-                    <li key={link}>
+                    <li key={link.label}>
                       <a
-                        href="#"
+                        href={link.href}
                         className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                       >
-                        {link}
+                        {link.label}
                       </a>
                     </li>
                   ))}
