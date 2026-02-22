@@ -2010,14 +2010,14 @@ function FuelSaverContent() {
   };
 
   return (
-    <div className="h-screen bg-slate-900 text-white flex flex-col overflow-hidden pt-15">
-      {/* Top Bar - Minimal header with controls */}
-      <div className="w-full p-2 bg-slate-800 border-b border-slate-700 flex-shrink-0">
+    <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden">
+      {/* Top Bar */}
+      <div className="w-full p-2 bg-card border-b border-border flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <h1 className="text-lg font-bold">Flight Planner & Fuel Saver</h1>
             {status !== 'authenticated' && (
-              <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-1 rounded-full">
+              <span className="text-[10px] bg-amber-500/20 text-amber-600 px-2 py-1 rounded-full">
                 DEMO MODE
               </span>
             )}
@@ -2025,10 +2025,10 @@ function FuelSaverContent() {
           <div className="flex items-center gap-2">
             {status === 'authenticated' ? (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-emerald-400">{session?.user?.email}</span>
+                <span className="text-xs text-emerald-600">{session?.user?.email}</span>
                 <button 
                   onClick={() => signOut()}
-                  className="text-xs text-slate-400 hover:text-white"
+                  className="text-xs text-muted-foreground hover:text-foreground"
                 >
                   Sign out
                 </button>
@@ -2036,14 +2036,14 @@ function FuelSaverContent() {
             ) : (
               <button
                 onClick={() => signIn()}
-                className="bg-slate-600 hover:bg-slate-500 text-white px-3 py-1.5 rounded text-xs"
+                className="bg-secondary hover:bg-secondary/80 text-foreground px-3 py-1.5 rounded text-xs"
               >
                 Sign In
               </button>
             )}
             <button
               onClick={() => findNearestFuel()}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1.5 rounded text-xs font-medium flex items-center gap-1"
             >
               <span>⛽</span> Find Cheap Fuel
             </button>
@@ -2072,7 +2072,7 @@ function FuelSaverContent() {
         {/* Toggle Arrow Button - floats over the map */}
         <button
           onClick={() => setShowPanel(!showPanel)}
-          className="absolute top-1/2 -translate-y-1/2 z-30 bg-slate-700 hover:bg-slate-600 text-white px-2 py-4 rounded-r-lg text-sm transition-all lg:block hidden"
+          className="absolute top-1/2 -translate-y-1/2 z-30 bg-card hover:bg-secondary border text-foreground px-2 py-4 rounded-r-lg text-sm transition-all lg:block hidden shadow-md"
           style={{ left: showPanel ? '308px' : '0px' }}
         >
           {showPanel ? '◀' : '▶'}
@@ -2081,35 +2081,35 @@ function FuelSaverContent() {
         {/* Mobile Toggle Button - always visible on small screens */}
         <button
           onClick={() => setShowPanel(!showPanel)}
-          className="lg:hidden fixed bottom-4 left-4 z-30 bg-sky-600 hover:bg-sky-500 text-white p-4 rounded-full shadow-lg touch-manipulation"
+          className="lg:hidden fixed bottom-4 left-4 z-30 bg-primary hover:bg-primary/90 text-primary-foreground p-4 rounded-full shadow-lg"
         >
           {showPanel ? '✕' : '☰'}
         </button>
 
-        {/* Left Sidebar - Slide-in Panel */}
+        {/* Left Sidebar - Panel */}
         <div 
-          className={`bg-slate-800 border-r border-slate-700 flex flex-col overflow-hidden transition-all duration-300 fixed lg:relative z-20 h-full ${
-            showPanel ? 'w-full sm:w-80' : 'w-0 lg:w-0'
+          className={`bg-card border-r border-border flex flex-col overflow-hidden transition-all duration-300 fixed lg:relative z-20 h-full ${
+            showPanel ? 'w-full sm:w-[308px]' : 'w-0 lg:w-0'
           }`}
         >
           {showPanel && (
-            <div className="w-full sm:w-80 flex flex-col h-full">
+            <div className="w-full sm:w-[308px] flex flex-col h-full">
               {/* Mobile Close Button */}
-              <div className="lg:hidden flex justify-end p-2 border-b border-slate-700">
+              <div className="lg:hidden flex justify-end p-2 border-b border-border">
                 <button
                   onClick={() => setShowPanel(false)}
-                  className="bg-slate-700 hover:bg-slate-600 text-white p-2 rounded-lg touch-manipulation"
+                  className="bg-secondary hover:bg-secondary/80 text-foreground p-2 rounded-lg"
                 >
                   ✕ Close
                 </button>
               </div>
 
-              {/* Horizontal Scrollable Tabs with < > */}
-              <div className="flex items-center text-xs border-b border-slate-700 px-1">
+              {/* Tabs */}
+              <div className="flex items-center text-xs border-b border-border px-1">
                 <button
                   onClick={() => setTabIndex(Math.max(0, tabIndex - 1))}
                   disabled={tabIndex === 0}
-                  className="p-1.5 text-slate-400 disabled:opacity-30 hover:text-white"
+                  className="p-1.5 text-muted-foreground disabled:opacity-30 hover:text-foreground"
                 >
                   ‹
                 </button>
@@ -2120,8 +2120,8 @@ function FuelSaverContent() {
                       onClick={() => setActiveTab(tab.id as 'details' | 'waypoints' | 'info' | 'e6b')}
                       className={`flex-1 py-1.5 font-medium border-b-2 ${
                         activeTab === tab.id 
-                          ? 'text-white border-sky-500 bg-slate-700/50' 
-                          : 'text-slate-400 border-transparent hover:text-white'
+                          ? 'text-foreground border-primary bg-primary/5' 
+                          : 'text-muted-foreground border-transparent hover:text-foreground'
                       }`}
                     >
                       {tab.label}
@@ -2131,7 +2131,7 @@ function FuelSaverContent() {
                 <button
                   onClick={() => setTabIndex(Math.min(tabs.length - 3, tabIndex + 1))}
                   disabled={tabIndex >= tabs.length - 3}
-                  className="p-1.5 text-slate-400 disabled:opacity-30 hover:text-white"
+                  className="p-1.5 text-muted-foreground disabled:opacity-30 hover:text-foreground"
                 >
                   ›
                 </button>
@@ -2153,66 +2153,66 @@ function FuelSaverContent() {
                         onChange={(e) => handleSearch(e.target.value)}
                         onKeyDown={(e) => e.key === 'Enter' && searchResults[0] && addWaypoint(searchResults[0])}
                         placeholder="Search airport..."
-                        className="flex-1 bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white uppercase text-xs"
+                        className="flex-1 bg-background border border-border rounded px-2 py-1.5 text-foreground uppercase text-xs"
                       />
                       <button 
                         onClick={() => searchQuery.length >= 2 && searchResults[0] && addWaypoint(searchResults[0])}
-                        className="bg-sky-600 hover:bg-sky-500 px-3 rounded text-white text-xs"
+                        className="bg-sky-600 hover:bg-sky-500 px-3 rounded text-foreground text-xs"
                       >
                         Add
                       </button>
                     </div>
                     {showSearchResults && searchResults.length > 0 && (
-                      <div className="mt-2 bg-slate-700 rounded max-h-40 overflow-y-auto">
+                      <div className="mt-2 bg-background rounded max-h-40 overflow-y-auto">
                         {searchResults.map((airport) => (
                           <button
                             key={airport.icao}
                             onClick={() => addWaypoint(airport)}
-                            className="w-full text-left px-3 py-2 hover:bg-slate-600 text-sm border-b border-slate-600 last:border-0"
+                            className="w-full text-left px-3 py-2 hover:bg-secondary text-sm border-b border-border last:border-0"
                           >
                             <div className="font-medium">{airport.icao}</div>
-                            <div className="text-xs text-slate-400">{airport.name}</div>
+                            <div className="text-xs text-muted-foreground">{airport.name}</div>
                           </button>
                         ))}
                       </div>
                     )}
                     {showSearchResults && searchResults.length === 0 && searchQuery.length >= 2 && (
-                      <div className="mt-2 text-xs text-slate-400 text-center py-2">No airports found</div>
+                      <div className="mt-2 text-xs text-muted-foreground text-center py-2">No airports found</div>
                     )}
                   </div>
 
                   {/* Plan Name */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Plan</label>
+                    <label className="block text-xs text-muted-foreground mb-0.5">Plan</label>
                     <input
                       type="text"
                       value={flightPlanName}
                       onChange={(e) => setFlightPlanName(e.target.value)}
                       placeholder="My Cross Country"
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                      className="w-full bg-background border border-border rounded px-2 py-1 text-foreground text-xs"
                     />
                   </div>
 
                   {/* Callsign & Pilot */}
                   <div className="grid grid-cols-2 gap-1">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Callsign</label>
+                      <label className="block text-xs text-muted-foreground mb-0.5">Callsign</label>
                       <input
                         type="text"
                         value={callsign}
                         onChange={(e) => setCallsign(e.target.value)}
                         placeholder="N12345"
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                        className="w-full bg-background border border-border rounded px-2 py-1 text-foreground text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Pilot</label>
+                      <label className="block text-xs text-muted-foreground mb-0.5">Pilot</label>
                       <input
                         type="text"
                         value={pilotName}
                         onChange={(e) => setPilotName(e.target.value)}
                         placeholder="John Doe"
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                        className="w-full bg-background border border-border rounded px-2 py-1 text-foreground text-xs"
                       />
                     </div>
                   </div>
@@ -2220,14 +2220,14 @@ function FuelSaverContent() {
                   {/* Aircraft & Departure Time */}
                   <div className="grid grid-cols-2 gap-1">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Aircraft</label>
+                      <label className="block text-xs text-muted-foreground mb-0.5">Aircraft</label>
                       <select
                         value={selectedAircraft.name}
                         onChange={(e) => {
                         const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
                           if (ac) setSelectedAircraft(ac);
                         }}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                        className="w-full bg-background border border-border rounded px-2 py-1 text-foreground text-xs"
                       >
                         {[...new Set(AIRCRAFT_PROFILES.map(p => p.manufacturer))].map(mfr => (
                           <optgroup key={mfr} label={mfr}>
@@ -2239,12 +2239,12 @@ function FuelSaverContent() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Departure</label>
+                      <label className="block text-xs text-muted-foreground mb-0.5">Departure</label>
                       <input
                         type="datetime-local"
                         value={departureTime}
                         onChange={(e) => setDepartureTime(e.target.value)}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                        className="w-full bg-background border border-border rounded px-2 py-1 text-foreground text-xs"
                       />
                     </div>
                   </div>
@@ -2252,53 +2252,53 @@ function FuelSaverContent() {
                   {/* Cruising Alt & Souls */}
                   <div className="grid grid-cols-2 gap-1">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Alt (ft)</label>
+                      <label className="block text-xs text-muted-foreground mb-0.5">Alt (ft)</label>
                       <input
                         type="number"
                         value={cruisingAlt}
                         onChange={(e) => setCruisingAlt(parseInt(e.target.value))}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                        className="w-full bg-background border border-border rounded px-2 py-1 text-foreground text-xs"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-400 mb-0.5">Souls</label>
+                      <label className="block text-xs text-muted-foreground mb-0.5">Souls</label>
                       <input
                         type="number"
                         min="1"
                         value={soulsOnBoard}
                         onChange={(e) => setSoulsOnBoard(parseInt(e.target.value))}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                        className="w-full bg-background border border-border rounded px-2 py-1 text-foreground text-xs"
                       />
                     </div>
                   </div>
 
                   {/* Alternate Airport */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Alternate</label>
+                    <label className="block text-xs text-muted-foreground mb-0.5">Alternate</label>
                     <input
                       type="text"
                       value={alternateIcao}
                       onChange={(e) => setAlternateIcao(e.target.value.toUpperCase())}
                       placeholder="KABC"
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white uppercase text-xs"
+                      className="w-full bg-background border border-border rounded px-2 py-1 text-foreground uppercase text-xs"
                     />
                   </div>
 
                   {/* Remarks */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Remarks</label>
+                    <label className="block text-xs text-muted-foreground mb-0.5">Remarks</label>
                     <textarea
                       value={remarks}
                       onChange={(e) => setRemarks(e.target.value)}
                       placeholder="..."
                       rows={1}
-                      className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1 text-white text-xs"
+                      className="w-full bg-background border border-border rounded px-2 py-1 text-foreground text-xs"
                     />
                   </div>
 
                   {/* Fuel Settings */}
                   <div>
-                    <label className="block text-xs text-slate-400 mb-0.5">Fuel: {departureFuel}%</label>
+                    <label className="block text-xs text-muted-foreground mb-0.5">Fuel: {departureFuel}%</label>
                     <input
                       type="range"
                       min="0"
@@ -2310,24 +2310,24 @@ function FuelSaverContent() {
                   </div>
 
                   {/* Range Calculator - compact inline */}
-                  <div className="bg-slate-700 rounded p-2 space-y-1">
-                    <div className="text-xs font-medium text-slate-300">Range</div>
+                  <div className="bg-background rounded p-2 space-y-1">
+                    <div className="text-xs font-medium text-muted-foreground">Range</div>
                     <div className="grid grid-cols-3 gap-1 text-xs">
                       <div>
-                        <div className="text-slate-500 text-[10px]">Gal</div>
-                        <div className="text-white">{selectedAircraft.fuelCapacity}</div>
+                        <div className="text-muted-foreground/60 text-[10px]">Gal</div>
+                        <div className="text-foreground">{selectedAircraft.fuelCapacity}</div>
                       </div>
                       <div>
-                        <div className="text-slate-500 text-[10px]">Burn</div>
-                        <div className="text-white">{selectedAircraft.burnRate}</div>
+                        <div className="text-muted-foreground/60 text-[10px]">Burn</div>
+                        <div className="text-foreground">{selectedAircraft.burnRate}</div>
                       </div>
                       <div>
-                        <div className="text-slate-500 text-[10px]">Kts</div>
-                        <div className="text-white">{selectedAircraft.speed}</div>
+                        <div className="text-muted-foreground/60 text-[10px]">Kts</div>
+                        <div className="text-foreground">{selectedAircraft.speed}</div>
                       </div>
                     </div>
                     {routeStats && (
-                      <div className="text-[10px] text-sky-400 pt-1 border-t border-slate-600">
+                      <div className="text-[10px] text-sky-400 pt-1 border-t border-border">
                         Max Range: {Math.round((selectedAircraft.fuelCapacity * departureFuel / 100 / selectedAircraft.burnRate) * selectedAircraft.speed)} NM
                       </div>
                     )}
@@ -2335,14 +2335,14 @@ function FuelSaverContent() {
 
                   {/* Route Weather Impact Button */}
                   {waypoints.length >= 2 && (
-                    <div className="mt-2 pt-2 border-t border-slate-600">
+                    <div className="mt-2 pt-2 border-t border-border">
                       <button
                         onClick={fetchRouteWeather}
                         disabled={loadingRouteWeather}
                         className={`w-full text-xs px-2 py-1.5 rounded transition ${
                           routeWeather
-                            ? 'bg-amber-600 hover:bg-amber-500 text-white'
-                            : 'bg-slate-600 hover:bg-slate-500 text-slate-200'
+                            ? 'bg-amber-600 hover:bg-amber-500 text-foreground'
+                            : 'bg-secondary hover:bg-secondary/80 text-muted-foreground'
                         }`}
                       >
                         {loadingRouteWeather ? '💨 Calculating...' : routeWeather ? '💨 Update Wind Impact' : '💨 Calculate Wind Impact'}
@@ -2355,7 +2355,7 @@ function FuelSaverContent() {
                               ? routeWeather.summary.fuelImpactPercent > 0 
                                 ? 'bg-red-900/50 text-red-400'
                                 : 'bg-green-900/50 text-green-400'
-                              : 'bg-slate-700 text-slate-300'
+                              : 'bg-background text-muted-foreground'
                           }`}>
                             {routeWeather.summary.significant ? (
                               routeWeather.summary.fuelImpactPercent > 0 
@@ -2365,7 +2365,7 @@ function FuelSaverContent() {
                               `✓ Minimal wind impact (${routeWeather.summary.fuelImpactPercent}% change)`
                             )}
                           </div>
-                          <div className="text-[10px] text-slate-500 px-1">
+                          <div className="text-[10px] text-muted-foreground/60 px-1">
                             GS: {routeWeather.summary.totalTimeWithWind}min vs {routeWeather.summary.totalTimeStillAir}min still air
                           </div>
                         </div>
@@ -2376,18 +2376,18 @@ function FuelSaverContent() {
                 ) : activeTab === 'wb' ? (
                   /* Weight & Balance Tab */
                   <div className="p-2 space-y-3">
-                    <div className="text-sm font-semibold text-white">⚖️ Weight & Balance</div>
+                    <div className="text-sm font-semibold text-foreground">⚖️ Weight & Balance</div>
                     
                     {/* Aircraft Selection */}
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Aircraft</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Aircraft</label>
                       <select
                         value={selectedAircraft.name}
                         onChange={(e) => {
                           const ac = AIRCRAFT_PROFILES.find(p => p.name === e.target.value);
                           if (ac) setSelectedAircraft(ac);
                         }}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                        className="w-full bg-background border border-border rounded px-2 py-1.5 text-foreground text-xs"
                       >
                         {[...new Set(AIRCRAFT_PROFILES.map(p => p.manufacturer))].map(mfr => (
                           <optgroup key={mfr} label={mfr}>
@@ -2402,57 +2402,57 @@ function FuelSaverContent() {
                     {/* Weight Inputs */}
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Front Seats (lbs)</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Front Seats (lbs)</label>
                         <input
                           type="number"
                           value={wbFrontPax}
                           onChange={(e) => setWbFrontPax(Number(e.target.value))}
-                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                          className="w-full bg-background border border-border rounded px-2 py-1.5 text-foreground text-xs"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Rear Seat 1 (lbs)</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Rear Seat 1 (lbs)</label>
                         <input
                           type="number"
                           value={wbRearPax1}
                           onChange={(e) => setWbRearPax1(Number(e.target.value))}
-                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                          className="w-full bg-background border border-border rounded px-2 py-1.5 text-foreground text-xs"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Rear Seat 2 (lbs)</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Rear Seat 2 (lbs)</label>
                         <input
                           type="number"
                           value={wbRearPax2}
                           onChange={(e) => setWbRearPax2(Number(e.target.value))}
-                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                          className="w-full bg-background border border-border rounded px-2 py-1.5 text-foreground text-xs"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Baggage 1 (lbs)</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Baggage 1 (lbs)</label>
                         <input
                           type="number"
                           value={wbBaggage1}
                           onChange={(e) => setWbBaggage1(Number(e.target.value))}
-                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                          className="w-full bg-background border border-border rounded px-2 py-1.5 text-foreground text-xs"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Baggage 2 (lbs)</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Baggage 2 (lbs)</label>
                         <input
                           type="number"
                           value={wbBaggage2}
                           onChange={(e) => setWbBaggage2(Number(e.target.value))}
-                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                          className="w-full bg-background border border-border rounded px-2 py-1.5 text-foreground text-xs"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Fuel (gal)</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Fuel (gal)</label>
                         <input
                           type="number"
                           value={wbFuel}
                           onChange={(e) => setWbFuel(Number(e.target.value))}
-                          className="w-full bg-slate-700 border border-slate-600 rounded px-2 py-1.5 text-white text-xs"
+                          className="w-full bg-background border border-border rounded px-2 py-1.5 text-foreground text-xs"
                         />
                       </div>
                     </div>
@@ -2475,34 +2475,34 @@ function FuelSaverContent() {
                       const cgInLimits = cg >= (ac.cgLimits?.forward || 35) && cg <= (ac.cgLimits?.aft || 47.3);
                       
                       return (
-                        <div className="bg-slate-700 rounded p-3 space-y-2">
+                        <div className="bg-background rounded p-3 space-y-2">
                           {/* Weight Summary */}
                           <div className="grid grid-cols-2 gap-2 text-xs">
                             <div className="flex justify-between">
-                              <span className="text-slate-400">Empty:</span>
-                              <span className="text-white">{ac.emptyWeight} lbs</span>
+                              <span className="text-muted-foreground">Empty:</span>
+                              <span className="text-foreground">{ac.emptyWeight} lbs</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-slate-400">Payload:</span>
-                              <span className="text-white">{wbFrontPax + wbRearPax1 + wbRearPax2 + wbBaggage1 + wbBaggage2} lbs</span>
+                              <span className="text-muted-foreground">Payload:</span>
+                              <span className="text-foreground">{wbFrontPax + wbRearPax1 + wbRearPax2 + wbBaggage1 + wbBaggage2} lbs</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-slate-400">Fuel:</span>
-                              <span className="text-white">{fuelWeight} lbs</span>
+                              <span className="text-muted-foreground">Fuel:</span>
+                              <span className="text-foreground">{fuelWeight} lbs</span>
                             </div>
                             <div className="flex justify-between font-medium">
-                              <span className="text-slate-300">Total:</span>
-                              <span className={totalWeight > ac.maxWeight ? 'text-red-400' : 'text-white'}>{totalWeight} lbs</span>
+                              <span className="text-muted-foreground">Total:</span>
+                              <span className={totalWeight > ac.maxWeight ? 'text-red-400' : 'text-foreground'}>{totalWeight} lbs</span>
                             </div>
                           </div>
                           
                           {/* CG Display */}
-                          <div className="pt-2 border-t border-slate-600">
+                          <div className="pt-2 border-t border-border">
                             <div className="flex justify-between text-xs mb-1">
-                              <span className="text-slate-400">CG:</span>
+                              <span className="text-muted-foreground">CG:</span>
                               <span className={cgInLimits ? 'text-emerald-400' : 'text-red-400'}>{cg.toFixed(1)}"</span>
                             </div>
-                            <div className="h-2 bg-slate-600 rounded-full overflow-hidden">
+                            <div className="h-2 bg-secondary rounded-full overflow-hidden">
                               <div 
                                 className={`h-full transition-all ${cgInLimits ? 'bg-emerald-500' : 'bg-red-500'}`}
                                 style={{ 
@@ -2511,7 +2511,7 @@ function FuelSaverContent() {
                                 }}
                               />
                             </div>
-                            <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+                            <div className="flex justify-between text-[10px] text-muted-foreground/60 mt-1">
                               <span>{(ac.cgLimits?.forward || 35)}"</span>
                               <span className={cgInLimits ? 'text-emerald-400' : 'text-red-400'}>
                                 {cgInLimits ? '✓ Within Limits' : '⚠️ Out of Limits'}
@@ -2523,77 +2523,77 @@ function FuelSaverContent() {
                       );
                     })()}
                     
-                    <div className="text-xs text-slate-500">
+                    <div className="text-xs text-muted-foreground/60">
                       Arms and limits based on POH data for selected aircraft.
                     </div>
                   </div>
                 ) : activeTab === 'e6b' ? (
                 /* E6B Calculator Tab */
                 <div className="p-3 space-y-4">
-                  <div className="text-sm font-semibold text-white">🧮 E6B Wind Correction</div>
+                  <div className="text-sm font-semibold text-foreground">🧮 E6B Wind Correction</div>
                   
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">True Airspeed (TAS)</label>
+                      <label className="block text-xs text-muted-foreground mb-1">True Airspeed (TAS)</label>
                       <input
                         type="number"
                         value={e6bTAS}
                         onChange={(e) => setE6bTAS(Number(e.target.value))}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                        className="w-full bg-background border border-border rounded px-3 py-2 text-foreground text-sm"
                       />
                     </div>
                     
                     <div>
-                      <label className="block text-xs text-slate-400 mb-1">Heading (°)</label>
+                      <label className="block text-xs text-muted-foreground mb-1">Heading (°)</label>
                       <input
                         type="number"
                         value={e6bHeading}
                         onChange={(e) => setE6bHeading(Number(e.target.value))}
-                        className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                        className="w-full bg-background border border-border rounded px-3 py-2 text-foreground text-sm"
                       />
                     </div>
                     
                     <div className="grid grid-cols-2 gap-2">
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Wind From (°)</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Wind From (°)</label>
                         <input
                           type="number"
                           value={e6bWindDir}
                           onChange={(e) => setE6bWindDir(Number(e.target.value))}
-                          className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                          className="w-full bg-background border border-border rounded px-3 py-2 text-foreground text-sm"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs text-slate-400 mb-1">Wind Speed (kts)</label>
+                        <label className="block text-xs text-muted-foreground mb-1">Wind Speed (kts)</label>
                         <input
                           type="number"
                           value={e6bWindspeed}
                           onChange={(e) => setE6bWindspeed(Number(e.target.value))}
-                          className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white text-sm"
+                          className="w-full bg-background border border-border rounded px-3 py-2 text-foreground text-sm"
                         />
                       </div>
                     </div>
                     
                     <button
                       onClick={calculateE6B}
-                      className="w-full bg-sky-600 hover:bg-sky-500 text-white font-medium py-2 rounded text-sm"
+                      className="w-full bg-sky-600 hover:bg-sky-500 text-foreground font-medium py-2 rounded text-sm"
                     >
                       Calculate
                     </button>
                     
                     {e6bResult && (
-                      <div className="bg-slate-700 rounded p-3 space-y-2">
+                      <div className="bg-background rounded p-3 space-y-2">
                         <div className="flex justify-between">
-                          <span className="text-slate-400 text-sm">Ground Speed:</span>
-                          <span className="text-white font-bold">{e6bResult.groundSpeed} kts</span>
+                          <span className="text-muted-foreground text-sm">Ground Speed:</span>
+                          <span className="text-foreground font-bold">{e6bResult.groundSpeed} kts</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400 text-sm">Track:</span>
-                          <span className="text-white font-bold">{e6bResult.track}°</span>
+                          <span className="text-muted-foreground text-sm">Track:</span>
+                          <span className="text-foreground font-bold">{e6bResult.track}°</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-slate-400 text-sm">Wind Correction:</span>
-                          <span className={`font-bold ${e6bResult.windCorrection > 0 ? 'text-amber-400' : e6bResult.windCorrection < 0 ? 'text-blue-400' : 'text-white'}`}>
+                          <span className="text-muted-foreground text-sm">Wind Correction:</span>
+                          <span className={`font-bold ${e6bResult.windCorrection > 0 ? 'text-amber-400' : e6bResult.windCorrection < 0 ? 'text-blue-400' : 'text-foreground'}`}>
                             {e6bResult.windCorrection > 0 ? '+' : ''}{e6bResult.windCorrection}°
                           </span>
                         </div>
@@ -2601,7 +2601,7 @@ function FuelSaverContent() {
                     )}
                   </div>
                   
-                  <div className="text-xs text-slate-500">
+                  <div className="text-xs text-muted-foreground/60">
                     Use weather data from your route to get wind info for accurate calculations.
                   </div>
                 </div>
@@ -2610,7 +2610,7 @@ function FuelSaverContent() {
                 <div className="p-1.5">
                   {/* Weather Toggle */}
                   <div className="flex items-center justify-between mb-2 px-1">
-                    <span className="text-xs text-slate-400">{waypoints.length} waypoints</span>
+                    <span className="text-xs text-muted-foreground">{waypoints.length} waypoints</span>
                     <button
                       onClick={() => {
                         if (!showWeather) {
@@ -2621,8 +2621,8 @@ function FuelSaverContent() {
                       disabled={weatherLoading}
                       className={`text-xs px-2 py-1 rounded transition ${
                         showWeather 
-                          ? 'bg-sky-600 text-white' 
-                          : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                          ? 'bg-sky-600 text-foreground' 
+                          : 'bg-secondary text-muted-foreground hover:bg-secondary/80'
                       }`}
                     >
                       {weatherLoading ? 'Loading...' : '🌤 Weather'}
@@ -2633,7 +2633,7 @@ function FuelSaverContent() {
                       <button
                         onClick={fitMapToWaypoints}
                         disabled={waypoints.length === 0}
-                        className="flex-1 text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30 min-w-[60px]"
+                        className="flex-1 text-xs px-2 py-1 rounded bg-secondary text-muted-foreground hover:bg-secondary/80 disabled:opacity-30 min-w-[60px]"
                         title="Fit map to show all waypoints"
                       >
                         ⊙ Fit
@@ -2641,7 +2641,7 @@ function FuelSaverContent() {
                       <button
                         onClick={toggleRoundTrip}
                         disabled={waypoints.length < 2}
-                        className="flex-1 text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30 min-w-[60px]"
+                        className="flex-1 text-xs px-2 py-1 rounded bg-secondary text-muted-foreground hover:bg-secondary/80 disabled:opacity-30 min-w-[60px]"
                         title={waypoints[0]?.icao === waypoints[waypoints.length-1]?.icao ? "Remove return leg" : "Add return leg"}
                       >
                         {waypoints[0]?.icao === waypoints[waypoints.length-1]?.icao ? '↩️ One-way' : '🔄 Round Trip'}
@@ -2649,7 +2649,7 @@ function FuelSaverContent() {
                       <button
                         onClick={optimizeRoute}
                         disabled={waypoints.length < 3}
-                        className="flex-1 text-xs px-2 py-1 rounded bg-slate-600 text-slate-300 hover:bg-slate-500 disabled:opacity-30 min-w-[60px]"
+                        className="flex-1 text-xs px-2 py-1 rounded bg-secondary text-muted-foreground hover:bg-secondary/80 disabled:opacity-30 min-w-[60px]"
                         title="Optimize route for shortest distance"
                       >
                         ⚡ Optimize
@@ -2658,7 +2658,7 @@ function FuelSaverContent() {
                   </div>
 
                   {waypoints.length === 0 ? (
-                    <div className="text-center py-2 text-slate-500 text-xs">
+                    <div className="text-center py-2 text-muted-foreground/60 text-xs">
                       <p>No waypoints</p>
                     </div>
                   ) : (
@@ -2667,27 +2667,27 @@ function FuelSaverContent() {
                         const legInfo = routeStats?.legs?.[i];
                         
                         return (
-                          <div key={wp.id} className="bg-slate-700 rounded p-2">
+                          <div key={wp.id} className="bg-background rounded p-2">
                             <div className="flex items-center justify-between">
                               <div className="flex items-center gap-1.5">
-                                <span className="w-5 h-5 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-xs">
+                                <span className="w-5 h-5 rounded-full bg-sky-600 text-foreground flex items-center justify-center font-bold text-xs">
                                   {i + 1}
                                 </span>
                                 <div>
-                                  <div className="font-medium text-white text-xs">{wp.icao}</div>
-                                  <div className="text-xs text-slate-400">{wp.city || wp.name}</div>
+                                  <div className="font-medium text-foreground text-xs">{wp.icao}</div>
+                                  <div className="text-xs text-muted-foreground">{wp.city || wp.name}</div>
                                 </div>
                               </div>
                               <div className="flex gap-0.5">
                                 <button 
                                   onClick={() => moveWaypoint(wp.id, 'up')}
                                   disabled={i === 0}
-                                  className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-0.5"
+                                  className="text-muted-foreground hover:text-foreground disabled:opacity-30 text-xs p-0.5"
                                 >↑</button>
                                 <button 
                                   onClick={() => moveWaypoint(wp.id, 'down')}
                                   disabled={i === waypoints.length - 1}
-                                  className="text-slate-400 hover:text-white disabled:opacity-30 text-xs p-0.5"
+                                  className="text-muted-foreground hover:text-foreground disabled:opacity-30 text-xs p-0.5"
                                 >↓</button>
                                 <button 
                                   onClick={() => removeWaypoint(wp.id)}
@@ -2698,7 +2698,7 @@ function FuelSaverContent() {
                             
                             {/* Leg stats - shows for all except last waypoint */}
                             {legInfo && (
-                              <div className="mt-1 pt-1 border-t border-slate-600 flex justify-between text-xs">
+                              <div className="mt-1 pt-1 border-t border-border flex justify-between text-xs">
                                 <span className="text-sky-400">→ {legInfo.to.icao}</span>
                                 <span className="text-amber-400">{Math.round(legInfo.distance)}NM</span>
                                 <span className="text-emerald-400">${legInfo.cost.toFixed(0)}</span>
@@ -2707,9 +2707,9 @@ function FuelSaverContent() {
 
                             {/* Weather info for this waypoint */}
                             {showWeather && waypointWeather[wp.icao] && (
-                              <div className="mt-2 pt-2 border-t border-slate-600 text-xs space-y-1">
+                              <div className="mt-2 pt-2 border-t border-border text-xs space-y-1">
                                 <div className="flex justify-between">
-                                  <span className="text-slate-400">Flight Cat:</span>
+                                  <span className="text-muted-foreground">Flight Cat:</span>
                                   <span className={`font-medium ${
                                     waypointWeather[wp.icao].flightCategory === 'VFR' ? 'text-green-400' :
                                     waypointWeather[wp.icao].flightCategory === 'MVFR' ? 'text-blue-400' :
@@ -2721,28 +2721,28 @@ function FuelSaverContent() {
                                 </div>
                                 {waypointWeather[wp.icao].isForecast && (
                                   <div className="flex justify-between">
-                                    <span className="text-slate-400">Type:</span>
+                                    <span className="text-muted-foreground">Type:</span>
                                     <span className="text-amber-400 text-xs">☁️ Forecast</span>
                                   </div>
                                 )}
                                 {waypointWeather[wp.icao].ws && (
                                   <div className="flex justify-between">
-                                    <span className="text-slate-400">Wind:</span>
-                                    <span className="text-white">
+                                    <span className="text-muted-foreground">Wind:</span>
+                                    <span className="text-foreground">
                                       {waypointWeather[wp.icao].ws.value}@{waypointWeather[wp.icao].wd?.value}°
                                     </span>
                                   </div>
                                 )}
                                 {waypointWeather[wp.icao].temp && (
                                   <div className="flex justify-between">
-                                    <span className="text-slate-400">Temp:</span>
-                                    <span className="text-white">{waypointWeather[wp.icao].temp}°C</span>
+                                    <span className="text-muted-foreground">Temp:</span>
+                                    <span className="text-foreground">{waypointWeather[wp.icao].temp}°C</span>
                                   </div>
                                 )}
                                 {waypointWeather[wp.icao].altimeter && (
                                   <div className="flex justify-between">
-                                    <span className="text-slate-400">Alt:</span>
-                                    <span className="text-white">{(waypointWeather[wp.icao].altimeter / 100).toFixed(2)}"</span>
+                                    <span className="text-muted-foreground">Alt:</span>
+                                    <span className="text-foreground">{(waypointWeather[wp.icao].altimeter / 100).toFixed(2)}"</span>
                                   </div>
                                 )}
                               </div>
@@ -2774,15 +2774,15 @@ function FuelSaverContent() {
             </div>
 
             {/* Bottom Actions - Load/Save/Import */}
-            <div className="p-2 border-t border-slate-700 bg-slate-800 flex-shrink-0 space-y-1">
+            <div className="p-2 border-t border-border bg-card flex-shrink-0 space-y-1">
               {/* Import Button */}
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Import Flight Plan</label>
+                <label className="block text-xs text-muted-foreground mb-1">Import Flight Plan</label>
                 <input
                   type="file"
                   accept=".gpx,.fpl,.json,.csv"
                   onChange={handleFileUpload}
-                  className="w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-slate-600 file:text-white hover:file:bg-slate-500"
+                  className="w-full text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-medium file:bg-secondary file:text-foreground hover:file:bg-slate-500"
                 />
               </div>
               <div className="flex gap-1">
@@ -2796,7 +2796,7 @@ function FuelSaverContent() {
                       setShowPlanList(!showPlanList);
                     }
                   }}
-                  className="flex-1 bg-slate-600 hover:bg-slate-500 text-white font-medium py-1.5 rounded text-xs"
+                  className="flex-1 bg-secondary hover:bg-secondary/80 text-foreground font-medium py-1.5 rounded text-xs"
                 >
                   Load {savedPlans.length > 0 && `(${savedPlans.length})`}
                 </button>
@@ -2811,7 +2811,7 @@ function FuelSaverContent() {
                     }
                   }}
                   disabled={!canSave}
-                  className={`flex-1 font-medium py-1.5 rounded text-xs ${canSave ? 'bg-emerald-500 hover:bg-emerald-600 text-white' : 'bg-slate-600 text-slate-400 cursor-not-allowed'}`}
+                  className={`flex-1 font-medium py-1.5 rounded text-xs ${canSave ? 'bg-emerald-500 hover:bg-emerald-600 text-foreground' : 'bg-secondary text-muted-foreground cursor-not-allowed'}`}
                 >
                   Save
                 </button>
@@ -2819,16 +2819,16 @@ function FuelSaverContent() {
               
               {/* Saved Plans List */}
               {showPlanList && (
-                <div className="bg-slate-700 rounded p-1.5 space-y-1 max-h-24 overflow-y-auto">
+                <div className="bg-background rounded p-1.5 space-y-1 max-h-24 overflow-y-auto">
                   {status === 'authenticated' ? (
                     <div className="flex items-center justify-between text-xs text-emerald-400">
                       <span>Logged in as {session?.user?.email}</span>
-                      <button onClick={() => signOut()} className="text-slate-400 hover:text-white">Sign out</button>
+                      <button onClick={() => signOut()} className="text-muted-foreground hover:text-foreground">Sign out</button>
                     </div>
                   ) : (
                     <button 
                       onClick={() => signIn()} 
-                      className="w-full text-xs bg-slate-600 hover:bg-slate-500 rounded py-1.5 text-sky-400"
+                      className="w-full text-xs bg-secondary hover:bg-secondary/80 rounded py-1.5 text-sky-400"
                     >
                       Log in to save plans to your account
                     </button>
@@ -2836,9 +2836,9 @@ function FuelSaverContent() {
                   
                   {savedPlans.length > 0 ? (
                     <>
-                      <div className="text-sm font-semibold text-slate-300">Saved Plans ({savedPlans.length})</div>
+                      <div className="text-sm font-semibold text-muted-foreground">Saved Plans ({savedPlans.length})</div>
                       {savedPlans.map((plan, i) => (
-                        <div key={plan.id || i} className="flex items-center justify-between bg-slate-600 rounded p-2 text-sm">
+                        <div key={plan.id || i} className="flex items-center justify-between bg-secondary rounded p-2 text-sm">
                           <button onClick={() => loadFlightPlan(plan)} className="text-left flex-1 hover:text-sky-400">
                             <div className="font-medium flex items-center gap-2">
                               {plan.name || 'Untitled'}
@@ -2846,7 +2846,7 @@ function FuelSaverContent() {
                                 <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded">DEMO</span>
                               )}
                             </div>
-                            <div className="text-xs text-slate-400">
+                            <div className="text-xs text-muted-foreground">
                               {plan.departureIcao || '---'} → {plan.arrivalIcao || '---'} • {plan.waypoints?.length || 0} waypoints
                             </div>
                           </button>
@@ -2857,7 +2857,7 @@ function FuelSaverContent() {
                       ))}
                     </>
                   ) : (
-                    <div className="text-xs text-slate-400 text-center py-2">No saved plans</div>
+                    <div className="text-xs text-muted-foreground text-center py-2">No saved plans</div>
                   )}
                 </div>
               )}
@@ -2871,8 +2871,8 @@ function FuelSaverContent() {
           {/* Map Section */}
           <div className="flex-1 overflow-hidden relative">
             {!mapLoaded ? (
-              <div className="h-full flex items-center justify-center bg-slate-800">
-                <button onClick={() => setMapLoaded(true)} className="bg-sky-500 hover:bg-sky-600 text-white px-4 py-2 rounded-lg text-sm">
+              <div className="h-full flex items-center justify-center bg-card">
+                <button onClick={() => setMapLoaded(true)} className="bg-sky-500 hover:bg-sky-600 text-foreground px-4 py-2 rounded-lg text-sm">
                   Load Map
                 </button>
               </div>
@@ -2924,8 +2924,8 @@ function FuelSaverContent() {
                     onClick={() => setShowInternational(!showInternational)}
                     className={`px-2 py-1.5 text-xs rounded-lg shadow-lg border transition-colors ${
                       showInternational 
-                        ? 'bg-emerald-600 border-emerald-500 text-white' 
-                        : 'bg-slate-800/90 border-slate-600 text-slate-300 hover:bg-slate-700'
+                        ? 'bg-emerald-600 border-emerald-500 text-foreground' 
+                        : 'bg-card/90 border-border text-muted-foreground hover:bg-background'
                     }`}
                     title={showInternational ? 'Hiding Canada/Mexico airports' : 'Show Canada/Mexico airports'}
                   >
@@ -2943,7 +2943,7 @@ function FuelSaverContent() {
 
           {/* Bottom Stats Bar - Full Width */}
           {routeStats && (
-            <div className="bg-slate-800 border-t border-slate-700 p-3 flex-shrink-0">
+            <div className="bg-card border-t border-border p-3 flex-shrink-0">
               {/* Cost Settings Toggle */}
               <div className="flex gap-2 mb-2">
                 <label className="flex items-center gap-1 text-xs cursor-pointer">
@@ -2953,7 +2953,7 @@ function FuelSaverContent() {
                     onChange={(e) => setIncludeLandingFees(e.target.checked)}
                     className="rounded"
                   />
-                  <span className={includeLandingFees ? 'text-white' : 'text-slate-500'}>Landing</span>
+                  <span className={includeLandingFees ? 'text-foreground' : 'text-muted-foreground/60'}>Landing</span>
                 </label>
                 <label className="flex items-center gap-1 text-xs cursor-pointer">
                   <input
@@ -2962,7 +2962,7 @@ function FuelSaverContent() {
                     onChange={(e) => setIncludeFboFees(e.target.checked)}
                     className="rounded"
                   />
-                  <span className={includeFboFees ? 'text-white' : 'text-slate-500'}>FBO</span>
+                  <span className={includeFboFees ? 'text-foreground' : 'text-muted-foreground/60'}>FBO</span>
                 </label>
               </div>
               
@@ -2971,38 +2971,38 @@ function FuelSaverContent() {
                 <div className="flex gap-4">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-sky-400">{Math.round(routeStats.totalDistance)}</div>
-                    <div className="text-xs text-slate-500 uppercase tracking-wider">NM</div>
+                    <div className="text-xs text-muted-foreground/60 uppercase tracking-wider">NM</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-amber-400">{routeStats.flightHours}h</div>
-                    <div className="text-xs text-slate-500 uppercase tracking-wider">Flight Time</div>
+                    <div className="text-xs text-muted-foreground/60 uppercase tracking-wider">Flight Time</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-purple-400">{routeStats.fuelNeeded}</div>
-                    <div className="text-xs text-slate-500 uppercase tracking-wider">Gal Fuel</div>
+                    <div className="text-xs text-muted-foreground/60 uppercase tracking-wider">Gal Fuel</div>
                   </div>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-emerald-400">${routeStats.estimatedCost}</div>
-                    <div className="text-xs text-slate-500 uppercase tracking-wider">Total</div>
+                    <div className="text-xs text-muted-foreground/60 uppercase tracking-wider">Total</div>
                   </div>
                   {soulsOnBoard > 1 && (
                     <div className="text-center">
                       <div className="text-2xl font-bold text-cyan-400">${routeStats.costPerPerson}</div>
-                      <div className="text-xs text-slate-500 uppercase tracking-wider">Per Person</div>
+                      <div className="text-xs text-muted-foreground/60 uppercase tracking-wider">Per Person</div>
                     </div>
                   )}
                 </div>
 
                 {/* Aircraft Info */}
                 <div className="hidden md:block text-right">
-                  <div className="text-sm font-medium text-white">{selectedAircraft.name}</div>
-                  <div className="text-xs text-slate-400">{selectedAircraft.speed} kts • {selectedAircraft.burnRate} gph</div>
+                  <div className="text-sm font-medium text-foreground">{selectedAircraft.name}</div>
+                  <div className="text-xs text-muted-foreground">{selectedAircraft.speed} kts • {selectedAircraft.burnRate} gph</div>
                 </div>
               </div>
               
               {/* Leg Breakdown - Drag and Drop */}
               {routeStats.legs.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-slate-700 flex gap-2 overflow-x-auto pb-1">
+                <div className="mt-3 pt-3 border-t border-border flex gap-2 overflow-x-auto pb-1">
                   {routeStats.legs.map((leg, toIdx) => {
                     const isDragging = draggedLegIndex === toIdx;
                     const isDragOver = draggedLegIndex !== null && draggedLegIndex !== toIdx;
@@ -3040,17 +3040,17 @@ function FuelSaverContent() {
                           setDraggedLegIndex(null);
                         }}
                         onDragEnd={() => setDraggedLegIndex(null)}
-                        className={`flex-shrink-0 bg-slate-700 rounded px-3 py-2 text-xs cursor-move select-none transition-all ${
+                        className={`flex-shrink-0 bg-background rounded px-3 py-2 text-xs cursor-move select-none transition-all ${
                           isDragging ? 'opacity-30 scale-95 ring-2 ring-sky-500' : 
-                          isDragOver ? 'ring-2 ring-amber-500 scale-105 bg-slate-600' : 
-                          'hover:bg-slate-600 hover:scale-105'
+                          isDragOver ? 'ring-2 ring-amber-500 scale-105 bg-secondary' : 
+                          'hover:bg-secondary hover:scale-105'
                         }`}
                         style={{ touchAction: 'none' }}
                       >
                         <span className="text-sky-400 font-medium">{leg.from.icao}</span>
-                        <span className="text-slate-500 mx-1">→</span>
+                        <span className="text-muted-foreground/60 mx-1">→</span>
                         <span className="text-amber-400 font-medium">{leg.to.icao}</span>
-                        <div className="text-slate-400 mt-1">{Math.round(leg.distance)} NM • ${leg.cost.toFixed(0)}</div>
+                        <div className="text-muted-foreground mt-1">{Math.round(leg.distance)} NM • ${leg.cost.toFixed(0)}</div>
                       </div>
                     );
                   })}
@@ -3066,23 +3066,23 @@ function FuelSaverContent() {
         <div className="fixed inset-0 z-[9999] bg-black/90 flex items-center justify-center p-8">
           <div className="text-center">
             {/* Phone Rotation Animation */}
-            <div className="mb-8 relative w-24 h-40 mx-auto border-4 border-white rounded-3xl bg-slate-800">
+            <div className="mb-8 relative w-24 h-40 mx-auto border-4 border-white rounded-3xl bg-card">
               <div className="absolute inset-0 flex items-center justify-center">
                 <div className="w-16 h-1 bg-white rounded animate-pulse"></div>
               </div>
-              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-2 h-2 bg-slate-600 rounded-full"></div>
-              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-slate-600 rounded"></div>
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-2 h-2 bg-secondary rounded-full"></div>
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-8 h-1 bg-secondary rounded"></div>
             </div>
             {/* Arrow Animation */}
             <div className="mb-6 text-6xl animate-bounce">↻</div>
-            <h2 className="text-2xl font-bold text-white mb-2">Rotate Your Phone</h2>
-            <p className="text-slate-400 mb-6">For the best experience, please rotate your phone to landscape mode.</p>
+            <h2 className="text-2xl font-bold text-foreground mb-2">Rotate Your Phone</h2>
+            <p className="text-muted-foreground mb-6">For the best experience, please rotate your phone to landscape mode.</p>
             <button
               onClick={() => {
                 setOrientationDismissed(true);
                 setShowOrientationWarning(false);
               }}
-              className="bg-sky-500 hover:bg-sky-600 text-white px-6 py-3 rounded-lg font-medium"
+              className="bg-sky-500 hover:bg-sky-600 text-foreground px-6 py-3 rounded-lg font-medium"
             >
               Continue Anyway
             </button>
@@ -3122,8 +3122,8 @@ function FuelSaverContent() {
 export default function FuelSaverPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center">
-        <div className="text-slate-400">Loading...</div>
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     }>
       <FuelSaverContent />
