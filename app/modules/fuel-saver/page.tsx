@@ -530,7 +530,7 @@ export default function FuelSaverPage() {
       </header>
 
       {/* Main Content - Full Height */}
-      <main className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden">
         {/* Left Panel */}
         <div className="w-[340px] border-r border-border bg-card flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
@@ -1293,7 +1293,7 @@ export default function FuelSaverPage() {
             </Suspense>
           </div>
         </div>
-      </main>
+      </div>
 
       {/* Saved Plans Dialog */}
       <Dialog open={showSavedPlans} onOpenChange={setShowSavedPlans}>
