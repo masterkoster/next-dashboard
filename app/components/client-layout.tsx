@@ -29,9 +29,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   const mainPadding = isHomePage
     ? ''
-    : currentModule && currentModule.menu && currentModule.menu.length > 0
-      ? 'pt-16'
-      : 'pt-16';
+    : '';
 
   return (
     <SessionProvider>
