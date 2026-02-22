@@ -46,7 +46,8 @@ import {
   ArrowRight,
   RotateCcw,
   Maximize2,
-  GripVertical
+  GripVertical,
+  Star
 } from "lucide-react"
 
 // Dynamic imports for Leaflet components (no SSR)
@@ -170,7 +171,7 @@ export default function FuelSaverPage() {
   const { data: session, status } = useSession()
   
   // Core state
-  const [activeTab, setActiveTab] = useState<'plan' | 'route' | 'weather' | 'wb' | 'tools'>('plan')
+  const [activeTab, setActiveTab] = useState<'fuelmap' | 'plan' | 'route' | 'weather' | 'wb' | 'tools' | 'airports' | 'favorites'>('fuelmap')
   const [loading, setLoading] = useState(false)
   
   // Map state
@@ -178,7 +179,6 @@ export default function FuelSaverPage() {
   const [mapZoom, setMapZoom] = useState(5)
   const [mapBounds, setMapBounds] = useState({ minLat: 25, maxLat: 50, minLon: -130, maxLon: -65 })
   const [airports, setAirports] = useState<Airport[]>(DEMO_AIRPORTS)
-  const [showPanel, setShowPanel] = useState(true)
   
   // Flight plan state
   const [flightPlanName, setFlightPlanName] = useState('')
@@ -474,45 +474,45 @@ export default function FuelSaverPage() {
   })()
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-[1800px] p-4">
+      <header className="border-b border-border bg-card flex-shrink-0">
+        <div className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl lg:text-3xl font-bold tracking-tight text-foreground">Flight Planner</h1>
-              <p className="text-muted-foreground text-sm mt-1">Plan routes, find fuel, calculate performance</p>
+              <h1 className="text-xl lg:text-2xl font-bold tracking-tight text-foreground">Flight Planner</h1>
             </div>
-            <div className="flex items-center gap-2 lg:gap-3">
+            <div className="flex items-center gap-2">
               {isDemo && (
-                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20">
-                  Demo Mode
+                <Badge variant="secondary" className="bg-amber-500/10 text-amber-600 border-amber-500/20 text-xs">
+                  Demo
                 </Badge>
               )}
               <Button variant="outline" size="sm" onClick={() => setShowSavedPlans(true)}>
-                <FolderOpen className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Load</span>
+                <FolderOpen className="h-4 w-4" />
               </Button>
               <Button size="sm" onClick={saveFlightPlan} disabled={waypoints.length < 2}>
-                <Save className="h-4 w-4 mr-1" />
-                <span className="hidden sm:inline">Save</span>
+                <Save className="h-4 w-4" />
               </Button>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="mt-4 flex gap-1 border-b border-border overflow-x-auto">
+          <div className="mt-3 flex gap-1 border-b border-border overflow-x-auto">
             {([
+              { id: 'fuelmap', label: 'Fuel Map', icon: Fuel },
               { id: 'plan', label: 'Plan', icon: Plane },
               { id: 'route', label: 'Route', icon: Route },
               { id: 'weather', label: 'Weather', icon: Cloud },
               { id: 'wb', label: 'W&B', icon: Gauge },
               { id: 'tools', label: 'Tools', icon: Calculator },
+              { id: 'airports', label: 'Airports', icon: MapPin },
+              { id: 'favorites', label: 'Favorites', icon: Star },
             ] as const).map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-4 py-2.5 text-sm font-medium whitespace-nowrap transition-colors relative ${
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors relative ${
                   activeTab === tab.id
                     ? 'text-primary'
                     : 'text-muted-foreground hover:text-foreground'
@@ -529,12 +529,29 @@ export default function FuelSaverPage() {
         </div>
       </header>
 
-      {/* Main Content */}
-      <main className="mx-auto max-w-[1800px]">
-        <div className="flex flex-col lg:flex-row">
-          {/* Left Panel */}
-          <div className={`w-full lg:w-[380px] border-r border-border bg-card p-4 space-y-4 ${showPanel ? '' : 'hidden lg:hidden'}`}>
+      {/* Main Content - Full Height */}
+      <main className="flex-1 flex overflow-hidden">
+        {/* Left Panel */}
+        <div className="w-[340px] border-r border-border bg-card flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
             
+            {activeTab === 'fuelmap' && (
+              <div className="space-y-3">
+                {/* Fuel Map Info */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Fuel className="h-4 w-4" />
+                      Fuel Map
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-sm text-muted-foreground">
+                    <p>Click on any airport marker on the map to view fuel prices and add it to your route.</p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
             {activeTab === 'plan' && (
               <div className="space-y-3">
                 {/* Search */}
@@ -1172,10 +1189,67 @@ export default function FuelSaverPage() {
                 </Card>
               </div>
             )}
+
+            {activeTab === 'airports' && (
+              <div className="space-y-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      Browse Airports
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Input
+                      placeholder="Search airports..."
+                      value={searchQuery}
+                      onChange={(e) => handleSearch(e.target.value)}
+                      className="uppercase"
+                    />
+                    {searchResults.length > 0 && (
+                      <div className="max-h-64 overflow-y-auto border rounded-lg">
+                        {searchResults.map((airport) => (
+                          <button
+                            key={airport.icao}
+                            onClick={() => addWaypoint(airport)}
+                            className="w-full text-left px-3 py-2 hover:bg-muted border-b last:border-0"
+                          >
+                            <div className="flex justify-between">
+                              <span className="font-medium">{airport.icao}</span>
+                              <Badge variant="outline" className="text-xs">{airport.type?.replace('_', ' ')}</Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground truncate">{airport.name}</p>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {searchResults.length === 0 && searchQuery.length === 0 && (
+                      <p className="text-sm text-muted-foreground">Search for airports to view details and add to route.</p>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {activeTab === 'favorites' && (
+              <div className="space-y-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Star className="h-4 w-4" />
+                      Favorite Airports
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-muted-foreground">Save airports to favorites for quick access. Click the star icon on any airport to add it here.</p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
           </div>
 
           {/* Map Area */}
-          <div className="flex-1 h-[calc(100vh-180px)] relative">
+          <div className="flex-1 relative">
             {/* Stats Bar */}
             {routeStats && (
               <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 bg-card/95 backdrop-blur border border-border rounded-lg px-4 py-2 flex items-center gap-6 shadow-lg">
@@ -1201,16 +1275,6 @@ export default function FuelSaverPage() {
               </div>
             )}
             
-            {/* Toggle Panel Button */}
-            <Button
-              variant="secondary"
-              size="sm"
-              className="absolute top-4 left-4 z-10"
-              onClick={() => setShowPanel(!showPanel)}
-            >
-              {showPanel ? '← Hide Panel' : '→ Show Panel'}
-            </Button>
-
             {/* Map */}
             <Suspense fallback={
               <div className="w-full h-full flex items-center justify-center bg-muted">
