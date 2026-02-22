@@ -2086,7 +2086,7 @@ function FuelSaverContent() {
           }`}
         >
           {showPanel && (
-            <div className="w-full sm:w-[308px] flex flex-col h-full pt-2">
+            <div className="w-full sm:w-[308px] flex flex-col h-full pt-5">
               {/* Mobile Close Button */}
               <div className="lg:hidden flex justify-end p-2 border-b border-border">
                 <button
