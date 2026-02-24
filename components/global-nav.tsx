@@ -93,13 +93,6 @@ const SUB_NAV: SubNavConfig = {
     { label: "System", href: "/admin" },
     { label: "Settings", href: "/admin" },
   ],
-  "/": [
-    { label: "Overview", href: "/" },
-    { label: "Flight Hours", href: "/" },
-    { label: "Maintenance", href: "/" },
-    { label: "Currency", href: "/" },
-    { label: "Flight Plans", href: "/" },
-  ],
 }
 
 export function GlobalNav() {

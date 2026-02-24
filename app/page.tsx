@@ -28,7 +28,11 @@ import {
   Plus,
   X,
   LayoutDashboard,
-  EyeOff
+  EyeOff,
+  Clock3,
+  FileCheck,
+  Settings,
+  Shield
 } from "lucide-react"
 import { AreaChart, Area, LineChart, Line, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from "recharts"
 
@@ -94,6 +98,7 @@ const savedFlightPlans = [
 
 export default function PilotDashboard() {
   const [customizeMode, setCustomizeMode] = useState(false)
+  const [activeTab, setActiveTab] = useState<string>("overview")
   const [visibleWidgets, setVisibleWidgets] = useState<WidgetType[]>([
     'airport-weather',
     'quick-alerts',
@@ -103,6 +108,15 @@ export default function PilotDashboard() {
     'currency',
     'flight-plans',
   ])
+
+  // Dashboard sidebar navigation
+  const dashboardNav = [
+    { id: "overview", label: "Overview", icon: LayoutDashboard },
+    { id: "flight-hours", label: "Flight Hours", icon: Clock3 },
+    { id: "maintenance", label: "Maintenance", icon: Wrench },
+    { id: "currency", label: "Currency", icon: FileCheck },
+    { id: "flight-plans", label: "Flight Plans", icon: Navigation },
+  ]
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -132,22 +146,42 @@ export default function PilotDashboard() {
   const isWidgetVisible = (widget: WidgetType) => visibleWidgets.includes(widget)
 
   return (
-    <div className="min-h-screen bg-background pt-[44px]">
-      {/* Customize toggle bar */}
-      <div className="sticky top-[44px] z-40 flex h-12 items-center justify-end gap-4 border-b border-border bg-card/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-card/60">
-        <Button 
-          variant={customizeMode ? "default" : "ghost"} 
-          size="sm"
-          onClick={() => setCustomizeMode(!customizeMode)}
-          className="gap-2"
-        >
-          <LayoutDashboard className="h-4 w-4" />
-          <span className="hidden md:inline">{customizeMode ? 'Done' : 'Customize'}</span>
-        </Button>
-      </div>
+    <div className="flex min-h-screen bg-background pt-[44px]">
 
-      {/* Main Content */}
-      <main className="p-6">
+      {/* ── SIDEBAR ──────────────────────────────────────────────────────────── */}
+      <aside className="fixed top-[44px] left-0 h-[calc(100vh-44px)] w-56 shrink-0 overflow-y-auto border-r border-border bg-card">
+        {/* Sidebar header */}
+        <div className="flex items-center gap-2 border-b border-border px-4 py-3">
+          <div className="flex h-6 w-6 items-center justify-center rounded bg-primary/90">
+            <Plane className="h-3.5 w-3.5 text-primary-foreground" />
+          </div>
+          <span className="text-xs font-semibold">Dashboard</span>
+        </div>
+
+        {/* Nav items */}
+        <nav className="py-2">
+          {dashboardNav.map((item) => {
+            const Icon = item.icon
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-2.5 px-4 py-2 text-xs font-medium transition-colors ${
+                  activeTab === item.id
+                    ? 'bg-primary/10 text-primary border-r-2 border-primary'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {item.label}
+              </button>
+            )
+          })}
+        </nav>
+      </aside>
+
+      {/* ── MAIN CONTENT ──────────────────────────────────────────────────────────── */}
+      <main className="p-6 ml-[56px]">
         <div className="mx-auto max-w-[1600px] space-y-6">
           {/* Welcome Section */}
           <div className="flex flex-col gap-2">
