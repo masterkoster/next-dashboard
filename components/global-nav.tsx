@@ -68,16 +68,6 @@ const SUB_NAV: SubNavConfig = {
     { label: "Saved Listings", href: "/marketplace" },
     { label: "My Listings", href: "/marketplace" },
   ],
-  "/flying-club": [
-    { label: "Dashboard", href: "/flying-club" },
-    { label: "Calendar", href: "/flying-club" },
-    { label: "Bookings", href: "/flying-club" },
-    { label: "Aircraft", href: "/flying-club" },
-    { label: "Flights", href: "/flying-club" },
-    { label: "Maintenance", href: "/flying-club" },
-    { label: "Billing", href: "/flying-club" },
-    { label: "Members", href: "/flying-club" },
-  ],
   "/fuel-saver": [
     { label: "Route Planner", href: "/fuel-saver" },
     { label: "Saved Plans", href: "/fuel-saver" },

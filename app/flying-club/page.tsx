@@ -120,9 +120,9 @@ export default function FlyingClubPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-[84px]">
+    <div className="min-h-screen bg-background pt-[44px]">
       {/* Page sub-header: group selector + tab strip */}
-      <div className="fixed top-[84px] left-0 right-0 z-40 border-b border-border bg-card">
+      <div className="fixed top-[44px] left-0 right-0 z-40 border-b border-border bg-card">
         <div className="mx-auto max-w-[1600px] flex items-center justify-between gap-4 px-6 pt-4">
           <h1 className="text-xl font-semibold">Flying Club</h1>
           <div className="flex items-center gap-3">
@@ -166,7 +166,7 @@ export default function FlyingClubPage() {
       </div>
 
       {/* Main Content */}
-      <main className="mx-auto max-w-[1600px] p-6 mt-[88px]">
+      <main className="mx-auto max-w-[1600px] p-6 mt-[130px]">
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             {/* Stats Overview */}

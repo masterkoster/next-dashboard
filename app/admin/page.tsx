@@ -323,7 +323,7 @@ export default function AdminDashboard() {
       {/* ── MAIN CONTENT ─────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto ml-[224px]">
         {/* Top bar */}
-        <div className="sticky top-[44px] z-30 flex h-11 items-center justify-between border-b border-border bg-card/95 px-6 backdrop-blur">
+        <div className="sticky top-0 z-30 flex h-11 items-center justify-between border-b border-border bg-card/95 px-6 backdrop-blur">
           <h1 className="text-sm font-semibold capitalize">
             {NAV_GROUPS.flatMap(g => g.items).find(i => i.id === activeTab)?.label ?? "Overview"}
           </h1>

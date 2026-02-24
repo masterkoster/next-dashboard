@@ -249,7 +249,7 @@ export default function ClubAdminPage() {
       <div className="flex-1 overflow-auto ml-[224px]">
 
         {/* Top bar */}
-        <div className="sticky top-[44px] z-30 flex h-11 items-center justify-between border-b border-border bg-card/95 px-6 backdrop-blur">
+        <div className="sticky top-0 z-30 flex h-11 items-center justify-between border-b border-border bg-card/95 px-6 backdrop-blur">
           <h1 className="text-sm font-semibold">{activeLabel}</h1>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
