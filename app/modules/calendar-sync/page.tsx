@@ -122,8 +122,8 @@ END:VCALENDAR`;
 
   if (status === 'loading' || loadingTier) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-slate-400">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
@@ -137,17 +137,17 @@ END:VCALENDAR`;
   // Show upgrade prompt for non-Pro+ users
   if (!isProPlus) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-800 rounded-xl p-8 border border-slate-700 text-center">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-card border border-border rounded-xl p-8 text-center">
           <div className="text-5xl mb-4">📅</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Calendar Sync</h1>
-          <p className="text-slate-400 mb-6">
+          <h1 className="text-2xl font-bold text-foreground mb-2">Calendar Sync</h1>
+          <p className="text-muted-foreground mb-6">
             Add your flights to Google or Apple Calendar to keep your schedule organized.
           </p>
           
-          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-6">
-            <p className="text-amber-400 font-medium mb-2">🔒 Pro+ Feature</p>
-            <p className="text-slate-400 text-sm">
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6">
+            <p className="text-amber-700 font-medium mb-2">🔒 Pro+ Feature</p>
+            <p className="text-muted-foreground text-sm">
               Calendar Sync is available exclusively for Pro+ subscribers. 
               Upgrade to unlock this feature and more!
             </p>
@@ -156,13 +156,13 @@ END:VCALENDAR`;
           <div className="space-y-3">
             <Link
               href="/pricing"
-              className="block w-full bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              className="block w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition-colors"
             >
               View Pro+ Plans
             </Link>
             <Link
               href="/dashboard"
-              className="block w-full bg-slate-700 hover:bg-slate-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
+              className="block w-full bg-muted hover:bg-muted/80 text-foreground font-medium py-3 px-4 rounded-lg transition-colors"
             >
               Back to Dashboard
             </Link>
@@ -173,117 +173,117 @@ END:VCALENDAR`;
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-4">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">📅 Calendar Sync</h1>
-          <p className="text-slate-400">Add your flights to Google or Apple Calendar</p>
+          <h1 className="text-2xl font-bold text-foreground">📅 Calendar Sync</h1>
+          <p className="text-muted-foreground">Add your flights to Google or Apple Calendar</p>
         </div>
 
         {/* Form */}
-        <div className="bg-slate-800 rounded-xl p-6 mb-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Flight Details</h2>
+        <div className="bg-card border border-border rounded-xl p-6 mb-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Flight Details</h2>
           
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Flight Title (optional)</label>
+              <label className="block text-sm text-muted-foreground mb-1">Flight Title (optional)</label>
               <input
                 type="text"
                 value={flight.title}
                 onChange={(e) => setFlight({...flight, title: e.target.value})}
                 placeholder="Cross Country Training"
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Date</label>
+                <label className="block text-sm text-muted-foreground mb-1">Date</label>
                 <input
                   type="date"
                   value={flight.date}
                   onChange={(e) => setFlight({...flight, date: e.target.value})}
-                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Time</label>
+                <label className="block text-sm text-muted-foreground mb-1">Time</label>
                 <input
                   type="time"
                   value={flight.time}
                   onChange={(e) => setFlight({...flight, time: e.target.value})}
-                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">From</label>
+                <label className="block text-sm text-muted-foreground mb-1">From</label>
                 <input
                   type="text"
                   value={flight.routeFrom}
                   onChange={(e) => setFlight({...flight, routeFrom: e.target.value.toUpperCase()})}
                   placeholder="KABC"
-                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground uppercase"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">To</label>
+                <label className="block text-sm text-muted-foreground mb-1">To</label>
                 <input
                   type="text"
                   value={flight.routeTo}
                   onChange={(e) => setFlight({...flight, routeTo: e.target.value.toUpperCase()})}
                   placeholder="KXYZ"
-                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground uppercase"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Duration (hrs)</label>
+                <label className="block text-sm text-muted-foreground mb-1">Duration (hrs)</label>
                 <input
                   type="number"
                   step="0.5"
                   value={flight.duration}
                   onChange={(e) => setFlight({...flight, duration: parseFloat(e.target.value) || 0})}
-                  className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                  className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Aircraft</label>
+              <label className="block text-sm text-muted-foreground mb-1">Aircraft</label>
               <input
                 type="text"
                 value={flight.aircraft}
                 onChange={(e) => setFlight({...flight, aircraft: e.target.value})}
                 placeholder="N123AB"
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-slate-400 mb-1">Notes</label>
+              <label className="block text-sm text-muted-foreground mb-1">Notes</label>
               <textarea
                 value={flight.notes}
                 onChange={(e) => setFlight({...flight, notes: e.target.value})}
                 placeholder="Check weather, file flight plan..."
                 rows={3}
-                className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white"
+                className="w-full bg-background border border-border rounded-lg px-4 py-2 text-foreground"
               />
             </div>
           </div>
         </div>
 
         {/* Sync Options */}
-        <div className="bg-slate-800 rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-white mb-4">Add to Calendar</h2>
+        <div className="bg-card border border-border rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Add to Calendar</h2>
           
           <div className="grid md:grid-cols-2 gap-4">
             <button
               onClick={generateGoogleCalendarLink}
               disabled={!flight.date || !flight.time}
-              className="flex items-center justify-center gap-2 bg-blue-500 hover:bg-blue-400 disabled:bg-slate-700 disabled:text-slate-500 text-white px-6 py-3 rounded-lg transition"
+              className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-muted disabled:text-muted-foreground text-white px-6 py-3 rounded-lg transition"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/>
@@ -294,7 +294,7 @@ END:VCALENDAR`;
             <button
               onClick={generateICSFile}
               disabled={!flight.date || !flight.time}
-              className="flex items-center justify-center gap-2 bg-slate-700 hover:bg-slate-600 disabled:bg-slate-800 disabled:text-slate-500 text-white px-6 py-3 rounded-lg transition"
+              className="flex items-center justify-center gap-2 bg-muted hover:bg-muted/80 disabled:bg-muted disabled:text-muted-foreground text-foreground px-6 py-3 rounded-lg transition"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                 <path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM9 10H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm-8 4H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2z"/>
@@ -304,16 +304,16 @@ END:VCALENDAR`;
           </div>
 
           {(!flight.date || !flight.time) && (
-            <p className="text-amber-400 text-sm mt-4 text-center">
+            <p className="text-amber-600 text-sm mt-4 text-center">
               Please fill in date and time to add to calendar
             </p>
           )}
         </div>
 
         {/* Instructions */}
-        <div className="mt-6 bg-slate-800/50 rounded-xl p-6">
-          <h3 className="text-sm font-semibold text-white mb-2">How it works</h3>
-          <ul className="text-sm text-slate-400 space-y-2">
+        <div className="mt-6 bg-muted/50 rounded-xl p-6">
+          <h3 className="text-sm font-semibold text-foreground mb-2">How it works</h3>
+          <ul className="text-sm text-muted-foreground space-y-2">
             <li>• <strong>Google Calendar</strong> - Opens Google Calendar in a new tab with pre-filled event details</li>
             <li>• <strong>Apple/Outlook</strong> - Downloads an .ics file you can open in any calendar app</li>
             <li>• Flight events include route, aircraft, duration, and your notes</li>

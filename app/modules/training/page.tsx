@@ -118,22 +118,22 @@ export default function TrainingPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-white">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-foreground">Loading...</div>
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-slate-800 rounded-xl p-8 text-center">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-card border border-border rounded-xl p-8 text-center">
           <div className="text-6xl mb-4">🎓</div>
-          <h1 className="text-2xl font-bold text-white mb-2">Training Progress Tracker</h1>
-          <p className="text-slate-400 mb-6">Sign in to track your flight training progress</p>
+          <h1 className="text-2xl font-bold text-foreground mb-2">Training Progress Tracker</h1>
+          <p className="text-muted-foreground mb-6">Sign in to track your flight training progress</p>
           <button
             onClick={() => signIn()}
-            className="bg-sky-600 hover:bg-sky-500 text-white px-6 py-3 rounded-lg font-medium"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium"
           >
             Sign In to Track Progress
           </button>
@@ -143,28 +143,28 @@ export default function TrainingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-4">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-2xl mx-auto">
         {/* Email Verification Banner */}
         <VerificationBanner email={session?.user?.email} />
 
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">🎓 Training Progress</h1>
-            <p className="text-slate-400">Track your PPL requirements</p>
+            <h1 className="text-2xl font-bold text-foreground">🎓 Training Progress</h1>
+            <p className="text-muted-foreground">Track your PPL requirements</p>
           </div>
           <button
             onClick={saveProgress}
             disabled={saving}
-            className="bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white px-4 py-2 rounded-lg"
+            className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium"
           >
             {saving ? 'Saving...' : 'Save'}
           </button>
         </div>
 
         {/* Hours Input Section */}
-        <div className="bg-slate-800 rounded-xl p-4 mb-6">
-          <h2 className="text-lg font-semibold text-white mb-4">✏️ Log Your Hours</h2>
+        <div className="bg-card border border-border rounded-xl p-4 mb-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">✏️ Log Your Hours</h2>
           <div className="grid grid-cols-2 gap-3">
             {[
               { key: 'totalHours', label: 'Total Hours' },
@@ -177,12 +177,12 @@ export default function TrainingPage() {
               { key: 'hoodHours', label: 'Hood/Sim Hours' },
             ].map(({ key, label }) => (
               <div key={key}>
-                <label className="block text-xs text-slate-400 mb-1">{label}</label>
+                <label className="block text-xs text-muted-foreground mb-1">{label}</label>
                 <input
                   type="number"
                   value={localProgress[key as keyof typeof localProgress] as number}
                   onChange={(e) => setLocalProgress({ ...localProgress, [key]: Number(e.target.value) })}
-                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                   min={0}
                   step={0.5}
                 />
@@ -199,24 +199,24 @@ export default function TrainingPage() {
             const isComplete = current >= req.required;
 
             return (
-              <div key={key} className="bg-slate-800 rounded-xl p-4">
+              <div key={key} className="bg-card border border-border rounded-xl p-4">
                 <div className="flex justify-between items-center mb-2">
                   <div>
-                    <div className={`font-medium ${isComplete ? 'text-emerald-400' : 'text-white'}`}>
+                    <div className={`font-medium ${isComplete ? 'text-green-600' : 'text-foreground'}`}>
                       {req.label}
                     </div>
-                    <div className="text-xs text-slate-400">{req.description}</div>
+                    <div className="text-xs text-muted-foreground">{req.description}</div>
                   </div>
                   <div className="text-right">
-                    <div className={`text-lg font-bold ${isComplete ? 'text-emerald-400' : 'text-sky-400'}`}>
+                    <div className={`text-lg font-bold ${isComplete ? 'text-green-600' : 'text-blue-600'}`}>
                       {current.toFixed(1)}/{req.required}
                     </div>
-                    <div className="text-xs text-slate-500">{percent.toFixed(0)}%</div>
+                    <div className="text-xs text-muted-foreground">{percent.toFixed(0)}%</div>
                   </div>
                 </div>
-                <div className="h-3 bg-slate-700 rounded-full overflow-hidden">
+                <div className="h-3 bg-muted rounded-full overflow-hidden">
                   <div
-                    className={`h-full transition-all ${isComplete ? 'bg-emerald-500' : 'bg-sky-500'}`}
+                    className={`h-full transition-all ${isComplete ? 'bg-green-500' : 'bg-blue-500'}`}
                     style={{ width: `${percent}%` }}
                   />
                 </div>
@@ -226,8 +226,8 @@ export default function TrainingPage() {
         </div>
 
         {/* Checkboxes Section */}
-        <div className="bg-slate-800 rounded-xl p-4 mt-6">
-          <h2 className="text-lg font-semibold text-white mb-4">☑️ Milestones Completed</h2>
+        <div className="bg-card border border-border rounded-xl p-4 mt-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">☑️ Milestones Completed</h2>
           <div className="space-y-2">
             {[
               { key: 'soloDone', label: 'First Solo' },
@@ -242,9 +242,9 @@ export default function TrainingPage() {
                   type="checkbox"
                   checked={localProgress[key as keyof typeof localProgress] as boolean}
                   onChange={(e) => setLocalProgress({ ...localProgress, [key]: e.target.checked })}
-                  className="w-5 h-5 rounded"
+                  className="w-5 h-5 rounded accent-green-600"
                 />
-                <span className={localProgress[key as keyof typeof localProgress] ? 'text-emerald-400' : 'text-slate-300'}>
+                <span className={localProgress[key as keyof typeof localProgress] ? 'text-green-600' : 'text-foreground'}>
                   {label}
                 </span>
               </label>
@@ -253,31 +253,31 @@ export default function TrainingPage() {
         </div>
 
         {/* Summary */}
-        <div className="bg-slate-800 rounded-xl p-4 mt-6">
-          <h2 className="text-lg font-semibold text-white mb-4">📊 Summary</h2>
+        <div className="bg-card border border-border rounded-xl p-4 mt-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">📊 Summary</h2>
           <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-slate-700 rounded-lg p-3">
-              <div className="text-2xl font-bold text-sky-400">{localProgress.totalHours}</div>
-              <div className="text-xs text-slate-400">Total Hours</div>
+            <div className="bg-muted rounded-lg p-3">
+              <div className="text-2xl font-bold text-blue-600">{localProgress.totalHours}</div>
+              <div className="text-xs text-muted-foreground">Total Hours</div>
             </div>
-            <div className="bg-slate-700 rounded-lg p-3">
-              <div className="text-2xl font-bold text-emerald-400">
+            <div className="bg-muted rounded-lg p-3">
+              <div className="text-2xl font-bold text-green-600">
                 {Object.values(PPL_REQUIREMENTS).filter((req, i) => {
                   const keys = Object.keys(PPL_REQUIREMENTS);
                   return (localProgress[keys[i] as keyof typeof localProgress] as number) >= req.required;
                 }).length}
               </div>
-              <div className="text-xs text-slate-400">Requirements Met</div>
+              <div className="text-xs text-muted-foreground">Requirements Met</div>
             </div>
-            <div className="bg-slate-700 rounded-lg p-3">
-              <div className="text-2xl font-bold text-amber-400">
+            <div className="bg-muted rounded-lg p-3">
+              <div className="text-2xl font-bold text-amber-600">
                 {Object.keys(PPL_REQUIREMENTS).length - 
                   Object.values(PPL_REQUIREMENTS).filter((req, i) => {
                     const keys = Object.keys(PPL_REQUIREMENTS);
                     return (localProgress[keys[i] as keyof typeof localProgress] as number) >= req.required;
                   }).length}
               </div>
-              <div className="text-xs text-slate-400">Remaining</div>
+              <div className="text-xs text-muted-foreground">Remaining</div>
             </div>
           </div>
         </div>

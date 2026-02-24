@@ -162,21 +162,21 @@ export default function LogbookPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="text-slate-400">Loading...</div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     );
   }
 
   if (status === 'unauthenticated') {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-white mb-4">Please Sign In</h1>
-          <p className="text-slate-400 mb-6">You need to be signed in to view your logbook.</p>
+          <h1 className="text-2xl font-bold text-foreground mb-4">Please Sign In</h1>
+          <p className="text-muted-foreground mb-6">You need to be signed in to view your logbook.</p>
           <button
             onClick={() => window.location.href = '/login'}
-            className="bg-emerald-500 hover:bg-emerald-400 text-white px-6 py-2 rounded-lg"
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg"
           >
             Sign In
           </button>
@@ -187,17 +187,17 @@ export default function LogbookPage() {
 
   if (error === 'Pro+ subscription required') {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center max-w-md">
           <div className="text-6xl mb-4">📖</div>
-          <h1 className="text-2xl font-bold text-white mb-4">Pro+ Feature</h1>
-          <p className="text-slate-400 mb-6">
+          <h1 className="text-2xl font-bold text-foreground mb-4">Pro+ Feature</h1>
+          <p className="text-muted-foreground mb-6">
             The Digital Logbook is available with Pro+ subscription. 
             Upgrade to track your flight hours automatically.
           </p>
           <Link
             href="/pricing"
-            className="inline-block bg-amber-500 hover:bg-amber-400 text-white px-6 py-2 rounded-lg"
+            className="inline-block bg-amber-500 hover:bg-amber-600 text-white px-6 py-2 rounded-lg"
           >
             Upgrade to Pro+
           </Link>
@@ -207,17 +207,17 @@ export default function LogbookPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 p-4">
+    <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">📖 Digital Logbook</h1>
-            <p className="text-slate-400">Track your flight hours</p>
+            <h1 className="text-2xl font-bold text-foreground">📖 Digital Logbook</h1>
+            <p className="text-muted-foreground">Track your flight hours</p>
           </div>
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg"
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
           >
             {showForm ? 'Cancel' : '+ Add Entry'}
           </button>
@@ -225,70 +225,70 @@ export default function LogbookPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-slate-800 rounded-xl p-4">
-            <p className="text-xs text-slate-500 uppercase">Total Time</p>
-            <p className="text-2xl font-bold text-white">{totals.totalTime.toFixed(1)}h</p>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-xs text-muted-foreground uppercase">Total Time</p>
+            <p className="text-2xl font-bold text-foreground">{totals.totalTime.toFixed(1)}h</p>
           </div>
-          <div className="bg-slate-800 rounded-xl p-4">
-            <p className="text-xs text-slate-500 uppercase">Solo Time</p>
-            <p className="text-2xl font-bold text-emerald-400">{totals.soloTime.toFixed(1)}h</p>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-xs text-muted-foreground uppercase">Solo Time</p>
+            <p className="text-2xl font-bold text-green-600">{totals.soloTime.toFixed(1)}h</p>
           </div>
-          <div className="bg-slate-800 rounded-xl p-4">
-            <p className="text-xs text-slate-500 uppercase">Night Time</p>
-            <p className="text-2xl font-bold text-purple-400">{totals.nightTime.toFixed(1)}h</p>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-xs text-muted-foreground uppercase">Night Time</p>
+            <p className="text-2xl font-bold text-purple-600">{totals.nightTime.toFixed(1)}h</p>
           </div>
-          <div className="bg-slate-800 rounded-xl p-4">
-            <p className="text-xs text-slate-500 uppercase">Landings</p>
-            <p className="text-2xl font-bold text-sky-400">{totals.dayLandings + totals.nightLandings}</p>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <p className="text-xs text-muted-foreground uppercase">Landings</p>
+            <p className="text-2xl font-bold text-blue-600">{totals.dayLandings + totals.nightLandings}</p>
           </div>
         </div>
 
         {/* Add Entry Form */}
         {showForm && (
-          <div className="bg-slate-800 rounded-xl p-6 mb-6">
-            <h2 className="text-lg font-semibold text-white mb-4">New Flight Entry</h2>
+          <div className="bg-card border border-border rounded-xl p-6 mb-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4">New Flight Entry</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid md:grid-cols-4 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Date</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Date</label>
                   <input
                     type="date"
                     value={formData.date}
                     onChange={(e) => setFormData({...formData, date: e.target.value})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Aircraft</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Aircraft</label>
                   <input
                     type="text"
                     value={formData.aircraft}
                     onChange={(e) => setFormData({...formData, aircraft: e.target.value})}
                     placeholder="N123AB"
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">From</label>
+                  <label className="block text-xs text-muted-foreground mb-1">From</label>
                   <input
                     type="text"
                     value={formData.routeFrom}
                     onChange={(e) => setFormData({...formData, routeFrom: e.target.value.toUpperCase()})}
                     placeholder="KABC"
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground uppercase"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">To</label>
+                  <label className="block text-xs text-muted-foreground mb-1">To</label>
                   <input
                     type="text"
                     value={formData.routeTo}
                     onChange={(e) => setFormData({...formData, routeTo: e.target.value.toUpperCase()})}
                     placeholder="KXYZ"
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground uppercase"
                     required
                   />
                 </div>
@@ -296,89 +296,89 @@ export default function LogbookPage() {
 
               <div className="grid md:grid-cols-7 gap-4">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Total</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Total</label>
                   <input
                     type="number"
                     step="0.1"
                     value={formData.totalTime}
                     onChange={(e) => setFormData({...formData, totalTime: e.target.value})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="1.5"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Solo</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Solo</label>
                   <input
                     type="number"
                     step="0.1"
                     value={formData.soloTime}
                     onChange={(e) => setFormData({...formData, soloTime: e.target.value})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Dual Rec</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Dual Rec</label>
                   <input
                     type="number"
                     step="0.1"
                     value={formData.dualReceived}
                     onChange={(e) => setFormData({...formData, dualReceived: e.target.value})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Night</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Night</label>
                   <input
                     type="number"
                     step="0.1"
                     value={formData.nightTime}
                     onChange={(e) => setFormData({...formData, nightTime: e.target.value})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Instrument</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Instrument</label>
                   <input
                     type="number"
                     step="0.1"
                     value={formData.instrumentTime}
                     onChange={(e) => setFormData({...formData, instrumentTime: e.target.value})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">XC</label>
+                  <label className="block text-xs text-muted-foreground mb-1">XC</label>
                   <input
                     type="number"
                     step="0.1"
                     value={formData.crossCountryTime}
                     onChange={(e) => setFormData({...formData, crossCountryTime: e.target.value})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="0"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1">Landings</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Landings</label>
                   <input
                     type="number"
                     value={formData.dayLandings}
                     onChange={(e) => setFormData({...formData, dayLandings: e.target.value})}
-                    className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white"
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
                     placeholder="0"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Remarks</label>
+                <label className="block text-xs text-muted-foreground mb-1">Remarks</label>
                 <textarea
                   value={formData.remarks}
                   onChange={(e) => setFormData({...formData, remarks: e.target.value})}
-                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white h-20"
+                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground h-20"
                   placeholder="Flight notes..."
                 />
               </div>
@@ -386,7 +386,7 @@ export default function LogbookPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white px-6 py-2 rounded-lg"
+                className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-6 py-2 rounded-lg"
               >
                 {saving ? 'Saving...' : 'Save Entry'}
               </button>
@@ -395,50 +395,50 @@ export default function LogbookPage() {
         )}
 
         {/* Entries Table */}
-        <div className="bg-slate-800 rounded-xl overflow-hidden">
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-slate-700">
+              <thead className="bg-muted">
                 <tr>
-                  <th className="px-4 py-3 text-left text-slate-400 font-medium">Date</th>
-                  <th className="px-4 py-3 text-left text-slate-400 font-medium">Aircraft</th>
-                  <th className="px-4 py-3 text-left text-slate-400 font-medium">Route</th>
-                  <th className="px-4 py-3 text-center text-slate-400 font-medium">Total</th>
-                  <th className="px-4 py-3 text-center text-slate-400 font-medium">Solo</th>
-                  <th className="px-4 py-3 text-center text-slate-400 font-medium">Night</th>
-                  <th className="px-4 py-3 text-center text-slate-400 font-medium">Inst</th>
-                  <th className="px-4 py-3 text-center text-slate-400 font-medium">XC</th>
-                  <th className="px-4 py-3 text-center text-slate-400 font-medium">Ldg</th>
-                  <th className="px-4 py-3 text-right text-slate-400 font-medium">Actions</th>
+                  <th className="px-4 py-3 text-left text-muted-foreground font-medium">Date</th>
+                  <th className="px-4 py-3 text-left text-muted-foreground font-medium">Aircraft</th>
+                  <th className="px-4 py-3 text-left text-muted-foreground font-medium">Route</th>
+                  <th className="px-4 py-3 text-center text-muted-foreground font-medium">Total</th>
+                  <th className="px-4 py-3 text-center text-muted-foreground font-medium">Solo</th>
+                  <th className="px-4 py-3 text-center text-muted-foreground font-medium">Night</th>
+                  <th className="px-4 py-3 text-center text-muted-foreground font-medium">Inst</th>
+                  <th className="px-4 py-3 text-center text-muted-foreground font-medium">XC</th>
+                  <th className="px-4 py-3 text-center text-muted-foreground font-medium">Ldg</th>
+                  <th className="px-4 py-3 text-right text-muted-foreground font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {entries.length === 0 ? (
                   <tr>
-                    <td colSpan={10} className="px-4 py-8 text-center text-slate-500">
+                    <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">
                       No entries yet. Click &quot;Add Entry&quot; to log your first flight!
                     </td>
                   </tr>
                 ) : (
                   entries.map((entry) => (
-                    <tr key={entry.id} className="border-t border-slate-700 hover:bg-slate-750">
-                      <td className="px-4 py-3 text-slate-300">
+                    <tr key={entry.id} className="border-t border-border hover:bg-muted/50">
+                      <td className="px-4 py-3 text-foreground">
                         {new Date(entry.date).toLocaleDateString()}
                       </td>
-                      <td className="px-4 py-3 text-slate-300">{entry.aircraft}</td>
-                      <td className="px-4 py-3 text-slate-300">
+                      <td className="px-4 py-3 text-foreground">{entry.aircraft}</td>
+                      <td className="px-4 py-3 text-foreground">
                         {entry.routeFrom} → {entry.routeTo}
                       </td>
-                      <td className="px-4 py-3 text-center text-slate-300">{entry.totalTime.toFixed(1)}</td>
-                      <td className="px-4 py-3 text-center text-emerald-400">{entry.soloTime > 0 ? entry.soloTime.toFixed(1) : '-'}</td>
-                      <td className="px-4 py-3 text-center text-purple-400">{entry.nightTime > 0 ? entry.nightTime.toFixed(1) : '-'}</td>
-                      <td className="px-4 py-3 text-center text-amber-400">{entry.instrumentTime > 0 ? entry.instrumentTime.toFixed(1) : '-'}</td>
-                      <td className="px-4 py-3 text-center text-sky-400">{entry.crossCountryTime > 0 ? entry.crossCountryTime.toFixed(1) : '-'}</td>
-                      <td className="px-4 py-3 text-center text-slate-300">{entry.dayLandings + entry.nightLandings}</td>
+                      <td className="px-4 py-3 text-center text-foreground">{entry.totalTime.toFixed(1)}</td>
+                      <td className="px-4 py-3 text-center text-green-600">{entry.soloTime > 0 ? entry.soloTime.toFixed(1) : '-'}</td>
+                      <td className="px-4 py-3 text-center text-purple-600">{entry.nightTime > 0 ? entry.nightTime.toFixed(1) : '-'}</td>
+                      <td className="px-4 py-3 text-center text-amber-600">{entry.instrumentTime > 0 ? entry.instrumentTime.toFixed(1) : '-'}</td>
+                      <td className="px-4 py-3 text-center text-blue-600">{entry.crossCountryTime > 0 ? entry.crossCountryTime.toFixed(1) : '-'}</td>
+                      <td className="px-4 py-3 text-center text-foreground">{entry.dayLandings + entry.nightLandings}</td>
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => handleDelete(entry.id)}
-                          className="text-red-400 hover:text-red-300 text-xs"
+                          className="text-red-600 hover:text-red-700 text-xs"
                         >
                           Delete
                         </button>

@@ -105,9 +105,9 @@ export default function AircraftPage() {
     <div className="min-h-screen bg-background">
       {/* Demo Notice */}
       {isDemo && showDemoNotice && (
-        <div className="bg-amber-500/10 border-b border-amber-500/30 px-6 py-3">
+        <div className="bg-amber-50 border-b border-amber-200 px-6 py-3">
           <div className="mx-auto max-w-[1600px] flex items-center justify-between">
-            <p className="text-sm text-amber-600">
+            <p className="text-sm text-amber-700">
               <strong>Demo Mode:</strong> Viewing sample data. 
               <Link href="/api/auth/signin" className="underline ml-1">Sign in</Link> to see your own aircraft.
             </p>
