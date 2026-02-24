@@ -861,6 +861,15 @@ export default function FlyingClubPage() {
                   ))}
                 </optgroup>
               </select>
+              <Button
+                size="sm"
+                variant="secondary"
+                asChild
+                className="hidden sm:inline-flex"
+                disabled={isPersonal && !isDemo}
+              >
+                <Link href="/modules/flying-club/manage">Manage</Link>
+              </Button>
               {/* New Group button - always visible */}
               <Button size="sm" type="button" onClick={() => setShowNewGroupModal(true)}>
                 <Plus className="mr-1 h-3 w-3" />

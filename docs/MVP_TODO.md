@@ -57,6 +57,12 @@ npm install @fullcalendar/react @fullcalendar/daygrid @fullcalendar/timegrid @fu
 
 ### Integration Progress
 - [x] Embed BookingCalendar, CheckoutPanel, MemberList, BillingRunButton into Flying Club module tabs
+- [x] Create flying club Manage workspace with sidebar navigation
+- [x] Implement Manage → Users section powered by member API
+- [x] Implement Manage → Billing section with filters and recipient table
+- [x] Implement Manage → Add-ons connector page
+- [ ] Build dispatch queues (awaiting/current/past flights)
+- [ ] Build automation scheduler UI
 
 ---
 
