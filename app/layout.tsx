@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import ClientLayout from "./components/client-layout";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { Providers } from "@/app/components/providers";
 import "./globals.css";
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
@@ -79,12 +79,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}
-      >
-        <ClientLayout>
+      <body className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}>
+        <Providers>
           {children}
-        </ClientLayout>
+        </Providers>
         <SpeedInsights />
         {GA_ID && <GoogleAnalytics gaId={GA_ID} />}
       </body>

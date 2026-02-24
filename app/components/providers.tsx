@@ -1,0 +1,53 @@
+"use client";
+
+import { SessionProvider } from "next-auth/react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
+
+import { GlobalNav } from "@/components/global-nav";
+import { ModuleNav } from "./module-nav";
+import { AuthModalProvider } from "./AuthModalContext";
+import LoginModal from "./LoginModal";
+import ChatWidget from "./chat-widget";
+import OfflineBanner from "./offline-banner";
+import ConflictModal from "./conflicts-modal";
+import { getModuleByPath } from "@/lib/modules";
+
+export function Providers({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isHomePage = pathname === "/";
+  const currentModule = pathname ? getModuleByPath(pathname) : undefined;
+  const [showConflicts, setShowConflicts] = useState(false);
+
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/service-worker.js").catch((err) => {
+        console.log("SW registration failed:", err);
+      });
+    }
+  }, []);
+
+  return (
+    <SessionProvider>
+      <AuthModalProvider>
+        <>
+          <GlobalNav />
+          {!isHomePage && currentModule && currentModule.menu && currentModule.menu.length > 0 && (
+            <ModuleNav module={currentModule} />
+          )}
+          <div className={isHomePage ? "" : "pt-16"}>
+            {children}
+          </div>
+          <OfflineBanner onSyncNow={() => setShowConflicts(true)} />
+          <ConflictModal
+            isOpen={showConflicts}
+            onClose={() => setShowConflicts(false)}
+            onResolved={() => {}}
+          />
+          <LoginModal />
+          <ChatWidget />
+        </>
+      </AuthModalProvider>
+    </SessionProvider>
+  );
+}
