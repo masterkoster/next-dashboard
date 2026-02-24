@@ -762,7 +762,7 @@ model ErrorReport {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
-  user? User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("ErrorReport")
 }
@@ -822,4 +822,16 @@ model InvoiceItem {
   invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@map("InvoiceItem")
+}
+
+// Demo data configuration - controls what sample data gets generated
+model DemoData {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  key         String   @unique @db.NVarChar(50)  // e.g., "clubs", "aircraft", "members", "bookings"
+  enabled     Boolean  @default(true)
+  config      String?  @db.NVarChar(Max) // JSON config for this data type
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("DemoData")
 }
