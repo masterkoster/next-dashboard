@@ -45,8 +45,6 @@ export default function CheckoutPanel({ groupId, userId }: CheckoutPanelProps) {
   const [loading, setLoading] = useState(true);
   const [checkingOut, setCheckingOut] = useState(false);
   const [checkingIn, setCheckingIn] = useState(false);
- Checkout form  
-  //
   const [selectedAircraft, setSelectedAircraft] = useState('');
   const [hobbsStart, setHobbsStart] = useState('');
   const [checkoutNotes, setCheckoutNotes] = useState('');
