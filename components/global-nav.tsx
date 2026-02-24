@@ -83,17 +83,6 @@ const SUB_NAV: SubNavConfig = {
     { label: "Settings", href: "/profile" },
     { label: "Security", href: "/profile" },
   ],
-  "/admin": [
-    { label: "Overview", href: "/admin" },
-    { label: "Users", href: "/admin/users" },
-    { label: "Outreach", href: "/admin/outreach" },
-    { label: "Aircraft", href: "/admin" },
-    { label: "Clubs", href: "/admin" },
-    { label: "Marketplace", href: "/admin" },
-    { label: "Billing", href: "/admin" },
-    { label: "System", href: "/admin" },
-    { label: "Settings", href: "/admin" },
-  ],
 }
 
 export function GlobalNav() {

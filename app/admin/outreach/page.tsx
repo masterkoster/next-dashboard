@@ -97,7 +97,7 @@ export default function OutreachPage() {
     : '0';
 
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen pt-[44px] p-6 space-y-6">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">Outreach Management</h1>

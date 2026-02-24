@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import dynamic from 'next/dynamic'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -39,6 +40,19 @@ import {
   Share2,
   Copy
 } from "lucide-react"
+
+// Dynamically import LeafletMap to avoid SSR issues
+const LeafletMap = dynamic(() => import('@/app/modules/fuel-saver/LeafletMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+      <div className="text-center">
+        <MapPin className="h-12 w-12 mx-auto mb-2 text-muted-foreground/50 animate-pulse" />
+        <p className="text-sm text-muted-foreground">Loading map...</p>
+      </div>
+    </div>
+  )
+})
 
 // Mock aircraft data
 const AIRCRAFT_PROFILES = [
@@ -727,61 +741,25 @@ export default function FuelSaverPage() {
 
         {/* Map Area */}
         <div className="flex-1 relative bg-muted/30">
-          {/* Map Placeholder - LeafletMap component will be integrated here */}
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="text-center max-w-2xl px-6">
-              <MapPin className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-              <h3 className="text-xl font-semibold mb-2">Interactive Aviation Map</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                The LeafletMap component will render here with all features preserved:
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center text-xs">
-                <Badge variant="outline">Airport Markers</Badge>
-                <Badge variant="outline">Fuel Prices</Badge>
-                <Badge variant="outline">Route Lines</Badge>
-                <Badge variant="outline">Weather Overlays</Badge>
-                <Badge variant="outline">TFR Zones</Badge>
-                <Badge variant="outline">State Boundaries</Badge>
-                <Badge variant="outline">Range Rings</Badge>
-                <Badge variant="outline">Flight Playback</Badge>
-              </div>
-            </div>
-          </div>
-
-          {/* Map Controls */}
-          <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-            <Button variant="secondary" size="icon" className="shadow-lg" title="Map Layers">
-              <Settings className="h-4 w-4" />
-            </Button>
-            <Button variant="secondary" size="icon" className="shadow-lg" title="Search Airports">
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Legend */}
-          <div className="absolute bottom-4 right-4 z-10">
-            <Card className="w-48">
-              <CardContent className="p-3 space-y-2">
-                <div className="text-xs font-semibold mb-2">Map Options</div>
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input type="checkbox" className="rounded" checked={showAllAirports} onChange={(e) => setShowAllAirports(e.target.checked)} />
-                  <span>Show All Airports</span>
-                </label>
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input type="checkbox" className="rounded" checked={showWeather} onChange={(e) => setShowWeather(e.target.checked)} />
-                  <span>Weather Overlay</span>
-                </label>
-                <label className="flex items-center gap-2 text-xs cursor-pointer">
-                  <input type="checkbox" className="rounded" checked={showNotams} onChange={(e) => setShowNotams(e.target.checked)} />
-                  <span>Show TFRs</span>
-                </label>
-              </CardContent>
-            </Card>
-          </div>
+          {/* Integrated LeafletMap Component */}
+          <LeafletMap 
+            waypoints={waypoints}
+            airports={[]}
+            fuelPrices={{}}
+            mapCenter={[39.8283, -98.5795]}
+            mapZoom={4}
+            onBoundsChange={() => {}}
+            onAirportClick={(airport) => {
+              if (airport.icao) {
+                addWaypoint(airport.icao)
+              }
+            }}
+            showNotams={showNotams}
+          />
 
           {/* Getting Started Hint */}
           {waypoints.length === 0 && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
               <Card className="shadow-2xl border-primary/50">
                 <CardContent className="flex items-center gap-3 p-4">
                   <AlertTriangle className="h-6 w-6 text-primary" />

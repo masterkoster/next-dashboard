@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -214,25 +215,23 @@ type Tab =
   | "notification-settings" | "add-ons"
   | "clubs" | "marketplace" | "billing" | "system"
 
-type NavItem = { id: Tab; label: string }
+type NavItem = { id: Tab; label: string; href?: string }
 type NavGroup = { label: string; items: NavItem[] }
 
 const NAV_GROUPS: NavGroup[] = [
+  {
+    label: "Management",
+    items: [
+      { id: "users", label: "Users", href: "/admin/users" },
+      { id: "administrators", label: "Outreach", href: "/admin/outreach" },
+    ],
+  },
   {
     label: "Flights",
     items: [
       { id: "awaiting-dispatch", label: "Awaiting Dispatch" },
       { id: "currently-dispatched", label: "Currently Dispatched" },
       { id: "past-flights", label: "Past Flights" },
-    ],
-  },
-  {
-    label: "People",
-    items: [
-      { id: "users", label: "Users" },
-      { id: "administrators", label: "Administrators" },
-      { id: "instructors", label: "Instructors" },
-      { id: "groups", label: "Groups" },
     ],
   },
   {
@@ -300,6 +299,22 @@ export default function AdminDashboard() {
               </p>
               {group.items.map((item) => {
                 const isActive = activeTab === item.id
+                
+                // If item has href, render as Link
+                if (item.href) {
+                  return (
+                    <Link
+                      key={item.id}
+                      href={item.href}
+                      className="flex w-full items-center justify-between px-4 py-2.5 text-xs font-medium transition-colors text-foreground hover:bg-muted"
+                    >
+                      {item.label}
+                      <ArrowUpRight className="h-3 w-3 shrink-0 rotate-45 text-muted-foreground" />
+                    </Link>
+                  )
+                }
+                
+                // Otherwise, render as button with state
                 return (
                   <button
                     key={item.id}
