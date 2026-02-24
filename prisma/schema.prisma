@@ -835,3 +835,115 @@ model DemoData {
 
   @@map("DemoData")
 }
+
+// ============ OUTREACH SYSTEM ============
+
+model OutreachContact {
+  id              String   @id @default(uuid()) @db.NVarChar(36)
+  
+  // Organization info
+  organizationType String  @db.NVarChar(50) // "airport", "flight_club", "flight_school", "fbo"
+  organizationName String  @db.NVarChar(255)
+  airportIcao      String? @db.NVarChar(10)
+  airportName      String? @db.NVarChar(255)
+  city             String? @db.NVarChar(100)
+  state            String? @db.NVarChar(50)
+  
+  // Contact person info
+  contactName      String? @db.NVarChar(255)
+  contactTitle     String? @db.NVarChar(100) // "President", "Treasurer", "Manager", "Owner"
+  contactEmail     String? @db.NVarChar(255)
+  contactPhone     String? @db.NVarChar(50)
+  alternateEmail   String? @db.NVarChar(255)
+  alternatePhone   String? @db.NVarChar(50)
+  
+  // Source tracking
+  sourceUrl        String? @db.NVarChar(500)
+  sourceType       String  @db.NVarChar(50) // "airnav", "aopa", "eaa", "manual", "import"
+  scrapedAt        DateTime @default(now())
+  
+  // Additional data
+  website          String? @db.NVarChar(500)
+  notes            String? @db.NVarChar(Max)
+  
+  // Relations
+  emails          OutreachEmail[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([organizationType])
+  @@index([state])
+  @@index([airportIcao])
+  @@index([contactEmail])
+  @@map("OutreachContact")
+}
+
+model OutreachCampaign {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  name        String   @db.NVarChar(255)
+  description String?  @db.NVarChar(Max)
+  subject     String   @db.NVarChar(500)
+  bodyHtml    String   @db.NVarChar(Max)
+  bodyText    String?  @db.NVarChar(Max)
+  
+  status      String   @default("draft") @db.NVarChar(20) // draft, active, paused, completed
+  
+  // Stats
+  totalContacts Int     @default(0)
+  emailsSent    Int     @default(0)
+  emailsOpened  Int     @default(0)
+  emailsClicked Int     @default(0)
+  responses     Int     @default(0)
+  interested    Int     @default(0)
+  
+  emails      OutreachEmail[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@map("OutreachCampaign")
+}
+
+model OutreachEmail {
+  id           String   @id @default(uuid()) @db.NVarChar(36)
+  campaignId   String   @db.NVarChar(36)
+  contactId    String   @db.NVarChar(36)
+  
+  // Email details
+  toEmail      String   @db.NVarChar(255)
+  toName       String?  @db.NVarChar(255)
+  subject      String   @db.NVarChar(500)
+  bodyHtml     String   @db.NVarChar(Max)
+  bodyText     String?  @db.NVarChar(Max)
+  
+  // Delivery tracking
+  status       String   @default("pending") @db.NVarChar(20) // pending, sent, delivered, failed, bounced
+  sentAt       DateTime?
+  deliveredAt  DateTime?
+  openedAt     DateTime?
+  clickedAt    DateTime?
+  
+  // Response tracking (manual)
+  responseStatus String? @db.NVarChar(20) // null, "responded", "interested", "not_interested", "invalid"
+  responseNotes  String? @db.NVarChar(Max)
+  respondedAt    DateTime?
+  
+  // External IDs
+  resendId       String? @db.NVarChar(100)
+  
+  // Relations
+  campaign    OutreachCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact     OutreachContact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([campaignId])
+  @@index([contactId])
+  @@index([status])
+  @@index([responseStatus])
+  @@map("OutreachEmail")
+}
