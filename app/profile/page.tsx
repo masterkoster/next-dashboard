@@ -94,9 +94,9 @@ export default function ProfilePage() {
   })
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-[44px]">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <header className="sticky top-[44px] z-50 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="flex h-16 items-center gap-4 px-6">
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">

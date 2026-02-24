@@ -199,10 +199,10 @@ export default function ClubAdminPage() {
   const activeLabel = NAV_GROUPS.flatMap(g => g.items).find(i => i.id === activeTab)?.label ?? ""
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background pt-[44px]">
 
       {/* ── SIDEBAR ────────────────────────────────────────────────────────────── */}
-      <aside className="sticky top-0 h-screen w-56 shrink-0 overflow-y-auto border-r border-border bg-card">
+      <aside className="fixed top-[44px] left-0 h-[calc(100vh-44px)] w-56 shrink-0 overflow-y-auto border-r border-border bg-card">
         {/* Club identity */}
         <div className="border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
@@ -246,10 +246,10 @@ export default function ClubAdminPage() {
       </aside>
 
       {/* ── MAIN ───────────────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto ml-[224px]">
 
         {/* Top bar */}
-        <div className="sticky top-0 z-30 flex h-11 items-center justify-between border-b border-border bg-card/95 px-6 backdrop-blur">
+        <div className="sticky top-[44px] z-30 flex h-11 items-center justify-between border-b border-border bg-card/95 px-6 backdrop-blur">
           <h1 className="text-sm font-semibold">{activeLabel}</h1>
           <div className="flex items-center gap-2">
             <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">

@@ -278,10 +278,10 @@ export default function AdminDashboard() {
   )
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background pt-[44px]">
 
       {/* ── SIDEBAR ──────────────────────────────────────────────────────────── */}
-      <aside className="sticky top-0 h-screen w-56 shrink-0 overflow-y-auto border-r border-border bg-card">
+      <aside className="fixed top-[44px] left-0 h-[calc(100vh-44px)] w-56 shrink-0 overflow-y-auto border-r border-border bg-card">
         {/* Sidebar header */}
         <div className="flex items-center gap-2 border-b border-border px-4 py-3">
           <div className="flex h-6 w-6 items-center justify-center rounded bg-destructive/90">
@@ -321,9 +321,9 @@ export default function AdminDashboard() {
       </aside>
 
       {/* ── MAIN CONTENT ─────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto ml-[224px]">
         {/* Top bar */}
-        <div className="sticky top-0 z-30 flex h-11 items-center justify-between border-b border-border bg-card/95 px-6 backdrop-blur">
+        <div className="sticky top-[44px] z-30 flex h-11 items-center justify-between border-b border-border bg-card/95 px-6 backdrop-blur">
           <h1 className="text-sm font-semibold capitalize">
             {NAV_GROUPS.flatMap(g => g.items).find(i => i.id === activeTab)?.label ?? "Overview"}
           </h1>

@@ -112,7 +112,7 @@ export default function MarketplacePage() {
         </div>
 
         {/* Category Navigation - More Prominent */}
-        <div className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+        <div className="sticky top-[44px] z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
           <div className="mx-auto max-w-7xl px-6">
             <nav className="flex gap-1 overflow-x-auto py-2">
               {categories.map((category) => (

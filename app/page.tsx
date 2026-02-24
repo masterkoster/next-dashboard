@@ -132,9 +132,9 @@ export default function PilotDashboard() {
   const isWidgetVisible = (widget: WidgetType) => visibleWidgets.includes(widget)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-[44px]">
       {/* Customize toggle bar */}
-      <div className="sticky top-0 z-40 flex h-12 items-center justify-end gap-4 border-b border-border bg-card/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <div className="sticky top-[44px] z-40 flex h-12 items-center justify-end gap-4 border-b border-border bg-card/95 px-6 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <Button 
           variant={customizeMode ? "default" : "ghost"} 
           size="sm"
