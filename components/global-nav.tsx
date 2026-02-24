@@ -85,7 +85,8 @@ const SUB_NAV: SubNavConfig = {
   ],
   "/admin": [
     { label: "Overview", href: "/admin" },
-    { label: "Users", href: "/admin" },
+    { label: "Users", href: "/admin/users" },
+    { label: "Outreach", href: "/admin/outreach" },
     { label: "Aircraft", href: "/admin" },
     { label: "Clubs", href: "/admin" },
     { label: "Marketplace", href: "/admin" },
