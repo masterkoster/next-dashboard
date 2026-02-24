@@ -9,6 +9,11 @@ interface DashboardStatsProps {
 }
 
 interface DashboardData {
+  user?: {
+    name?: string;
+    email?: string;
+    credits?: number;
+  };
   totals: {
     totalTime: number;
     soloTime: number;
@@ -57,6 +62,8 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
   if (!data) {
     return null;
   }
+
+  const credits = data.user?.credits ?? 0;
 
   return (
     <div className="space-y-4">
@@ -172,7 +179,7 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
       )}
 
       {/* Credits */}
-      {data.user?.credits > 0 && (
+      {credits > 0 && (
         <Card className="border-amber-500 bg-amber-50 dark:bg-amber-950">
           <CardContent className="pt-4">
             <div className="flex items-center gap-2">
@@ -180,7 +187,7 @@ export default function DashboardStats({ userId }: DashboardStatsProps) {
               <div>
                 <p className="font-medium">Account Credit</p>
                 <p className="text-sm text-muted-foreground">
-                  ${data.user.credits} available
+                  ${credits} available
                 </p>
               </div>
             </div>

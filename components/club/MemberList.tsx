@@ -22,9 +22,10 @@ interface Member {
 interface MemberListProps {
   groupId: string;
   isAdmin?: boolean;
+  onInviteClick?: () => void;
 }
 
-export default function MemberList({ groupId, isAdmin = false }: MemberListProps) {
+export default function MemberList({ groupId, isAdmin = false, onInviteClick }: MemberListProps) {
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -111,7 +112,7 @@ export default function MemberList({ groupId, isAdmin = false }: MemberListProps
         <div className="flex items-center justify-between">
           <CardTitle>Members ({members.length})</CardTitle>
           {isAdmin && (
-            <Button size="sm">
+            <Button size="sm" onClick={onInviteClick} disabled={!onInviteClick}>
               <UserPlus className="h-4 w-4 mr-2" />
               Add Member
             </Button>

@@ -55,6 +55,9 @@ npm install @fullcalendar/react @fullcalendar/daygrid @fullcalendar/timegrid @fu
 - [ ] Test full flow
 - [ ] Mobile responsive testing
 
+### Integration Progress
+- [x] Embed BookingCalendar, CheckoutPanel, MemberList, BillingRunButton into Flying Club module tabs
+
 ---
 
 ## Files Created

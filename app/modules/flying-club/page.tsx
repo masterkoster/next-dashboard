@@ -51,6 +51,11 @@ import {
   X
 } from "lucide-react"
 
+import BookingCalendar from "@/components/club/BookingCalendar"
+import CheckoutPanel from "@/components/club/CheckoutPanel"
+import MemberList from "@/components/club/MemberList"
+import BillingRunButton from "@/components/club/BillingRunButton"
+
 // Types
 interface GroupAircraft {
   id: string
@@ -234,7 +239,6 @@ const personalBookings: Booking[] = [
 export default function FlyingClubPage() {
   const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedView, setSelectedView] = useState<string>('personal')
   const [groups, setGroups] = useState<Group[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -254,8 +258,6 @@ export default function FlyingClubPage() {
   const [showReportIssueModal, setShowReportIssueModal] = useState(false)
   const [showLogFlightModal, setShowLogFlightModal] = useState(false)
   const [showInviteModal, setShowInviteModal] = useState(false)
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [selectedAircraft, setSelectedAircraft] = useState<GroupAircraft | null>(null)
   
   // Form states
   const [formLoading, setFormLoading] = useState(false)
@@ -780,8 +782,6 @@ export default function FlyingClubPage() {
     setBookingEndTime('')
     setBookingPurpose('')
     setFormError('')
-    setSelectedDate(null)
-    setSelectedAircraft(null)
   }
   
   const resetMaintenanceForm = () => {
@@ -811,21 +811,6 @@ export default function FlyingClubPage() {
   }
   
   // Open booking modal with pre-selected date/aircraft
-  const openBookingModal = (date?: Date, aircraft?: GroupAircraft) => {
-    if (date) {
-      setSelectedDate(date)
-      const dateStr = date.toISOString().slice(0, 16)
-      setBookingStartTime(dateStr)
-      const endDate = new Date(date.getTime() + 2 * 60 * 60 * 1000)
-      setBookingEndTime(endDate.toISOString().slice(0, 16))
-    }
-    if (aircraft) {
-      setSelectedAircraft(aircraft)
-      setBookingAircraftId(aircraft.id)
-    }
-    setShowNewBookingModal(true)
-  }
-
   const isDemo = !session?.user?.id
   const isPersonal = selectedView === 'personal'
   const selectedGroup = groups.find(g => g.id === selectedView)
@@ -843,7 +828,6 @@ export default function FlyingClubPage() {
   const displayMembers = isPersonal ? [] : members
   const displayFlightLogs = isPersonal ? [] : flightLogs
 
-  const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 
   if (status === 'loading' || loading) {
@@ -852,30 +836,6 @@ export default function FlyingClubPage() {
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
-  }
-
-  const getDaysInMonth = () => {
-    const year = currentMonth.getFullYear()
-    const month = currentMonth.getMonth()
-    const firstDay = new Date(year, month, 1)
-    const lastDay = new Date(year, month + 1, 0)
-    const daysInMonth = lastDay.getDate()
-    const startingDay = firstDay.getDay()
-    
-    const days: (number | null)[] = []
-    for (let i = 0; i < startingDay; i++) {
-      days.push(null)
-    }
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i)
-    }
-    return days
-  }
-  
-  // Get bookings for a specific day
-  const getBookingsForDay = (day: number) => {
-    const dateStr = `${currentMonth.getFullYear()}-${String(currentMonth.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-    return displayBookings.filter(b => b.startTime?.startsWith(dateStr))
   }
 
   return (
@@ -1214,167 +1174,117 @@ export default function FlyingClubPage() {
             </div>
             )}
 
-            {/* Upcoming Bookings & Maintenance */}
-            <div className="grid gap-6 lg:grid-cols-2">
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Upcoming Bookings</CardTitle>
-                    <Button variant="ghost" size="sm" onClick={() => setActiveTab('bookings')}>View All</Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {displayBookings.slice(0, 5).map((booking) => (
-                      <div key={booking.id} className="flex items-center justify-between rounded-lg border border-border p-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm">{booking.aircraft?.nNumber || booking.aircraftId}</p>
-                            <span className="text-xs text-muted-foreground">•</span>
-                            <p className="text-sm text-muted-foreground">{booking.user?.name || 'Unknown'}</p>
-                          </div>
-                          <p className="text-xs text-muted-foreground">{booking.purpose}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">{booking.startTime ? new Date(booking.startTime).toLocaleDateString() : 'N/A'}</p>
-                          <p className="text-xs text-muted-foreground">{booking.startTime && booking.endTime ? `${new Date(booking.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(booking.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'N/A'}</p>
-                        </div>
-                      </div>
-                    ))}
-                    {displayBookings.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">No upcoming bookings</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <CardTitle>Maintenance Status</CardTitle>
-                    <Button variant="ghost" size="sm" onClick={() => setActiveTab('maintenance')}>View All</Button>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {displayMaintenance.slice(0, 5).map((item) => (
-                      <div key={item.id} className="flex items-center justify-between rounded-lg border border-border p-3">
-                        <div className="space-y-1">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm">{item.aircraft?.nNumber || item.aircraftId}</p>
-                            <Badge variant={item.status === 'In Progress' ? 'default' : 'secondary'} className="text-xs">
-                              {item.status}
-                            </Badge>
-                          </div>
-                          <p className="text-xs text-muted-foreground">{item.description}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-sm font-medium">Due: {item.dueDate || 'N/A'}</p>
-                          {item.priority === 'high' && (
-                            <div className="flex items-center justify-end gap-1 mt-1">
-                              <AlertCircle className="h-3 w-3 text-destructive" />
-                              <p className="text-xs text-destructive">High Priority</p>
+            {/* Upcoming Bookings, Maintenance & Checkout */}
+            <div className="grid gap-6 xl:grid-cols-[2fr,1fr]">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Upcoming Bookings</CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setActiveTab('bookings')}>View All</Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {displayBookings.slice(0, 5).map((booking) => (
+                        <div key={booking.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm">{booking.aircraft?.nNumber || booking.aircraftId}</p>
+                              <span className="text-xs text-muted-foreground">•</span>
+                              <p className="text-sm text-muted-foreground">{booking.user?.name || 'Unknown'}</p>
                             </div>
-                          )}
+                            <p className="text-xs text-muted-foreground">{booking.purpose}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">{booking.startTime ? new Date(booking.startTime).toLocaleDateString() : 'N/A'}</p>
+                            <p className="text-xs text-muted-foreground">{booking.startTime && booking.endTime ? `${new Date(booking.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - ${new Date(booking.endTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}` : 'N/A'}</p>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                    {displayMaintenance.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">No maintenance items</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      ))}
+                      {displayBookings.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">No upcoming bookings</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Maintenance Status</CardTitle>
+                      <Button variant="ghost" size="sm" onClick={() => setActiveTab('maintenance')}>View All</Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {displayMaintenance.slice(0, 5).map((item) => (
+                        <div key={item.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-sm">{item.aircraft?.nNumber || item.aircraftId}</p>
+                              <Badge variant={item.status === 'In Progress' ? 'default' : 'secondary'} className="text-xs">
+                                {item.status}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{item.description}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-medium">Due: {item.dueDate || 'N/A'}</p>
+                            {item.priority === 'high' && (
+                              <div className="flex items-center justify-end gap-1 mt-1">
+                                <AlertCircle className="h-3 w-3 text-destructive" />
+                                <p className="text-xs text-destructive">High Priority</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                      {displayMaintenance.length === 0 && (
+                        <p className="text-sm text-muted-foreground text-center py-4">No maintenance items</p>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {!isPersonal && selectedGroup ? (
+                <CheckoutPanel groupId={selectedView} userId={session?.user?.id as string | undefined} />
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    Sign in and select a club to use mobile checkout.
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         )}
 
         {activeTab === 'calendar' && (
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <CardTitle>Flight Schedule</CardTitle>
-                <div className="flex items-center gap-2">
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
-                  >
-                    <ChevronLeft className="h-4 w-4" />
-                  </Button>
-                  <span className="text-sm font-medium w-32 text-center">
-                    {MONTHS[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-                  </span>
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                  {canPerformActions && (
-                    <Button size="sm" className="ml-4" onClick={() => openBookingModal()}>
-                      <Plus className="h-4 w-4 mr-1" />
-                      New Booking
-                    </Button>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Calendar Grid */}
-              <div className="space-y-2">
-                {/* Day headers */}
-                <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
-                  {DAYS.map(day => (
-                    <div key={day} className="bg-card p-3 text-center">
-                      <span className="text-xs font-medium text-muted-foreground">{day}</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Calendar days */}
-                <div className="grid grid-cols-7 gap-px bg-border rounded-lg overflow-hidden">
-                  {getDaysInMonth().map((day, index) => {
-                    const dayBookings = day ? getBookingsForDay(day) : []
-                    return (
-                      <div
-                        key={index}
-                        className={`bg-card min-h-[100px] p-2 ${
-                          day ? 'hover:bg-muted/50 cursor-pointer transition-colors' : ''
-                        }`}
-                        onClick={() => {
-                          if (day && canPerformActions) {
-                            const clickedDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), day, 9, 0)
-                            openBookingModal(clickedDate)
-                          }
-                        }}
-                      >
-                        {day && (
-                          <>
-                            <span className="text-sm font-medium">{day}</span>
-                            <div className="mt-2 space-y-1">
-                              {dayBookings.slice(0, 2).map(booking => (
-                                <div key={booking.id} className="rounded bg-primary/10 border border-primary/20 px-2 py-1">
-                                  <p className="text-xs font-medium text-primary">{booking.aircraft?.nNumber}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {new Date(booking.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                                  </p>
-                                </div>
-                              ))}
-                              {dayBookings.length > 2 && (
-                                <p className="text-xs text-muted-foreground">+{dayBookings.length - 2} more</p>
-                              )}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="space-y-4">
+            {isPersonal ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Flight Schedule</CardTitle>
+                  <CardDescription>Select a flying club to view its shared schedule.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground">
+                    The calendar is only available for club aircraft. Switch to one of your clubs or create a new club to begin managing shared bookings.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : selectedGroup ? (
+              <BookingCalendar groupId={selectedView} isAdmin={isAdmin} />
+            ) : (
+              <Card>
+                <CardContent className="py-10 text-center text-muted-foreground">
+                  Select a club to view its calendar.
+                </CardContent>
+              </Card>
+            )}
+          </div>
         )}
 
         {activeTab === 'aircraft' && (
@@ -1433,7 +1343,14 @@ export default function FlyingClubPage() {
                         className="flex-1"
                         onClick={() => {
                           if (canPerformActions) {
-                            openBookingModal(undefined, aircraft)
+                            const now = new Date()
+                            const startIso = now.toISOString().slice(0, 16)
+                            const endIso = new Date(now.getTime() + 2 * 60 * 60 * 1000).toISOString().slice(0, 16)
+                            setBookingAircraftId(aircraft.id)
+                            setBookingStartTime(startIso)
+                            setBookingEndTime(endIso)
+                            setBookingPurpose('')
+                            setShowNewBookingModal(true)
                           }
                         }}
                         disabled={aircraft.status !== 'Available' || isPersonal}
@@ -1851,6 +1768,10 @@ export default function FlyingClubPage() {
                 <p className="text-sm text-muted-foreground text-center py-8">Only admins can view billing</p>
               ) : billingData || isDemo ? (
                 <div className="space-y-6">
+                  {isAdmin && !isPersonal && !isDemo && (
+                    <BillingRunButton groupId={selectedView} clubName={selectedGroup?.name} />
+                  )}
+
                   {/* Summary */}
                   <div className="grid grid-cols-4 gap-4">
                     <div className="rounded-lg border p-4">
@@ -1987,96 +1908,40 @@ export default function FlyingClubPage() {
                 <p className="text-sm text-muted-foreground text-center py-8">Select a club to view members</p>
               ) : (
                 <div className="space-y-4">
-                  {/* Members list */}
-                  <div className="space-y-2">
-                    {displayMembers.map((member) => (
-                      <div key={member.id} className="flex items-center justify-between rounded-lg border border-border p-4">
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-                            <User className="h-5 w-5 text-primary" />
-                          </div>
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <p className="font-medium text-sm">{member.user.name || member.user.email}</p>
-                              <Badge variant={member.role === 'ADMIN' ? 'default' : 'secondary'}>
-                                {member.role}
-                              </Badge>
-                            </div>
-                            <p className="text-xs text-muted-foreground">{member.user.email}</p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <p className="text-xs text-muted-foreground">
-                            Joined {new Date(member.joinedAt).toLocaleDateString()}
-                          </p>
-                          {isAdmin && !isDemo && member.userId !== session?.user?.id ? (
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => handleRemoveMember(member.id)}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          ) : isAdmin && isDemo && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => alert('Sign in to remove members')}
-                            >
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  
-                  {/* Pending invites */}
+                  <MemberList
+                    groupId={selectedView}
+                    isAdmin={isAdmin}
+                    onInviteClick={canPerformActions && isAdmin ? () => setShowInviteModal(true) : undefined}
+                  />
+
                   {isAdmin && invites.length > 0 && (
-                    <>
-                      <Separator />
-                      <div>
-                        <h4 className="text-sm font-medium mb-3">Pending Invites</h4>
-                        <div className="space-y-2">
-                          {invites.map((invite) => (
-                            <div key={invite.id} className="flex items-center justify-between rounded-lg border border-dashed border-border p-3">
-                              <div className="flex items-center gap-3">
-                                <Mail className="h-4 w-4 text-muted-foreground" />
-                                <div>
-                                  <p className="text-sm">{invite.email || 'Open invite link'}</p>
-                                  <p className="text-xs text-muted-foreground">
-                                    {invite.role} • Expires {invite.expiresAt ? new Date(invite.expiresAt).toLocaleDateString() : 'Never'}
-                                  </p>
-                                </div>
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="text-base">Pending Invites</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        {invites.map((invite) => (
+                          <div key={invite.id} className="flex items-center justify-between rounded-lg border border-dashed border-border p-3">
+                            <div className="flex items-center gap-3">
+                              <Mail className="h-4 w-4 text-muted-foreground" />
+                              <div>
+                                <p className="text-sm">{invite.email || 'Open invite link'}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {invite.role} • Expires {invite.expiresAt ? new Date(invite.expiresAt).toLocaleDateString() : 'Never'}
+                                </p>
                               </div>
-                              <Button 
-                                variant="ghost" 
-                                size="icon"
-                                onClick={() => handleDeleteInvite(invite.id)}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                  
-                  {displayMembers.length === 0 && (
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="rounded-full bg-muted p-4 mb-4">
-                        <Users className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                      <h3 className="text-lg font-semibold mb-2">No members yet</h3>
-                      <p className="text-sm text-muted-foreground mb-4">Invite members to join your club</p>
-                      {isAdmin && (
-                        <Button onClick={() => setShowInviteModal(true)}>
-                          <UserPlus className="mr-2 h-4 w-4" />
-                          Invite Member
-                        </Button>
-                      )}
-                    </div>
+                            <Button 
+                              variant="ghost" 
+                              size="icon"
+                              onClick={() => handleDeleteInvite(invite.id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
                   )}
                 </div>
               )}
