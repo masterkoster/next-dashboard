@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -15,9 +16,9 @@ import {
 } from "lucide-react"
 import { AreaChart, Area, BarChart, Bar, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts"
 
-// ── Mock data ──────────────────────────────────────────────────────────────────
+// ── Mock data (used as fallback until APIs wired) ─────────────────────────────
 
-const club = {
+const mockClub = {
   name: "Sky High Flying Club",
   icao: "KBOS",
   founded: "2018",
@@ -26,7 +27,7 @@ const club = {
   plan: "Pro",
 }
 
-const members = [
+const mockMembers = [
   { id: 1, name: "James Carter",    email: "james@example.com",  role: "Owner",   status: "Active",    hours: 412.3, balance: 0,     joined: "Jan 2020", medical: "May 2025" },
   { id: 2, name: "Sarah Johnson",   email: "sarah@example.com",  role: "Instructor", status: "Active", hours: 890.1, balance: -120,  joined: "Mar 2020", medical: "Aug 2025" },
   { id: 3, name: "Mike Wilson",     email: "mike@example.com",   role: "Member",  status: "Active",    hours: 67.4,  balance: 240,   joined: "Jun 2021", medical: "Oct 2024" },
@@ -36,24 +37,24 @@ const members = [
   { id: 7, name: "Dan Ortega",      email: "dan@example.com",    role: "Member",  status: "Pending",   hours: 0,     balance: 0,     joined: "Feb 2024", medical: "—" },
 ]
 
-const aircraft = [
+const mockAircraft = [
   { id: "a1", nNumber: "N172SP", nickname: "Skyhawk",  make: "Cessna",  model: "172S",       year: 2021, status: "Available",   rate: 165, hobbs: 98.2,   nextMx: "Mar 15, 2024", mxHours: 8.5 },
   { id: "a2", nNumber: "N9876P", nickname: "Warrior",  make: "Piper",   model: "PA-28-161",  year: 2019, status: "Maintenance", rate: 145, hobbs: 1842.3, nextMx: "Now",          mxHours: 0 },
   { id: "a3", nNumber: "N345AB", nickname: "Cherokee", make: "Piper",   model: "PA-32-300",  year: 1978, status: "Available",   rate: 135, hobbs: 4890.5, nextMx: "Jun 20, 2024", mxHours: 98.2 },
   { id: "a4", nNumber: "N5501X", nickname: "Arrow",    make: "Piper",   model: "PA-28R-201", year: 2003, status: "Reserved",    rate: 175, hobbs: 2201.7, nextMx: "Aug 10, 2024", mxHours: 156 },
 ]
 
-const dispatched = [
+const mockDispatched = [
   { id: "d1", pilot: "Sarah Johnson", aircraft: "N172SP", departed: "14:02",  eta: "16:30", route: "KBOS → KALB → KBOS", fuel: 28, status: "Airborne" },
   { id: "d2", pilot: "Emily Davis",   aircraft: "N5501X", departed: "13:45",  eta: "15:45", route: "KBOS → KMVY",         fuel: 18, status: "Airborne" },
 ]
 
-const awaitingDispatch = [
+const mockAwaitingDispatch = [
   { id: "w1", pilot: "Mike Wilson",  aircraft: "N345AB", plannedDep: "17:30", route: "KBOS → KACK",  filed: "10:22 AM" },
   { id: "w2", pilot: "Dan Ortega",   aircraft: "N172SP", plannedDep: "18:00", route: "KBOS Local",   filed: "12:55 PM" },
 ]
 
-const pastFlights = [
+const mockPastFlights = [
   { id: "f1", pilot: "James Carter",  aircraft: "N172SP", date: "Feb 22", hobbs: 1.8,  route: "KBOS → KEDU → KBOS",  cost: 297 },
   { id: "f2", pilot: "Sarah Johnson", aircraft: "N345AB", date: "Feb 21", hobbs: 2.5,  route: "KBOS → KALB → KBOS",  cost: 338 },
   { id: "f3", pilot: "Lisa Park",     aircraft: "N172SP", date: "Feb 20", hobbs: 1.2,  route: "KBOS Local",           cost: 198 },
@@ -61,28 +62,28 @@ const pastFlights = [
   { id: "f5", pilot: "Mike Wilson",   aircraft: "N172SP", date: "Feb 18", hobbs: 1.0,  route: "KBOS Local",           cost: 165 },
 ]
 
-const maintenance = [
+const mockMaintenance = [
   { id: "m1", aircraft: "N9876P", item: "Annual Inspection",   status: "In Progress", due: "Mar 15", priority: "high",   shop: "Boston Avionics" },
   { id: "m2", aircraft: "N172SP", item: "Oil Change",          status: "Due",         due: "Mar 1",  priority: "urgent", shop: "—" },
   { id: "m3", aircraft: "N345AB", item: "100-Hour Inspection", status: "Scheduled",   due: "Jun 20", priority: "medium", shop: "Logan FBO" },
   { id: "m4", aircraft: "N5501X", item: "ELT Battery",         status: "OK",          due: "Aug 10", priority: "low",    shop: "—" },
 ]
 
-const pendingFuelExpenses = [
-  { id: "f1", pilot: "Sarah Johnson", aircraft: "N172SP", date: "Feb 22", gallons: 18.5, pricePerGal: 5.89, total: 108.97, status: "Pending", submittedAt: "Feb 22, 2026 4:30 PM" },
-  { id: "f2", pilot: "Mike Wilson", aircraft: "N345AB", date: "Feb 21", gallons: 22.3, pricePerGal: 5.75, total: 128.23, status: "Pending", submittedAt: "Feb 21, 2026 6:15 PM" },
-  { id: "f3", pilot: "Emily Davis", aircraft: "N5501X", date: "Feb 19", gallons: 35.0, pricePerGal: 5.95, total: 208.25, status: "Pending", submittedAt: "Feb 19, 2026 8:45 PM" },
-  { id: "f4", pilot: "James Carter", aircraft: "N172SP", date: "Feb 18", gallons: 16.2, pricePerGal: 5.89, total: 95.42, status: "Approved", submittedAt: "Feb 18, 2026 3:20 PM" },
+const mockPendingFuelExpenses = [
+  { id: "f1", pilot: "Sarah Johnson", aircraft: "N172SP", date: "Feb 22", gallons: 18.5, pricePerGal: 5.89, total: 108.97, status: "PENDING", submittedAt: "Feb 22, 2026 4:30 PM" },
+  { id: "f2", pilot: "Mike Wilson", aircraft: "N345AB", date: "Feb 21", gallons: 22.3, pricePerGal: 5.75, total: 128.23, status: "PENDING", submittedAt: "Feb 21, 2026 6:15 PM" },
+  { id: "f3", pilot: "Emily Davis", aircraft: "N5501X", date: "Feb 19", gallons: 35.0, pricePerGal: 5.95, total: 208.25, status: "PENDING", submittedAt: "Feb 19, 2026 8:45 PM" },
+  { id: "f4", pilot: "James Carter", aircraft: "N172SP", date: "Feb 18", gallons: 16.2, pricePerGal: 5.89, total: 95.42, status: "APPROVED", submittedAt: "Feb 18, 2026 3:20 PM" },
 ]
 
-const pendingMaintenanceIssues = [
+const mockPendingMaintenanceIssues = [
   { id: "mx1", pilot: "Sarah Johnson", aircraft: "N172SP", date: "Feb 22", issue: "Low oil pressure indication during climb", category: "Engine", isPlaneSpecific: true, severity: "high", status: "Pending Review", flightId: "flt-001" },
   { id: "mx2", pilot: "Mike Wilson", aircraft: "N345AB", date: "Feb 20", issue: "Landing gear retract light intermittent", category: "Avionics", isPlaneSpecific: true, severity: "medium", status: "Pending Review", flightId: "flt-002" },
   { id: "mx3", pilot: "Emily Davis", aircraft: "N172SP", date: "Feb 18", issue: "Flap actuator making noise", category: "Airframe", isPlaneSpecific: false, severity: "low", status: "Pending Review", flightId: "flt-003" },
 ]
 
 // Maintenance history for each aircraft
-const maintenanceHistory = {
+const mockMaintenanceHistory = {
   "N172SP": [
     { id: "h1", date: "Feb 15, 2026", item: "Oil Change", type: "Scheduled", status: "Completed", cost: 150, hobbs: 1250.0, shop: "Self" },
     { id: "h2", date: "Jan 20, 2026", item: "Annual Inspection", type: "Scheduled", status: "Completed", cost: 2800, hobbs: 1200.5, shop: "Boston Avionics" },
@@ -106,7 +107,7 @@ const maintenanceHistory = {
   ],
 }
 
-const billing = [
+const mockBilling = [
   { id: "b1", member: "Mike Wilson",   type: "Flight",          aircraft: "N172SP", date: "Feb 22", amount: 297,  status: "Paid" },
   { id: "b2", member: "Tom Reynolds",  type: "Monthly Dues",    aircraft: "—",      date: "Feb 1",  amount: 120,  status: "Overdue" },
   { id: "b3", member: "Emily Davis",   type: "Flight",          aircraft: "N5501X", date: "Feb 19", amount: 543,  status: "Paid" },
@@ -234,9 +235,378 @@ function PlaceholderPanel({ title, description }: { title: string; description: 
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export default function ClubAdminPage() {
+  const { data: session } = useSession()
+
   const [activeTab, setActiveTab] = useState<Tab>("overview")
   const [memberSearch, setMemberSearch] = useState("")
   const [selectedAircraft, setSelectedAircraft] = useState<string | null>(null)
+  const [groupId, setGroupId] = useState<string | null>(null)
+
+  // Live data state (with mock fallbacks)
+  const [club, setClub] = useState(mockClub)
+  const [members, setMembers] = useState<any[]>(mockMembers)
+  const [aircraft, setAircraft] = useState<any[]>(mockAircraft)
+  const [awaitingDispatch, setAwaitingDispatch] = useState<any[]>(mockAwaitingDispatch)
+  const [dispatched, setDispatched] = useState<any[]>(mockDispatched)
+  const [pastFlights, setPastFlights] = useState<any[]>(mockPastFlights)
+  const [billing, setBilling] = useState<any[]>(mockBilling)
+  const [fuelExpenses, setFuelExpenses] = useState<any[]>(mockPendingFuelExpenses)
+  const [maintenanceIssues, setMaintenanceIssues] = useState<any[]>(mockPendingMaintenanceIssues)
+  const [maintenanceHistory, setMaintenanceHistory] = useState<Record<string, any[]>>(mockMaintenanceHistory as any)
+
+  // Loading / error flags
+  const [isMembersLoading, setIsMembersLoading] = useState(false)
+  const [membersError, setMembersError] = useState<string | null>(null)
+
+  const [isFuelLoading, setIsFuelLoading] = useState(false)
+  const [fuelError, setFuelError] = useState<string | null>(null)
+  const [fuelActionId, setFuelActionId] = useState<string | null>(null)
+
+  const [isIssuesLoading, setIsIssuesLoading] = useState(false)
+  const [issuesError, setIssuesError] = useState<string | null>(null)
+  const [maintenanceActionId, setMaintenanceActionId] = useState<string | null>(null)
+
+  const [isBillingLoading, setIsBillingLoading] = useState(false)
+  const [billingError, setBillingError] = useState<string | null>(null)
+
+  const [isFlightsLoading, setIsFlightsLoading] = useState(false)
+  const [flightsError, setFlightsError] = useState<string | null>(null)
+
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState<string | null>(null)
+
+  // Determine admin group
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadGroups() {
+      try {
+        const res = await fetch("/api/groups")
+        if (!res.ok) return
+        const data = await res.json()
+        if (!Array.isArray(data) || data.length === 0) return
+
+        const adminGroup =
+          data.find((g: any) => g.role === "ADMIN" || g.role === "OWNER") ?? data[0]
+        if (!adminGroup || cancelled) return
+
+        setGroupId(adminGroup.id)
+
+        setClub(prev => ({
+          ...prev,
+          name: adminGroup.name ?? prev.name,
+        }))
+      } catch (err) {
+        console.error("Failed to load groups for admin page", err)
+      }
+    }
+
+    loadGroups()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Members
+  useEffect(() => {
+    if (!groupId) return
+    let cancelled = false
+
+    async function loadMembers() {
+      try {
+        setIsMembersLoading(true)
+        setMembersError(null)
+
+        const res = await fetch(`/api/admin/members?groupId=${groupId}`)
+        if (!res.ok) throw new Error(`Failed to fetch members: ${res.status}`)
+        const data = await res.json()
+        if (!cancelled) setMembers(data)
+      } catch (err) {
+        console.error("Failed to load members", err)
+        if (!cancelled) {
+          setMembersError("Failed to load members. Showing sample data.")
+          setMembers(mockMembers)
+        }
+      } finally {
+        if (!cancelled) setIsMembersLoading(false)
+      }
+    }
+
+    loadMembers()
+    return () => {
+      cancelled = true
+    }
+  }, [groupId])
+
+  // Aircraft
+  useEffect(() => {
+    if (!groupId) return
+    let cancelled = false
+
+    async function loadAircraft() {
+      try {
+        const res = await fetch(`/api/admin/aircraft?groupId=${groupId}`)
+        if (!res.ok) throw new Error(`Failed to fetch aircraft: ${res.status}`)
+        const data = await res.json()
+        if (!cancelled) setAircraft(data)
+      } catch (err) {
+        console.error("Failed to load aircraft", err)
+        if (!cancelled) setAircraft(mockAircraft)
+      }
+    }
+
+    loadAircraft()
+    return () => {
+      cancelled = true
+    }
+  }, [groupId])
+
+  // Flights (awaiting, dispatched, past)
+  useEffect(() => {
+    if (!groupId) return
+    let cancelled = false
+
+    async function loadFlights() {
+      try {
+        setIsFlightsLoading(true)
+        setFlightsError(null)
+
+        const [pastRes, dispatchedRes, awaitingRes] = await Promise.all([
+          fetch(`/api/admin/flights?groupId=${groupId}&type=past`),
+          fetch(`/api/admin/flights?groupId=${groupId}&type=dispatched`),
+          fetch(`/api/admin/flights?groupId=${groupId}&type=awaiting`),
+        ])
+
+        if (!pastRes.ok || !dispatchedRes.ok || !awaitingRes.ok) {
+          throw new Error("Failed to fetch flights")
+        }
+
+        const [pastData, dispatchedData, awaitingData] = await Promise.all([
+          pastRes.json(),
+          dispatchedRes.json(),
+          awaitingRes.json(),
+        ])
+
+        if (cancelled) return
+        setPastFlights(Array.isArray(pastData) ? pastData : pastData.flights ?? [])
+        setDispatched(Array.isArray(dispatchedData) ? dispatchedData : dispatchedData.flights ?? [])
+        setAwaitingDispatch(Array.isArray(awaitingData) ? awaitingData : awaitingData.flights ?? [])
+      } catch (err) {
+        console.error("Failed to load flights", err)
+        if (!cancelled) {
+          setFlightsError("Failed to load flights. Showing sample data.")
+          setPastFlights(mockPastFlights)
+          setDispatched(mockDispatched)
+          setAwaitingDispatch(mockAwaitingDispatch)
+        }
+      } finally {
+        if (!cancelled) setIsFlightsLoading(false)
+      }
+    }
+
+    loadFlights()
+    return () => {
+      cancelled = true
+    }
+  }, [groupId])
+
+  // Billing
+  useEffect(() => {
+    if (!groupId) return
+    let cancelled = false
+
+    async function loadBilling() {
+      try {
+        setIsBillingLoading(true)
+        setBillingError(null)
+
+        const res = await fetch(`/api/admin/billing?groupId=${groupId}`)
+        if (!res.ok) throw new Error(`Failed to fetch billing: ${res.status}`)
+        const data = await res.json()
+        if (!cancelled) {
+          const tx = Array.isArray(data) ? data : data.transactions ?? []
+          setBilling(tx)
+        }
+      } catch (err) {
+        console.error("Failed to load billing", err)
+        if (!cancelled) {
+          setBillingError("Failed to load billing. Showing sample data.")
+          setBilling(mockBilling)
+        }
+      } finally {
+        if (!cancelled) setIsBillingLoading(false)
+      }
+    }
+
+    loadBilling()
+    return () => {
+      cancelled = true
+    }
+  }, [groupId])
+
+  // Fuel expenses
+  useEffect(() => {
+    if (!groupId) return
+    let cancelled = false
+
+    async function loadFuelExpenses() {
+      try {
+        setIsFuelLoading(true)
+        setFuelError(null)
+
+        const res = await fetch(`/api/admin/fuel-expenses?groupId=${groupId}`)
+        if (!res.ok) throw new Error(`Failed to fetch fuel expenses: ${res.status}`)
+        const data = await res.json()
+        const expenses = Array.isArray(data) ? data : data.expenses ?? []
+        if (!cancelled) setFuelExpenses(expenses)
+      } catch (err) {
+        console.error("Failed to load fuel expenses", err)
+        if (!cancelled) {
+          setFuelError("Failed to load fuel expenses. Showing sample data.")
+          setFuelExpenses(mockPendingFuelExpenses)
+        }
+      } finally {
+        if (!cancelled) setIsFuelLoading(false)
+      }
+    }
+
+    loadFuelExpenses()
+    return () => {
+      cancelled = true
+    }
+  }, [groupId])
+
+  // Maintenance issues
+  useEffect(() => {
+    if (!groupId) return
+    let cancelled = false
+
+    async function loadIssues() {
+      try {
+        setIsIssuesLoading(true)
+        setIssuesError(null)
+
+        const res = await fetch(`/api/admin/maintenance/issues?groupId=${groupId}`)
+        if (!res.ok) throw new Error(`Failed to fetch maintenance issues: ${res.status}`)
+        const data = await res.json()
+        const issues = Array.isArray(data) ? data : data.issues ?? []
+        if (!cancelled) setMaintenanceIssues(issues)
+      } catch (err) {
+        console.error("Failed to load maintenance issues", err)
+        if (!cancelled) {
+          setIssuesError("Failed to load maintenance issues. Showing sample data.")
+          setMaintenanceIssues(mockPendingMaintenanceIssues)
+        }
+      } finally {
+        if (!cancelled) setIsIssuesLoading(false)
+      }
+    }
+
+    loadIssues()
+    return () => {
+      cancelled = true
+    }
+  }, [groupId])
+
+  // Maintenance history for selected aircraft
+  useEffect(() => {
+    if (!selectedAircraft) return
+    let cancelled = false
+
+    async function loadHistory() {
+      try {
+        setIsHistoryLoading(true)
+        setHistoryError(null)
+
+        const res = await fetch(
+          `/api/admin/maintenance/history?nNumber=${encodeURIComponent(selectedAircraft)}`
+        )
+        if (!res.ok) throw new Error(`Failed to fetch history: ${res.status}`)
+        const data = await res.json()
+        const history = Array.isArray(data) ? data : data.history ?? []
+
+        if (!cancelled) {
+          setMaintenanceHistory(prev => ({
+            ...prev,
+            [selectedAircraft]: history,
+          }))
+        }
+      } catch (err) {
+        console.error("Failed to load maintenance history", err)
+        if (!cancelled) {
+          setHistoryError("Failed to load maintenance history. Showing sample data if available.")
+        }
+      } finally {
+        if (!cancelled) setIsHistoryLoading(false)
+      }
+    }
+
+    loadHistory()
+    return () => {
+      cancelled = true
+    }
+  }, [selectedAircraft])
+
+  async function handleFuelAction(id: string, action: "approve" | "deny") {
+    try {
+      setFuelActionId(id)
+      setFuelError(null)
+
+      const res = await fetch(`/api/admin/fuel-expenses/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      })
+      if (!res.ok) throw new Error(`Failed to ${action} fuel expense`)
+
+      setFuelExpenses(prev =>
+        prev.map(f =>
+          f.id === id
+            ? {
+                ...f,
+                status: action === "approve" ? "APPROVED" : "DENIED",
+                approvedAt:
+                  action === "approve" ? new Date().toISOString() : f.approvedAt,
+              }
+            : f,
+        ),
+      )
+    } catch (err) {
+      console.error("Fuel approval action failed", err)
+      setFuelError("Action failed. Please try again.")
+    } finally {
+      setFuelActionId(null)
+    }
+  }
+
+  async function handleMaintenanceAction(
+    id: string,
+    action: "dismiss" | "create-work-order",
+  ) {
+    try {
+      setMaintenanceActionId(id)
+      setIssuesError(null)
+
+      const res = await fetch(`/api/admin/maintenance/issues/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      })
+      if (!res.ok) throw new Error(`Failed to ${action} maintenance issue`)
+
+      const updated = await res.json()
+      const issue = updated.issue ?? updated
+
+      setMaintenanceIssues(prev =>
+        prev.map(i => (i.id === id ? { ...i, ...issue } : i)),
+      )
+    } catch (err) {
+      console.error("Maintenance action failed", err)
+      setIssuesError("Action failed. Please try again.")
+    } finally {
+      setMaintenanceActionId(null)
+    }
+  }
 
   const filteredMembers = members.filter(m =>
     m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
@@ -407,8 +777,20 @@ export default function ClubAdminPage() {
           {activeTab === "awaiting-dispatch" && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Awaiting Dispatch ({awaitingDispatch.length})</CardTitle>
-                <CardDescription className="text-xs">Flights filed and pending release by a dispatcher</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm">Awaiting Dispatch ({awaitingDispatch.length})</CardTitle>
+                    <CardDescription className="text-xs">
+                      Flights filed and pending release by a dispatcher
+                      {flightsError && (
+                        <span className="ml-2 text-destructive">{flightsError}</span>
+                      )}
+                      {isFlightsLoading && !flightsError && (
+                        <span className="ml-2 text-muted-foreground">Loading…</span>
+                      )}
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -440,8 +822,20 @@ export default function ClubAdminPage() {
           {activeTab === "currently-dispatched" && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-sm">Currently Dispatched ({dispatched.length})</CardTitle>
-                <CardDescription className="text-xs">Flights currently airborne with an active dispatch release</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm">Currently Dispatched ({dispatched.length})</CardTitle>
+                    <CardDescription className="text-xs">
+                      Flights currently airborne with an active dispatch release
+                      {flightsError && (
+                        <span className="ml-2 text-destructive">{flightsError}</span>
+                      )}
+                      {isFlightsLoading && !flightsError && (
+                        <span className="ml-2 text-muted-foreground">Loading…</span>
+                      )}
+                    </CardDescription>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
@@ -476,7 +870,15 @@ export default function ClubAdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-sm">Past Flights</CardTitle>
-                    <CardDescription className="text-xs">Complete flight history for the club</CardDescription>
+                    <CardDescription className="text-xs">
+                      Complete flight history for the club
+                      {flightsError && (
+                        <span className="ml-2 text-destructive">{flightsError}</span>
+                      )}
+                      {isFlightsLoading && !flightsError && (
+                        <span className="ml-2 text-muted-foreground">Loading…</span>
+                      )}
+                    </CardDescription>
                   </div>
                   <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
                     <Download className="h-3 w-3" /> Export CSV
@@ -521,7 +923,15 @@ export default function ClubAdminPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-sm">Members ({members.length})</CardTitle>
-                    <CardDescription className="text-xs">All club members and their standing</CardDescription>
+                    <CardDescription className="text-xs">
+                      All club members and their standing
+                      {membersError && (
+                        <span className="ml-2 text-destructive">{membersError}</span>
+                      )}
+                      {isMembersLoading && !membersError && (
+                        <span className="ml-2 text-muted-foreground">Loading…</span>
+                      )}
+                    </CardDescription>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="relative">
@@ -601,7 +1011,15 @@ export default function ClubAdminPage() {
                         <Wrench className="h-4 w-4" />
                         Maintenance History: {selectedAircraft}
                       </CardTitle>
-                      <CardDescription className="text-xs">Complete maintenance records for this aircraft</CardDescription>
+                      <CardDescription className="text-xs">
+                        Complete maintenance records for this aircraft
+                        {historyError && (
+                          <span className="ml-2 text-destructive">{historyError}</span>
+                        )}
+                        {isHistoryLoading && !historyError && (
+                          <span className="ml-2 text-muted-foreground">Loading…</span>
+                        )}
+                      </CardDescription>
                     </div>
                     <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
                       <Download className="h-3 w-3" /> Export
@@ -744,12 +1162,12 @@ export default function ClubAdminPage() {
           {/* ── BILLING / TRANSACTIONS ────────────────────────────────────────── */}
           {activeTab === "billing" && (
             <>
-              <div className="grid gap-4 sm:grid-cols-3">
-                {[
-                  { label: "Outstanding Balance", value: "-$600", sub: "2 members overdue", color: "text-destructive" },
-                  { label: "Collected This Month", value: "$9,200", sub: "from flights & dues", color: "text-chart-2" },
-                  { label: "Pending Invoices", value: "3", sub: "awaiting payment", color: "text-chart-3" },
-                ].map((s) => (
+          <div className="grid gap-4 sm:grid-cols-3">
+            {[
+              { label: "Outstanding Balance", value: "-$600", sub: "2 members overdue", color: "text-destructive" },
+              { label: "Collected This Month", value: "$9,200", sub: "from flights & dues", color: "text-chart-2" },
+              { label: "Pending Invoices", value: "3", sub: "awaiting payment", color: "text-chart-3" },
+            ].map((s) => (
                   <Card key={s.label}>
                     <CardHeader className="pb-2">
                       <CardTitle className="text-xs text-muted-foreground">{s.label}</CardTitle>
@@ -763,9 +1181,21 @@ export default function ClubAdminPage() {
               </div>
 
               <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Recent Transactions</CardTitle>
-                </CardHeader>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-sm">Recent Transactions</CardTitle>
+                    <CardDescription className="text-xs">
+                      {billingError && (
+                        <span className="text-destructive">{billingError}</span>
+                      )}
+                      {isBillingLoading && !billingError && (
+                        <span className="text-muted-foreground">Loading…</span>
+                      )}
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
                 <CardContent>
                   <div className="overflow-x-auto">
                     <table className="w-full text-xs">
@@ -858,7 +1288,7 @@ export default function ClubAdminPage() {
                     <CardTitle className="text-xs text-muted-foreground">Pending Approval</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-chart-3">{pendingFuelExpenses.filter(f => f.status === "Pending").length}</p>
+                    <p className="text-2xl font-bold text-chart-3">{fuelExpenses.filter(f => f.status === "PENDING").length}</p>
                     <p className="text-xs text-muted-foreground">expenses waiting</p>
                   </CardContent>
                 </Card>
@@ -867,7 +1297,7 @@ export default function ClubAdminPage() {
                     <CardTitle className="text-xs text-muted-foreground">Total Pending</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">${pendingFuelExpenses.filter(f => f.status === "Pending").reduce((sum, f) => sum + f.total, 0).toFixed(2)}</p>
+                    <p className="text-2xl font-bold">${fuelExpenses.filter(f => f.status === "PENDING").reduce((sum, f) => sum + f.total, 0).toFixed(2)}</p>
                     <p className="text-xs text-muted-foreground">fuel expenses</p>
                   </CardContent>
                 </Card>
@@ -876,6 +1306,7 @@ export default function ClubAdminPage() {
                     <CardTitle className="text-xs text-muted-foreground">This Month</CardTitle>
                   </CardHeader>
                   <CardContent>
+                    {/* TODO: Replace with real month stats from API */}
                     <p className="text-2xl font-bold text-chart-2">$540.87</p>
                     <p className="text-xs text-muted-foreground">approved fuel</p>
                   </CardContent>
@@ -888,16 +1319,24 @@ export default function ClubAdminPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-sm">Pending Fuel Expenses</CardTitle>
-                      <CardDescription className="text-xs">Review and approve fuel expenses submitted after flights</CardDescription>
+                      <CardDescription className="text-xs">
+                        Review and approve fuel expenses submitted after flights
+                        {fuelError && (
+                          <span className="ml-2 text-destructive">{fuelError}</span>
+                        )}
+                        {isFuelLoading && !fuelError && (
+                          <span className="ml-2 text-muted-foreground">Loading</span>
+                        )}
+                      </CardDescription>
                     </div>
                     <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
                       <Download className="h-3 w-3" /> Export
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {pendingFuelExpenses.filter(f => f.status === "Pending").map((fuel) => (
+                  <CardContent>
+                    <div className="space-y-3">
+                    {fuelExpenses.filter(f => f.status === "PENDING").map((fuel) => (
                       <div key={fuel.id} className="flex items-center justify-between rounded-lg border border-border p-4">
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -915,9 +1354,24 @@ export default function ClubAdminPage() {
                           <div className="text-right">
                             <p className="text-sm font-bold">${fuel.total.toFixed(2)}</p>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button size="sm" variant="outline" className="h-7 text-xs">Deny</Button>
-                            <Button size="sm" className="h-7 text-xs">Approve</Button>
+                        <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              disabled={isFuelLoading || fuelActionId === fuel.id}
+                              onClick={() => handleFuelAction(fuel.id, 'deny')}
+                            >
+                              Deny
+                            </Button>
+                            <Button
+                              size="sm"
+                              className="h-7 text-xs"
+                              disabled={isFuelLoading || fuelActionId === fuel.id}
+                              onClick={() => handleFuelAction(fuel.id, 'approve')}
+                            >
+                              Approve
+                            </Button>
                           </div>
                         </div>
                       </div>
@@ -942,7 +1396,7 @@ export default function ClubAdminPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {pendingFuelExpenses.filter(f => f.status === "Approved").map((fuel) => (
+                        {fuelExpenses.filter(f => f.status === "APPROVED").map((fuel) => (
                           <tr key={fuel.id} className="border-b border-border/50 last:border-0">
                             <td className="py-2.5 pr-4 font-medium">{fuel.pilot}</td>
                             <td className="py-2.5 pr-4"><Badge variant="outline" className="text-xs">{fuel.aircraft}</Badge></td>
@@ -951,7 +1405,7 @@ export default function ClubAdminPage() {
                             <td className="py-2.5 pr-4 text-muted-foreground">${fuel.pricePerGal}</td>
                             <td className="py-2.5 pr-4 font-medium">${fuel.total.toFixed(2)}</td>
                             <td className="py-2.5 pr-4"><StatusBadge status="Approved" /></td>
-                            <td className="py-2.5 pr-4 text-muted-foreground">Feb 18</td>
+                            <td className="py-2.5 pr-4 text-muted-foreground">{fuel.approvedAt ? new Date(fuel.approvedAt).toLocaleDateString() : '-'}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -972,7 +1426,7 @@ export default function ClubAdminPage() {
                     <CardTitle className="text-xs text-muted-foreground">Pending Review</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-chart-3">{pendingMaintenanceIssues.length}</p>
+                    <p className="text-2xl font-bold text-chart-3">{maintenanceIssues.length}</p>
                     <p className="text-xs text-muted-foreground">issues reported</p>
                   </CardContent>
                 </Card>
@@ -981,7 +1435,7 @@ export default function ClubAdminPage() {
                     <CardTitle className="text-xs text-muted-foreground">High Priority</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-destructive">{pendingMaintenanceIssues.filter(m => m.severity === "high").length}</p>
+                    <p className="text-2xl font-bold text-destructive">{maintenanceIssues.filter(m => m.severity === "high").length}</p>
                     <p className="text-xs text-muted-foreground">require attention</p>
                   </CardContent>
                 </Card>
@@ -990,7 +1444,7 @@ export default function ClubAdminPage() {
                     <CardTitle className="text-xs text-muted-foreground">Plane-Specific</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold text-chart-4">{pendingMaintenanceIssues.filter(m => m.isPlaneSpecific).length}</p>
+                    <p className="text-2xl font-bold text-chart-4">{maintenanceIssues.filter(m => m.isPlaneSpecific).length}</p>
                     <p className="text-xs text-muted-foreground">need inspection</p>
                   </CardContent>
                 </Card>
@@ -1000,18 +1454,26 @@ export default function ClubAdminPage() {
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-sm">Maintenance Issues Requiring Review</CardTitle>
-                      <CardDescription className="text-xs">Plane-specific issues reported by pilots after flights</CardDescription>
-                    </div>
+                      <div>
+                        <CardTitle className="text-sm">Maintenance Issues Requiring Review</CardTitle>
+                        <CardDescription className="text-xs">
+                          Plane-specific issues reported by pilots after flights
+                          {issuesError && (
+                            <span className="ml-2 text-destructive">{issuesError}</span>
+                          )}
+                          {isIssuesLoading && !issuesError && (
+                            <span className="ml-2 text-muted-foreground">Loading…</span>
+                          )}
+                        </CardDescription>
+                      </div>
                     <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
                       <Download className="h-3 w-3" /> Export
                     </Button>
                   </div>
                 </CardHeader>
-                <CardContent>
+                  <CardContent>
                   <div className="space-y-3">
-                    {pendingMaintenanceIssues.map((issue) => (
+                    {maintenanceIssues.map((issue) => (
                       <div key={issue.id} className={`flex items-center justify-between rounded-lg border p-4 ${issue.severity === "high" ? "border-destructive/50 bg-destructive/5" : "border-border"}`}>
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
@@ -1035,8 +1497,23 @@ export default function ClubAdminPage() {
                           </div>
                         </div>
                         <div className="flex items-center gap-2">
-                          <Button size="sm" variant="outline" className="h-7 text-xs">Dismiss</Button>
-                          <Button size="sm" className="h-7 text-xs">Create Work Order</Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            disabled={isIssuesLoading || maintenanceActionId === issue.id}
+                            onClick={() => handleMaintenanceAction(issue.id, "dismiss")}
+                          >
+                            Dismiss
+                          </Button>
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs"
+                            disabled={isIssuesLoading || maintenanceActionId === issue.id}
+                            onClick={() => handleMaintenanceAction(issue.id, "create-work-order")}
+                          >
+                            Create Work Order
+                          </Button>
                         </div>
                       </div>
                     ))}
