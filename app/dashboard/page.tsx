@@ -7,6 +7,14 @@ import { useSession } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { FlightScheduler } from "@/components/scheduler/FlightScheduler"
 import { Separator } from "@/components/ui/separator"
 import { 
   Plane, 
@@ -134,6 +142,7 @@ export default function PilotDashboard() {
   const [scheduledFlights, setScheduledFlights] = useState<any[]>([])
   const [isScheduledLoading, setIsScheduledLoading] = useState(false)
   const [scheduledError, setScheduledError] = useState<string | null>(null)
+  const [showScheduler, setShowScheduler] = useState(false)
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -658,9 +667,12 @@ export default function PilotDashboard() {
                       <option value="30">Next 30 days</option>
                       <option value="all">All upcoming</option>
                     </select>
-                    <Button size="sm" variant="outline" onClick={() => router.push('/modules/flying-club?tab=bookings')}>
+                    <Button size="sm" variant="outline" onClick={() => setShowScheduler(true)}>
                       <Plus className="mr-1 h-4 w-4" />
                       Add
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => router.push('/scheduler')}>
+                      Open Scheduler
                     </Button>
                   </div>
                 </div>
@@ -710,6 +722,18 @@ export default function PilotDashboard() {
             </Card>
             )}
           </div>
+
+          <Dialog open={showScheduler} onOpenChange={setShowScheduler}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Schedule a Flight</DialogTitle>
+                <DialogDescription>
+                  Choose personal or flying club scheduling. Availability updates automatically.
+                </DialogDescription>
+              </DialogHeader>
+              <FlightScheduler onSuccess={() => setShowScheduler(false)} />
+            </DialogContent>
+          </Dialog>
 
           {/* Maintenance & Currency */}
           <div className="grid gap-4 lg:grid-cols-2">
