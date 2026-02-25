@@ -42,10 +42,6 @@ export async function GET(request: Request) {
         where: { 
           aircraftId: { in: aircraftIds }
         },
-        include: {
-          // We need to join with User to get pilot name
-          // But FlightLog doesn't have direct relation, we use userId
-        },
         orderBy: { date: 'desc' },
         take: 50
       });
