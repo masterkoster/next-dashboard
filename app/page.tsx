@@ -52,15 +52,49 @@ const WIDGET_INFO: Record<WidgetType, { name: string; description: string }> = {
   'flight-plans': { name: 'Saved Flight Plans', description: 'Quick access to your routes' },
 }
 
-// Flight hours over past 6 months
-const flightHoursData = [
-  { month: "Sep", hours: 12.5 },
-  { month: "Oct", hours: 15.2 },
-  { month: "Nov", hours: 9.8 },
-  { month: "Dec", hours: 18.4 },
-  { month: "Jan", hours: 14.6 },
-  { month: "Feb", hours: 16.2 },
-]
+// Generate flight hours data at different granularities
+const generateFlightHoursData = (zoomLevel: 'year' | 'months' | 'weeks' | 'days') => {
+  switch (zoomLevel) {
+    case 'year':
+      return [
+        { label: "2020", hours: 145 },
+        { label: "2021", hours: 168 },
+        { label: "2022", hours: 142 },
+        { label: "2023", hours: 156 },
+        { label: "2024", hours: 87 },
+      ]
+    case 'months':
+      return [
+        { label: "Sep", hours: 12.5 },
+        { label: "Oct", hours: 15.2 },
+        { label: "Nov", hours: 9.8 },
+        { label: "Dec", hours: 18.4 },
+        { label: "Jan", hours: 14.6 },
+        { label: "Feb", hours: 16.2 },
+      ]
+    case 'weeks':
+      return [
+        { label: "W1", hours: 3.2 },
+        { label: "W2", hours: 4.1 },
+        { label: "W3", hours: 2.8 },
+        { label: "W4", hours: 6.1 },
+        { label: "W5", hours: 3.5 },
+        { label: "W6", hours: 4.7 },
+        { label: "W7", hours: 3.9 },
+        { label: "W8", hours: 5.2 },
+      ]
+    case 'days':
+      return [
+        { label: "Mon", hours: 0 },
+        { label: "Tue", hours: 1.2 },
+        { label: "Wed", hours: 0 },
+        { label: "Thu", hours: 2.1 },
+        { label: "Fri", hours: 0 },
+        { label: "Sat", hours: 3.8 },
+        { label: "Sun", hours: 2.5 },
+      ]
+  }
+}
 
 // Upcoming maintenance items
 const maintenanceItems = [
@@ -103,6 +137,7 @@ export default function PilotDashboard() {
     'currency',
     'flight-plans',
   ])
+  const [chartZoomLevel, setChartZoomLevel] = useState<'year' | 'months' | 'weeks' | 'days'>('months')
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -333,12 +368,78 @@ export default function PilotDashboard() {
             {isWidgetVisible('flight-hours') && (
             <Card className="lg:col-span-4">
               <CardHeader>
-                <CardTitle>Flight Hours</CardTitle>
-                <CardDescription>Your flying activity over the past 6 months</CardDescription>
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle>Flight Hours</CardTitle>
+                    <CardDescription>
+                      {chartZoomLevel === 'year' && 'Your flying activity over the past 5 years'}
+                      {chartZoomLevel === 'months' && 'Your flying activity over the past 6 months'}
+                      {chartZoomLevel === 'weeks' && 'Your flying activity over the past 8 weeks'}
+                      {chartZoomLevel === 'days' && 'Your flying activity this week'}
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7"
+                      onClick={() => {
+                        const levels: Array<'year' | 'months' | 'weeks' | 'days'> = ['days', 'weeks', 'months', 'year']
+                        const currentIndex = levels.indexOf(chartZoomLevel)
+                        if (currentIndex < levels.length - 1) {
+                          setChartZoomLevel(levels[currentIndex + 1])
+                        }
+                      }}
+                      disabled={chartZoomLevel === 'year'}
+                      title="Zoom out"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM13 10H7" />
+                      </svg>
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-7 w-7"
+                      onClick={() => {
+                        const levels: Array<'year' | 'months' | 'weeks' | 'days'> = ['year', 'months', 'weeks', 'days']
+                        const currentIndex = levels.indexOf(chartZoomLevel)
+                        if (currentIndex < levels.length - 1) {
+                          setChartZoomLevel(levels[currentIndex + 1])
+                        }
+                      }}
+                      disabled={chartZoomLevel === 'days'}
+                      title="Zoom in"
+                    >
+                      <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      </svg>
+                    </Button>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="pl-2">
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={flightHoursData}>
+                <div 
+                  onWheel={(e) => {
+                    e.preventDefault()
+                    const levels: Array<'year' | 'months' | 'weeks' | 'days'> = ['year', 'months', 'weeks', 'days']
+                    const currentIndex = levels.indexOf(chartZoomLevel)
+                    
+                    if (e.deltaY < 0) {
+                      // Scroll up = zoom in
+                      if (currentIndex < levels.length - 1) {
+                        setChartZoomLevel(levels[currentIndex + 1])
+                      }
+                    } else {
+                      // Scroll down = zoom out
+                      if (currentIndex > 0) {
+                        setChartZoomLevel(levels[currentIndex - 1])
+                      }
+                    }
+                  }}
+                >
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={generateFlightHoursData(chartZoomLevel)}>
                     <defs>
                       <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
@@ -347,7 +448,7 @@ export default function PilotDashboard() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
                     <XAxis 
-                      dataKey="month" 
+                      dataKey="label" 
                       tick={{ fill: '#94a3b8', fontSize: 12 }}
                       stroke="#475569"
                     />
@@ -374,6 +475,7 @@ export default function PilotDashboard() {
                     />
                   </AreaChart>
                 </ResponsiveContainer>
+                </div>
                 <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Hours (Last 6 months)</p>
