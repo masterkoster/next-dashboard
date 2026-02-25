@@ -1255,3 +1255,142 @@ model NotificationPreference {
   @@index([userId])
   @@map("NotificationPreference")
 }
+
+// ============ MECHANIC MARKETPLACE ============
+
+model Mechanic {
+  id              String   @id @default(uuid()) @db.NVarChar(36)
+  
+  // Contact info
+  email           String   @unique @db.NVarChar(255)
+  name            String   @db.NVarChar(255)
+  phone           String?  @db.NVarChar(50)
+  
+  // Business info
+  businessName    String?  @db.NVarChar(255)
+  city            String?  @db.NVarChar(100)
+  state           String?  @db.NVarChar(50)
+  serviceArea     String?  @db.NVarChar(500) // Areas they service (comma-separated)
+  
+  // Specialties (JSON array)
+  specialties     String?  @db.NVarChar(Max) // e.g., ["piston", "turbine", "avionics"]
+  
+  // Bio
+  bio             String?  @db.NVarChar(Max)
+  yearsExperience Int?     @default(0)
+  
+  // Certification
+  certifications  String?  @db.NVarChar(Max) // JSON array of certs
+  certificateNumber String? @db.NVarChar(100)
+  iaNumber        String?  @db.NVarChar(100) // Inspection Authorization
+  a_pLicense      String?  @db.NVarChar(50)  // A&P license number
+  expiryDate      DateTime? // Certificate expiry
+  
+  // Rating
+  rating          Decimal  @default(0) @db.Decimal(3, 2)
+  reviewCount     Int      @default(0)
+  
+  // Status
+  isVerified      Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  
+  // Pricing
+  hourlyRate      Decimal? @db.Decimal(10, 2)
+  travelFee       Decimal? @db.Decimal(10, 2)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  quotes          MechanicQuote[]
+  
+  @@index([city, state])
+  @@index([isActive])
+  @@map("Mechanic")
+}
+
+// Public maintenance requests (shown in marketplace)
+model MaintenanceRequest {
+  id              String   @id @default(uuid()) @db.NVarChar(36)
+  
+  // Reference to internal maintenance if from club
+  maintenanceId   String?  @db.NVarChar(36)
+  groupId         String?  @db.NVarChar(36)
+  aircraftId      String?  @db.NVarChar(36)
+  
+  // Public info
+  title           String   @db.NVarChar(255)
+  description     String   @db.NVarChar(Max)
+  aircraftType    String?  @db.NVarChar(100) // e.g., "Cessna 172", "Piper Cherokee"
+  nNumber         String?  @db.NVarChar(10)
+  
+  // Location
+  airportIcao     String?  @db.NVarChar(10)
+  airportName     String?  @db.NVarChar(255)
+  city            String?  @db.NVarChar(100)
+  state           String?  @db.NVarChar(50)
+  
+  // Category
+  category        String   @db.NVarChar(50) // Engine, Avionics, Airframe, Oil, Prop, Electrical, OTHER
+  urgency         String   @default("NORMAL") @db.NVarChar(20) // LOW, NORMAL, HIGH, URGENT
+  
+  // Budget
+  budgetMin       Decimal? @db.Decimal(10, 2)
+  budgetMax       Decimal? @db.Decimal(10, 2)
+  
+  // Status
+  status          String   @default("OPEN") @db.NVarChar(20) // OPEN, IN_PROGRESS, COMPLETED, CANCELLED
+  
+  // User info (who posted)
+  postedByName    String?  @db.NVarChar(255)
+  postedByEmail   String?  @db.NVarChar(255)
+  postedByPhone   String?  @db.NVarChar(50)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  quotes          MechanicQuote[]
+  
+  @@index([category])
+  @@index([status])
+  @@index([city, state])
+  @@map("MaintenanceRequest")
+}
+
+// Quotes from mechanics on maintenance requests
+model MechanicQuote {
+  id              String   @id @default(uuid()) @db.NVarChar(36)
+  
+  // References
+  maintenanceRequestId String @db.NVarChar(36)
+  mechanicId      String   @db.NVarChar(36)
+  
+  // Quote details
+  amount          Decimal  @db.Decimal(10, 2)
+  description     String   @db.NVarChar(Max)
+  
+  // Timeline
+  estimatedDays   Int?     // Days to complete
+  availableDate   DateTime? // When they can start
+  
+  // Contact
+  contactMethod   String?  @db.NVarChar(50) // email, phone, both
+  notes           String?  @db.NVarChar(Max)
+  
+  // Status
+  status          String   @default("PENDING") @db.NVarChar(20) // PENDING, ACCEPTED, DECLINED, WITHDRAWN
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
+  mechanic          Mechanic            @relation(fields: [mechanicId], references: [id], onDelete: Cascade)
+  
+  @@index([maintenanceRequestId])
+  @@index([mechanicId])
+  @@index([status])
+  @@map("MechanicQuote")
+}

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   CheckCircle, 
   AlertTriangle, 
@@ -72,6 +73,8 @@ const MAINTENANCE_CATEGORIES = [
 export function FlightCompleteWizard({ open, onOpenChange, flight, onComplete }: FlightCompleteWizardProps) {
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
+  const totalSteps = 5;
+  const showSummaryStep = !data.hasIssues && step === 5;
   
   const [data, setData] = useState<FlightCompletionData>({
     flightId: flight.id,
@@ -85,7 +88,12 @@ export function FlightCompleteWizard({ open, onOpenChange, flight, onComplete }:
   });
 
   const handleNext = () => {
-    if (step < 6) setStep(step + 1);
+    // If going from step 4 (issues) and no issues, skip to summary (step 5)
+    if (step === 4 && !data.hasIssues) {
+      setStep(5); // Go to summary
+    } else if (step < 5) {
+      setStep(step + 1);
+    }
   };
 
   const handleBack = () => {
@@ -294,99 +302,170 @@ export function FlightCompleteWizard({ open, onOpenChange, flight, onComplete }:
           return null;
         }
         return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-2">What type of issue?</h3>
-              <p className="text-muted-foreground">Select the category or describe the problem</p>
+          <div className="space-y-3">
+            <div className="text-center pb-1">
+              <h3 className="text-lg font-semibold">What type of issue?</h3>
+              <p className="text-sm text-muted-foreground">Select category</p>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              {MAINTENANCE_CATEGORIES.map((cat) => (
+            <ScrollArea className="h-[200px] pr-2">
+              <div className="grid grid-cols-2 gap-2">
+                {MAINTENANCE_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.value}
+                    onClick={() => setData({ 
+                      ...data, 
+                      issueType: 'GENERIC', 
+                      category: cat.value,
+                      severity: cat.severity,
+                      isPlaneSpecific: false
+                    })}
+                    className={`p-3 rounded-lg border-2 transition-all text-left ${
+                      data.category === cat.value
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <div className="text-lg mb-1">{cat.icon}</div>
+                    <div className="font-medium text-sm">{cat.label}</div>
+                    <Badge variant={cat.severity === 'HIGH' ? 'destructive' : cat.severity === 'MEDIUM' ? 'default' : 'secondary'} className="mt-1 text-[10px]">
+                      {cat.severity}
+                    </Badge>
+                  </button>
+                ))}
                 <button
-                  key={cat.value}
                   onClick={() => setData({ 
                     ...data, 
-                    issueType: 'GENERIC', 
-                    category: cat.value,
-                    severity: cat.severity,
-                    isPlaneSpecific: false
+                    issueType: 'PLANE_SPECIFIC', 
+                    category: 'OTHER',
+                    severity: 'MEDIUM',
+                    isPlaneSpecific: true
                   })}
-                  className={`p-4 rounded-xl border-2 transition-all text-left ${
-                    data.category === cat.value
+                  className={`p-3 rounded-lg border-2 transition-all text-left ${
+                    data.category === 'OTHER'
                       ? 'border-primary bg-primary/10'
                       : 'border-border hover:border-primary/50'
                   }`}
                 >
-                  <div className="text-2xl mb-1">{cat.icon}</div>
-                  <div className="font-medium">{cat.label}</div>
-                  <Badge variant={cat.severity === 'HIGH' ? 'destructive' : cat.severity === 'MEDIUM' ? 'default' : 'secondary'} className="mt-1">
-                    {cat.severity} severity
-                  </Badge>
+                  <div className="text-lg mb-1">📝</div>
+                  <div className="font-medium text-sm">Other</div>
+                  <Badge variant="outline" className="mt-1 text-[10px]">Specific</Badge>
                 </button>
-              ))}
-              <button
-                onClick={() => setData({ 
-                  ...data, 
-                  issueType: 'PLANE_SPECIFIC', 
-                  category: 'OTHER',
-                  severity: 'MEDIUM',
-                  isPlaneSpecific: true
-                })}
-                className={`p-4 rounded-xl border-2 transition-all text-left ${
-                  data.category === 'OTHER'
-                    ? 'border-primary bg-primary/10'
-                    : 'border-border hover:border-primary/50'
-                }`}
-              >
-                <div className="text-2xl mb-1">📝</div>
-                <div className="font-medium">Other / Plane Specific</div>
-                <p className="text-xs text-muted-foreground mt-1">Goes to admin for review</p>
-              </button>
-            </div>
-            {data.hasIssues && (
-              <div>
-                <Label>Description</Label>
-                <Textarea 
-                  value={data.issueDescription || ''}
-                  onChange={(e) => setData({ ...data, issueDescription: e.target.value })}
-                  placeholder="Describe the issue in detail..."
-                  rows={3}
-                />
               </div>
-            )}
+              {data.category && (
+                <div className="mt-3">
+                  <Label className="text-xs">Description</Label>
+                  <Textarea 
+                    value={data.issueDescription || ''}
+                    onChange={(e) => setData({ ...data, issueDescription: e.target.value })}
+                    placeholder="Describe the issue..."
+                    rows={2}
+                    className="text-sm"
+                  />
+                </div>
+              )}
+            </ScrollArea>
           </div>
         );
 
-      case 6: // Submit
+      case 5: // Issue Type or Summary
+        if (!data.hasIssues) {
+          // Show summary and submit
+          return (
+            <div className="space-y-4">
+              <div className="text-center pb-2">
+                <h3 className="text-lg font-semibold">Review & Submit</h3>
+                <p className="text-sm text-muted-foreground">Verify and submit</p>
+              </div>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between p-2 rounded bg-muted">
+                  <span className="text-muted-foreground">Flight</span>
+                  <Badge variant={data.wentWell ? 'default' : 'destructive'}>
+                    {data.wentWell ? 'Good' : 'Issues'}
+                  </Badge>
+                </div>
+                <div className="flex justify-between p-2 rounded bg-muted">
+                  <span className="text-muted-foreground">Hobbs</span>
+                  <span>{data.hobbsStart} - {data.hobbsEnd} ({(data.hobbsEnd - data.hobbsStart).toFixed(1)}h)</span>
+                </div>
+                {data.fuelGallons && (
+                  <div className="flex justify-between p-2 rounded bg-muted">
+                    <span className="text-muted-foreground">Fuel</span>
+                    <span>{data.fuelGallons} gal</span>
+                  </div>
+                )}
+                <div className="flex justify-between p-2 rounded bg-muted">
+                  <span className="text-muted-foreground">Issues</span>
+                  <Badge variant="secondary">None</Badge>
+                </div>
+              </div>
+            </div>
+          );
+        }
+
+        // Has issues - show issue type selection
         return (
-          <div className="space-y-6">
-            <div className="text-center">
-              <h3 className="text-xl font-semibold mb-2">Review & Submit</h3>
-              <p className="text-muted-foreground">Verify all information before submitting</p>
+          <div className="space-y-3">
+            <div className="text-center pb-1">
+              <h3 className="text-lg font-semibold">What type of issue?</h3>
+              <p className="text-sm text-muted-foreground">Select category</p>
             </div>
-            <div className="space-y-3">
-              <div className="flex justify-between p-3 rounded-lg bg-muted">
-                <span className="text-muted-foreground">Flight Status</span>
-                <Badge variant={data.wentWell ? 'default' : 'destructive'}>
-                  {data.wentWell ? 'Good' : 'Issues Reported'}
-                </Badge>
+            <ScrollArea className="h-[180px] pr-2">
+              <div className="grid grid-cols-2 gap-2">
+                {MAINTENANCE_CATEGORIES.map((cat) => (
+                  <button
+                    key={cat.value}
+                    onClick={() => setData({ 
+                      ...data, 
+                      issueType: 'GENERIC', 
+                      category: cat.value,
+                      severity: cat.severity,
+                      isPlaneSpecific: false
+                    })}
+                    className={`p-3 rounded-lg border-2 transition-all text-left ${
+                      data.category === cat.value
+                        ? 'border-primary bg-primary/10'
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                  >
+                    <div className="text-lg mb-1">{cat.icon}</div>
+                    <div className="font-medium text-sm">{cat.label}</div>
+                    <Badge variant={cat.severity === 'HIGH' ? 'destructive' : cat.severity === 'MEDIUM' ? 'default' : 'secondary'} className="mt-1 text-[10px]">
+                      {cat.severity}
+                    </Badge>
+                  </button>
+                ))}
+                <button
+                  onClick={() => setData({ 
+                    ...data, 
+                    issueType: 'PLANE_SPECIFIC', 
+                    category: 'OTHER',
+                    severity: 'MEDIUM',
+                    isPlaneSpecific: true
+                  })}
+                  className={`p-3 rounded-lg border-2 transition-all text-left ${
+                    data.category === 'OTHER'
+                      ? 'border-primary bg-primary/10'
+                      : 'border-border hover:border-primary/50'
+                  }`}
+                >
+                  <div className="text-lg mb-1">📝</div>
+                  <div className="font-medium text-sm">Other</div>
+                  <Badge variant="outline" className="mt-1 text-[10px]">Specific</Badge>
+                </button>
               </div>
-              <div className="flex justify-between p-3 rounded-lg bg-muted">
-                <span className="text-muted-foreground">Hobbs</span>
-                <span>{data.hobbsStart} - {data.hobbsEnd} ({data.hobbsEnd - data.hobbsStart} hrs)</span>
-              </div>
-              {data.fuelGallons && (
-                <div className="flex justify-between p-3 rounded-lg bg-muted">
-                  <span className="text-muted-foreground">Fuel</span>
-                  <span>{data.fuelGallons} gal @ ${data.fuelPricePerGallon}/gal</span>
+              {data.category && (
+                <div className="mt-3">
+                  <Label className="text-xs">Description</Label>
+                  <Textarea 
+                    value={data.issueDescription || ''}
+                    onChange={(e) => setData({ ...data, issueDescription: e.target.value })}
+                    placeholder="Describe the issue..."
+                    rows={2}
+                    className="text-sm"
+                  />
                 </div>
               )}
-              {data.hasIssues && (
-                <div className="flex justify-between p-3 rounded-lg bg-muted">
-                  <span className="text-muted-foreground">Issue</span>
-                  <Badge variant="destructive">{data.category}</Badge>
-                </div>
-              )}
-            </div>
+            </ScrollArea>
           </div>
         );
 
@@ -397,17 +476,17 @@ export function FlightCompleteWizard({ open, onOpenChange, flight, onComplete }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Complete Flight</DialogTitle>
-          <DialogDescription>
-            Step {step} of 6
+      <DialogContent className="max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+        <DialogHeader className="shrink-0 pb-2">
+          <DialogTitle className="text-base">Complete Flight</DialogTitle>
+          <DialogDescription className="text-xs">
+            Step {showSummaryStep ? '5 (Summary)' : step} of {totalSteps}
           </DialogDescription>
         </DialogHeader>
         
         {/* Progress */}
-        <div className="flex gap-1 mb-4">
-          {[1, 2, 3, 4, 5, 6].map((s) => (
+        <div className="flex gap-1 mb-2">
+          {[1, 2, 3, 4, 5].map((s) => (
             <div 
               key={s} 
               className={`h-1 flex-1 rounded ${
@@ -417,25 +496,32 @@ export function FlightCompleteWizard({ open, onOpenChange, flight, onComplete }:
           ))}
         </div>
 
-        {renderStep()}
+        <div className="flex-1 overflow-y-auto pr-1">
+          {renderStep()}
+        </div>
 
         {/* Navigation */}
-        <div className="flex justify-between mt-6">
+        <div className="flex justify-between pt-2 border-t shrink-0">
           <Button 
             variant="outline" 
+            size="sm"
             onClick={handleBack}
             disabled={step === 1}
           >
             <ChevronLeft className="h-4 w-4 mr-1" /> Back
           </Button>
           
-          {step < 6 ? (
-            <Button onClick={handleNext} disabled={step === 4 && !data.wentWell && !data.hasIssues}>
+          {step < 5 ? (
+            <Button size="sm" onClick={handleNext}>
               Next <ChevronRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={submitting}>
-              {submitting ? 'Submitting...' : 'Submit'} <Send className="h-4 w-4 ml-1" />
+            <Button 
+              size="sm" 
+              onClick={handleSubmit} 
+              disabled={submitting || (data.hasIssues && !data.category)}
+            >
+              {submitting ? '...' : 'Submit'} <Send className="h-4 w-4 ml-1" />
             </Button>
           )}
         </div>
