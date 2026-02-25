@@ -424,15 +424,15 @@ export default function AdminDashboard() {
                     <AreaChart data={signupData}>
                       <defs>
                         <linearGradient id="gUsers" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.25} />
-                          <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
                         </linearGradient>
                       </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }} />
-                      <Area type="monotone" dataKey="users" stroke="hsl(var(--chart-1))" strokeWidth={2} fill="url(#gUsers)" />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                      <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }} />
+                      <Area type="monotone" dataKey="users" stroke="#3b82f6" strokeWidth={2} fill="url(#gUsers)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -446,11 +446,11 @@ export default function AdminDashboard() {
                 <CardContent>
                   <ResponsiveContainer width="100%" height={180}>
                     <LineChart data={revenueData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="month" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
-                      <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }} formatter={(v: any) => [`$${v.toLocaleString()}`, "Revenue"]} />
-                      <Line type="monotone" dataKey="revenue" stroke="hsl(var(--chart-2))" strokeWidth={2} dot={{ fill: "hsl(var(--chart-2))", r: 3 }} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                      <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+                      <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }} formatter={(v: any) => [`$${v.toLocaleString()}`, "Revenue"]} />
+                      <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={{ fill: "#10b981", r: 3 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </CardContent>
@@ -464,12 +464,12 @@ export default function AdminDashboard() {
                 <CardContent>
                   <ResponsiveContainer width="100%" height={180}>
                     <BarChart data={activityData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ background: "hsl(var(--popover))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 11 }} />
-                      <Bar dataKey="plans" fill="hsl(var(--chart-1))" opacity={0.4} radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="flights" fill="hsl(var(--chart-1))" radius={[2, 2, 0, 0]} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                      <XAxis dataKey="day" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }} />
+                      <Bar dataKey="plans" fill="#a855f7" opacity={0.4} radius={[2, 2, 0, 0]} />
+                      <Bar dataKey="flights" fill="#a855f7" radius={[2, 2, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </CardContent>

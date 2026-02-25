@@ -445,32 +445,33 @@ export default function PilotDashboard() {
                   <AreaChart data={flightHoursData}>
                     <defs>
                       <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
                     <XAxis 
                       dataKey="month" 
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                      tick={{ fill: '#94a3b8', fontSize: 12 }}
+                      stroke="#475569"
                     />
                     <YAxis 
-                      className="text-xs"
-                      tick={{ fill: 'hsl(var(--muted-foreground))' }}
-                      label={{ value: 'Hours', angle: -90, position: 'insideLeft', fill: 'hsl(var(--muted-foreground))' }}
+                      tick={{ fill: '#94a3b8', fontSize: 12 }}
+                      stroke="#475569"
+                      label={{ value: 'Hours', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
                     />
                     <RechartsTooltip 
                       contentStyle={{ 
-                        backgroundColor: 'hsl(var(--popover))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '8px'
+                        backgroundColor: '#1e293b',
+                        border: '1px solid #334155',
+                        borderRadius: '8px',
+                        color: '#f1f5f9'
                       }}
                     />
                     <Area 
                       type="monotone" 
                       dataKey="hours" 
-                      stroke="hsl(var(--chart-1))" 
+                      stroke="#3b82f6" 
                       strokeWidth={2}
                       fillOpacity={1} 
                       fill="url(#colorHours)" 
