@@ -86,10 +86,10 @@ const currencyItems = [
 
 // Demo maintenance - CONNECT TO UserAircraft table
 const maintenanceItems = [
-  { id: 1, item: "100-Hour Inspection", aircraft: "N12345", dueDate: "Mar 15, 2026", hoursRemaining: 8.5, status: "warning" },
-  { id: 2, item: "Annual Inspection", aircraft: "N12345", dueDate: "Jun 20, 2026", hoursRemaining: 98.2, status: "ok" },
-  { id: 3, item: "Oil Change", aircraft: "N12345", dueDate: "Mar 1, 2026", hoursRemaining: 2.3, status: "urgent" },
-  { id: 4, item: "ELT Battery", aircraft: "N12345", dueDate: "Aug 10, 2026", hoursRemaining: 156.0, status: "ok" },
+  { id: 1, item: "100-Hour Inspection", aircraft: "N12345", maintenanceType: "CLUB", dueDate: "Mar 15, 2026", hoursRemaining: 8.5, status: "warning" },
+  { id: 2, item: "Annual Inspection", aircraft: "N12345", maintenanceType: "CLUB", dueDate: "Jun 20, 2026", hoursRemaining: 98.2, status: "ok" },
+  { id: 3, item: "Oil Change", aircraft: "N12345", maintenanceType: "CLUB", dueDate: "Mar 1, 2026", hoursRemaining: 2.3, status: "urgent" },
+  { id: 4, item: "ELT Battery", aircraft: "N111AA", maintenanceType: "PERSONAL", dueDate: "Aug 10, 2026", hoursRemaining: 156.0, status: "ok" },
 ]
 
 // Upcoming lessons/flights - CONNECT TO FlightPlan table
@@ -576,6 +576,9 @@ export default function PilotDashboard() {
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
                               <p className="text-sm font-medium">{item.item}</p>
+                              <Badge variant="outline" className={item.maintenanceType === 'CLUB' ? 'border-blue-500/50 text-blue-600 text-xs' : 'border-purple-500/50 text-purple-600 text-xs'}>
+                                {item.maintenanceType === 'CLUB' ? 'Club' : 'Personal'}
+                              </Badge>
                               <Badge 
                                 variant={item.status === 'urgent' ? 'destructive' : item.status === 'warning' ? 'default' : 'secondary'}
                                 className="text-xs"

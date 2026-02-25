@@ -2016,7 +2016,7 @@ function FuelSaverContent() {
         <div className="flex items-center justify-between h-8">
           <div className="flex items-center gap-3">
             <h1 className="text-base font-bold">Flight Planner</h1>
-            <div className="flex items-center gap-1 text-sm">
+            <div className="flex items-center gap-1 text-sm mb-2">
               <a href="/modules/fuel-saver" className="px-2 py-0.5 rounded bg-primary/10 text-primary font-medium text-xs">Fuel Map</a>
               <a href="/modules/fuel-saver/airport-lookup" className="px-2 py-0.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground text-xs">Airport Lookup</a>
               <a href="/modules/fuel-saver/favorites" className="px-2 py-0.5 rounded hover:bg-secondary text-muted-foreground hover:text-foreground text-xs">Favorites</a>

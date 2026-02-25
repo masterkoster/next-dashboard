@@ -60,14 +60,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Marketplace",
     href: "/marketplace",
   },
-  {
-    label: "Profile",
-    href: "/profile",
-  },
-  {
-    label: "Admin",
-    href: "/admin",
-  },
 ]
 
 type SubNavConfig = {
@@ -86,32 +78,6 @@ const SUB_NAV: SubNavConfig = {
     { label: "Saved Plans", href: "/fuel-saver" },
     { label: "Trip Finder", href: "/fuel-saver" },
     { label: "Weather", href: "/fuel-saver" },
-  ],
-  "/modules/training": [
-    { label: "Goals", href: "/modules/training" },
-    { label: "Roadmap", href: "/modules/training" },
-    { label: "Progress", href: "/modules/training" },
-    { label: "Costs", href: "/modules/training" },
-  ],
-  "/modules/engine-health": [
-    { label: "Upload Data", href: "/modules/engine-health" },
-    { label: "Anomalies", href: "/modules/engine-health" },
-    { label: "Trends", href: "/modules/engine-health" },
-  ],
-  "/flying-club/currency": [
-    { label: "All Members", href: "/flying-club/currency" },
-    { label: "Auto-Update", href: "/flying-club/currency/auto-update" },
-    { label: "Expiring Soon", href: "/flying-club/currency" },
-    { label: "Not Current", href: "/flying-club/currency" },
-  ],
-  "/profile": [
-    { label: "Personal Info", href: "/profile" },
-    { label: "Licenses & Certificates", href: "/profile" },
-    { label: "Medical Certificate", href: "/profile" },
-    { label: "Home Airport", href: "/profile" },
-    { label: "Aircraft", href: "/profile" },
-    { label: "Settings", href: "/profile" },
-    { label: "Security", href: "/profile" },
   ],
 }
 

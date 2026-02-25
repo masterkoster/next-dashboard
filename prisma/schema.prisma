@@ -611,18 +611,19 @@ model Invite {
 }
 
 model Maintenance {
-  id           String    @id(map: "PK__Maintena__3213E83FBBF3C62C") @default("newid()", map: "DF__Maintenance__id__3493CFA7") @db.NVarChar(36)
-  aircraftId   String    @db.NVarChar(36)
-  userId       String    @db.NVarChar(36)
-  description  String    @db.NVarChar(Max)
-  status       String?   @default("NEEDED", map: "DF__Maintenan__statu__3587F3E0") @db.NVarChar(20)
-  isGrounded   Boolean   @default(false)
-  reportedDate DateTime? @default(now(), map: "DF__Maintenan__repor__367C1819")
-  resolvedDate DateTime?
-  cost         Decimal?  @db.Decimal(10, 2)
-  notes        String?   @db.NVarChar(Max)
-  createdAt    DateTime? @default(now(), map: "DF__Maintenan__creat__37703C52")
-  updatedAt    DateTime? @default(now(), map: "DF__Maintenan__updat__3864608B") @updatedAt
+  id             String    @id(map: "PK__Maintena__3213E83FBBF3C62C") @default("newid()", map: "DF__Maintenance__id__3493CFA7") @db.NVarChar(36)
+  aircraftId     String    @db.NVarChar(36)
+  userId         String    @db.NVarChar(36)
+  description    String    @db.NVarChar(Max)
+  status         String?   @default("NEEDED", map: "DF__Maintenan__statu__3587F3E0") @db.NVarChar(20)
+  maintenanceType String? @default("CLUB") @db.NVarChar(20) // "PERSONAL" or "CLUB"
+  isGrounded     Boolean   @default(false)
+  reportedDate   DateTime? @default(now(), map: "DF__Maintenan__repor__367C1819")
+  resolvedDate   DateTime?
+  cost           Decimal?  @db.Decimal(10, 2)
+  notes          String?   @db.NVarChar(Max)
+  createdAt      DateTime? @default(now(), map: "DF__Maintenan__creat__37703C52")
+  updatedAt      DateTime? @default(now(), map: "DF__Maintenan__updat__3864608B") @updatedAt
 
   @@map("Maintenance")
 }

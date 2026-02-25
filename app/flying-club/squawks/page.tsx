@@ -16,6 +16,7 @@ interface Squawk {
   aircraftName: string
   description: string
   status: 'NEEDED' | 'IN_PROGRESS' | 'COMPLETED'
+  maintenanceType: 'PERSONAL' | 'CLUB'
   isGrounded: boolean
   reportedDate: string
   resolvedDate: string | null
@@ -24,10 +25,11 @@ interface Squawk {
 }
 
 const demoSquawks: Squawk[] = [
-  { id: '1', aircraftName: 'N123AB (C172)', description: 'Left mag dropping on runup', status: 'NEEDED', isGrounded: true, reportedDate: '2024-02-15', resolvedDate: null, cost: null, reportedBy: 'John Smith' },
-  { id: '2', aircraftName: 'N456CD (C182)', description: 'Annual inspection due', status: 'IN_PROGRESS', isGrounded: true, reportedDate: '2024-02-01', resolvedDate: null, cost: null, reportedBy: 'Sarah Johnson' },
-  { id: '3', aircraftName: 'N123AB (C172)', description: 'Nav lights not working', status: 'COMPLETED', isGrounded: false, reportedDate: '2024-01-20', resolvedDate: '2024-01-22', cost: 150, reportedBy: 'Mike Davis' },
-  { id: '4', aircraftName: 'N789EF (PA28)', description: 'Oil change needed', status: 'NEEDED', isGrounded: false, reportedDate: '2024-02-18', resolvedDate: null, cost: null, reportedBy: 'Emily Chen' },
+  { id: '1', aircraftName: 'N123AB (C172)', description: 'Left mag dropping on runup', status: 'NEEDED', maintenanceType: 'CLUB', isGrounded: true, reportedDate: '2024-02-15', resolvedDate: null, cost: null, reportedBy: 'John Smith' },
+  { id: '2', aircraftName: 'N456CD (C182)', description: 'Annual inspection due', status: 'IN_PROGRESS', maintenanceType: 'CLUB', isGrounded: true, reportedDate: '2024-02-01', resolvedDate: null, cost: null, reportedBy: 'Sarah Johnson' },
+  { id: '3', aircraftName: 'N123AB (C172)', description: 'Nav lights not working', status: 'COMPLETED', maintenanceType: 'CLUB', isGrounded: false, reportedDate: '2024-01-20', resolvedDate: '2024-01-22', cost: 150, reportedBy: 'Mike Davis' },
+  { id: '4', aircraftName: 'N789EF (PA28)', description: 'Oil change needed', status: 'NEEDED', maintenanceType: 'CLUB', isGrounded: false, reportedDate: '2024-02-18', resolvedDate: null, cost: null, reportedBy: 'Emily Chen' },
+  { id: '5', aircraftName: 'N111AA (C150)', description: 'Annual inspection due', status: 'NEEDED', maintenanceType: 'PERSONAL', isGrounded: true, reportedDate: '2024-02-10', resolvedDate: null, cost: null, reportedBy: 'John Smith' },
 ]
 
 export default function SquawkLogPage() {
@@ -37,15 +39,26 @@ export default function SquawkLogPage() {
   const [filter, setFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newSquawk, setNewSquawk] = useState({ aircraft: '', description: '', isGrounded: false })
+  const [newSquawk, setNewSquawk] = useState({ aircraft: '', description: '', isGrounded: false, maintenanceType: 'CLUB' as 'PERSONAL' | 'CLUB' })
 
   useEffect(() => { setSquawks(demoSquawks); setLoading(false) }, [session])
 
   const handleAddSquawk = () => {
-    const squawk: Squawk = { id: crypto.randomUUID(), aircraftName: newSquawk.aircraft, description: newSquawk.description, status: 'NEEDED', isGrounded: newSquawk.isGrounded, reportedDate: new Date().toISOString(), resolvedDate: null, cost: null, reportedBy: session?.user?.name || 'You' }
+    const squawk: Squawk = { 
+      id: crypto.randomUUID(), 
+      aircraftName: newSquawk.aircraft, 
+      description: newSquawk.description, 
+      status: 'NEEDED', 
+      maintenanceType: newSquawk.maintenanceType,
+      isGrounded: newSquawk.isGrounded, 
+      reportedDate: new Date().toISOString(), 
+      resolvedDate: null, 
+      cost: null, 
+      reportedBy: session?.user?.name || 'You' 
+    }
     setSquawks([squawk, ...squawks])
     setIsDialogOpen(false)
-    setNewSquawk({ aircraft: '', description: '', isGrounded: false })
+    setNewSquawk({ aircraft: '', description: '', isGrounded: false, maintenanceType: 'CLUB' })
   }
 
   const handleStatusChange = (id: string, newStatus: 'NEEDED' | 'IN_PROGRESS' | 'COMPLETED') => {
@@ -65,7 +78,7 @@ export default function SquawkLogPage() {
   if (!session) return <div className="min-h-screen bg-background flex items-center justify-center p-4"><Card className="max-w-md w-full"><CardContent className="pt-6 text-center"><Wrench className="h-12 w-12 mx-auto mb-4 text-muted-foreground" /><h2 className="text-xl font-bold mb-2">Maintenance Squawk Log</h2><p className="text-muted-foreground mb-4">Sign in to report issues</p><Button asChild><a href="/login">Sign In</a></Button></CardContent></Card></div>
 
   return (
-    <div className="min-h-screen bg-background p-4 md:p-8 pt-16">
+    <div className="min-h-screen bg-background p-4 md:p-8 pt-10">
       <div className="max-w-7xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div><h1 className="text-3xl font-bold flex items-center gap-2"><Wrench className="h-8 w-8" />Maintenance Squawk Log</h1><p className="text-muted-foreground">Report and track aircraft issues</p></div>
@@ -73,6 +86,12 @@ export default function SquawkLogPage() {
             <DialogTrigger asChild><Button className="gap-2"><Plus className="h-4 w-4" />Report Issue</Button></DialogTrigger>
             <DialogContent><DialogHeader><DialogTitle>Report New Squawk</DialogTitle></DialogHeader>
               <div className="space-y-4 pt-4">
+                <div><Label>Type</Label>
+                  <select className="w-full mt-1 p-2 border rounded-md" value={newSquawk.maintenanceType} onChange={(e) => setNewSquawk({ ...newSquawk, maintenanceType: e.target.value as 'PERSONAL' | 'CLUB' })}>
+                    <option value="CLUB">Club Aircraft</option>
+                    <option value="PERSONAL">Personal Aircraft</option>
+                  </select>
+                </div>
                 <div><Label>Aircraft</Label><select className="w-full mt-1 p-2 border rounded-md" value={newSquawk.aircraft} onChange={(e) => setNewSquawk({ ...newSquawk, aircraft: e.target.value })}><option value="">Select...</option><option>N123AB (C172)</option><option>N456CD (C182)</option><option>N789EF (PA28)</option></select></div>
                 <div><Label>Description</Label><Textarea placeholder="Describe..." value={newSquawk.description} onChange={(e) => setNewSquawk({ ...newSquawk, description: e.target.value })} /></div>
                 <div className="flex items-center gap-2"><input type="checkbox" checked={newSquawk.isGrounded} onChange={(e) => setNewSquawk({ ...newSquawk, isGrounded: e.target.checked })} /><Label>Ground aircraft</Label></div>
@@ -100,7 +119,14 @@ export default function SquawkLogPage() {
             <div key={squawk.id} className={`p-4 rounded-lg border ${squawk.isGrounded && squawk.status !== 'COMPLETED' ? 'border-red-500/50 bg-red-500/5' : 'bg-card'}`}>
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1"><Plane className="h-4 w-4" /><span className="font-medium">{squawk.aircraftName}</span>{squawk.isGrounded && squawk.status !== 'COMPLETED' && <Badge variant="destructive">GROUNDED</Badge>}</div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Plane className="h-4 w-4" />
+                    <span className="font-medium">{squawk.aircraftName}</span>
+                    <Badge variant="outline" className={squawk.maintenanceType === 'CLUB' ? 'border-blue-500/50 text-blue-600' : 'border-purple-500/50 text-purple-600'}>
+                      {squawk.maintenanceType === 'CLUB' ? 'Club' : 'Personal'}
+                    </Badge>
+                    {squawk.isGrounded && squawk.status !== 'COMPLETED' && <Badge variant="destructive">GROUNDED</Badge>}
+                  </div>
                   <p className="text-sm">{squawk.description}</p>
                   <div className="flex gap-4 mt-2 text-xs text-muted-foreground"><span>{squawk.reportedBy}</span><span>{formatDate(squawk.reportedDate)}</span>{squawk.cost && <span className="text-green-600">${squawk.cost}</span>}</div>
                 </div>
