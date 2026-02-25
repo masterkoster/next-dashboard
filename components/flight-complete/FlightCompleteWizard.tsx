@@ -74,7 +74,6 @@ export function FlightCompleteWizard({ open, onOpenChange, flight, onComplete }:
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const totalSteps = 5;
-  const showSummaryStep = !data.hasIssues && step === 5;
   
   const [data, setData] = useState<FlightCompletionData>({
     flightId: flight.id,
@@ -86,6 +85,8 @@ export function FlightCompleteWizard({ open, onOpenChange, flight, onComplete }:
     hobbsEnd: flight.hobbsStart || 0,
     notes: '',
   });
+
+  const showSummaryStep = !data.hasIssues && step === 5;
 
   const handleNext = () => {
     // If going from step 4 (issues) and no issues, skip to summary (step 5)
