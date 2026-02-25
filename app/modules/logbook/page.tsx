@@ -3,6 +3,21 @@
 import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
+import { 
+  Plane,
+  Download,
+  Filter,
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  FileText,
+  X
+} from "lucide-react";
 
 interface LogbookEntry {
   id: string;
@@ -30,6 +45,118 @@ export default function LogbookPage() {
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Filter state
+  const [showFilters, setShowFilters] = useState(false);
+  const [filterYear, setFilterYear] = useState<string>('all');
+  const [filterAircraft, setFilterAircraft] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Get unique aircraft for filter dropdown
+  const uniqueAircraft = [...new Set(entries.map(e => e.aircraft))].sort();
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
+
+  // Filtered entries
+  const filteredEntries = entries.filter(entry => {
+    const entryYear = new Date(entry.date).getFullYear().toString();
+    if (filterYear !== 'all' && entryYear !== filterYear) return false;
+    if (filterAircraft !== 'all' && entry.aircraft !== filterAircraft) return false;
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      return (
+        entry.aircraft.toLowerCase().includes(query) ||
+        entry.routeFrom.toLowerCase().includes(query) ||
+        entry.routeTo.toLowerCase().includes(query) ||
+        (entry.remarks?.toLowerCase().includes(query) ?? false)
+      );
+    }
+    return true;
+  });
+
+  // Filtered totals
+  const filteredTotals = filteredEntries.reduce((acc, entry) => ({
+    totalTime: acc.totalTime + entry.totalTime,
+    soloTime: acc.soloTime + entry.soloTime,
+    dualGiven: acc.dualGiven + entry.dualGiven,
+    dualReceived: acc.dualReceived + entry.dualReceived,
+    nightTime: acc.nightTime + entry.nightTime,
+    instrumentTime: acc.instrumentTime + entry.instrumentTime,
+    crossCountryTime: acc.crossCountryTime + entry.crossCountryTime,
+    dayLandings: acc.dayLandings + entry.dayLandings,
+    nightLandings: acc.nightLandings + entry.nightLandings,
+  }), {
+    totalTime: 0, soloTime: 0, dualGiven: 0, dualReceived: 0,
+    nightTime: 0, instrumentTime: 0, crossCountryTime: 0,
+    dayLandings: 0, nightLandings: 0
+  });
+
+  // Export to CSV
+  const exportToCSV = () => {
+    const headers = ['Date', 'Aircraft', 'From', 'To', 'Total Time', 'Solo', 'Dual Given', 'Dual Received', 'Night', 'Instrument', 'XC', 'Day Landings', 'Night Landings', 'Remarks'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredEntries.map(entry => [
+        entry.date,
+        entry.aircraft,
+        entry.routeFrom,
+        entry.routeTo,
+        entry.totalTime,
+        entry.soloTime,
+        entry.dualGiven,
+        entry.dualReceived,
+        entry.nightTime,
+        entry.instrumentTime,
+        entry.crossCountryTime,
+        entry.dayLandings,
+        entry.nightLandings,
+        `"${entry.remarks || ''}"`
+      ].join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `logbook_export_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+  };
+
+  // Export to PDF (text-based for simplicity)
+  const exportToPDF = () => {
+    const content = `
+LOGBOOK EXPORT - Generated ${new Date().toLocaleDateString()}
+================================================
+
+SUMMARY (Filtered: ${filteredEntries.length} of ${entries.length} entries)
+-------
+Total Time: ${filteredTotals.totalTime.toFixed(1)} hours
+Solo Time: ${filteredTotals.soloTime.toFixed(1)} hours
+Dual Given: ${filteredTotals.dualGiven.toFixed(1)} hours
+Dual Received: ${filteredTotals.dualReceived.toFixed(1)} hours
+Night Time: ${filteredTotals.nightTime.toFixed(1)} hours
+Instrument Time: ${filteredTotals.instrumentTime.toFixed(1)} hours
+Cross Country: ${filteredTotals.crossCountryTime.toFixed(1)} hours
+Day Landings: ${filteredTotals.dayLandings}
+Night Landings: ${filteredTotals.nightLandings}
+
+FLIGHT ENTRIES
+--------------
+${filteredEntries.map((entry, i) => `
+${i + 1}. ${entry.date} - ${entry.aircraft}
+   Route: ${entry.routeFrom} → ${entry.routeTo}
+   Total: ${entry.totalTime}h | Solo: ${entry.soloTime}h | Night: ${entry.nightTime}h
+   Instrument: ${entry.instrumentTime}h | XC: ${entry.crossCountryTime}h
+   Landings: ${entry.dayLandings} day, ${entry.nightLandings} night
+   ${entry.remarks ? `Remarks: ${entry.remarks}` : ''}
+`).join('\n')}
+    `.trim();
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `logbook_export_${new Date().toISOString().split('T')[0]}.txt`;
+    link.click();
+  };
 
   // Form state
   const [formData, setFormData] = useState({
@@ -210,36 +337,115 @@ export default function LogbookPage() {
     <div className="min-h-screen bg-background p-4 md:p-8">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">📖 Digital Logbook</h1>
-            <p className="text-muted-foreground">Track your flight hours</p>
+        <div className="flex flex-col gap-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">📖 Digital Logbook</h1>
+              <p className="text-muted-foreground">Track your flight hours</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant={showFilters ? "default" : "outline"} 
+                size="sm" 
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportToCSV}>
+                <FileText className="h-4 w-4 mr-2" />
+                CSV
+              </Button>
+              <Button variant="outline" size="sm" onClick={exportToPDF}>
+                <Download className="h-4 w-4 mr-2" />
+                Export
+              </Button>
+              <Button 
+                onClick={() => setShowForm(!showForm)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {showForm ? 'Cancel' : '+ Add Entry'}
+              </Button>
+            </div>
           </div>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg"
-          >
-            {showForm ? 'Cancel' : '+ Add Entry'}
-          </button>
+
+          {/* Filter Bar */}
+          {showFilters && (
+            <div className="flex flex-wrap items-center gap-3 p-4 bg-card border border-border rounded-xl">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <select
+                  value={filterYear}
+                  onChange={(e) => setFilterYear(e.target.value)}
+                  className="h-8 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="all">All Years</option>
+                  {years.map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Plane className="h-4 w-4 text-muted-foreground" />
+                <select
+                  value={filterAircraft}
+                  onChange={(e) => setFilterAircraft(e.target.value)}
+                  className="h-8 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="all">All Aircraft</option>
+                  {uniqueAircraft.map(ac => (
+                    <option key={ac} value={ac}>{ac}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+                <Search className="h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search aircraft, route, remarks..."
+                  className="h-8 flex-1 rounded-md border border-input bg-background px-3 text-sm"
+                />
+              </div>
+
+              {(filterYear !== 'all' || filterAircraft !== 'all' || searchQuery) && (
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => {
+                    setFilterYear('all');
+                    setFilterAircraft('all');
+                    setSearchQuery('');
+                  }}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Stats Cards */}
+        {/* Stats Cards - Show filtered totals if filters are active */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-card border border-border rounded-xl p-4">
-            <p className="text-xs text-muted-foreground uppercase">Total Time</p>
-            <p className="text-2xl font-bold text-foreground">{totals.totalTime.toFixed(1)}h</p>
+            <p className="text-xs text-muted-foreground uppercase">Total Time {(filterYear !== 'all' || filterAircraft !== 'all' || searchQuery) && '(Filtered)'}</p>
+            <p className="text-2xl font-bold text-foreground">{(filterYear !== 'all' || filterAircraft !== 'all' || searchQuery ? filteredTotals : totals).totalTime.toFixed(1)}h</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <p className="text-xs text-muted-foreground uppercase">Solo Time</p>
-            <p className="text-2xl font-bold text-green-600">{totals.soloTime.toFixed(1)}h</p>
+            <p className="text-2xl font-bold text-green-600">{(filterYear !== 'all' || filterAircraft !== 'all' || searchQuery ? filteredTotals : totals).soloTime.toFixed(1)}h</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <p className="text-xs text-muted-foreground uppercase">Night Time</p>
-            <p className="text-2xl font-bold text-purple-600">{totals.nightTime.toFixed(1)}h</p>
+            <p className="text-2xl font-bold text-purple-600">{(filterYear !== 'all' || filterAircraft !== 'all' || searchQuery ? filteredTotals : totals).nightTime.toFixed(1)}h</p>
           </div>
           <div className="bg-card border border-border rounded-xl p-4">
             <p className="text-xs text-muted-foreground uppercase">Landings</p>
-            <p className="text-2xl font-bold text-blue-600">{totals.dayLandings + totals.nightLandings}</p>
+            <p className="text-2xl font-bold text-blue-600">{((filterYear !== 'all' || filterAircraft !== 'all' || searchQuery ? filteredTotals : totals).dayLandings + (filterYear !== 'all' || filterAircraft !== 'all' || searchQuery ? filteredTotals : totals).nightLandings)}</p>
           </div>
         </div>
 
@@ -396,6 +602,17 @@ export default function LogbookPage() {
 
         {/* Entries Table */}
         <div className="bg-card border border-border rounded-xl overflow-hidden">
+          {/* Table header with count */}
+          <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border">
+            <span className="text-xs text-muted-foreground">
+              Showing {filteredEntries.length} of {entries.length} entries
+            </span>
+            {(filterYear !== 'all' || filterAircraft !== 'all' || searchQuery) && (
+              <span className="text-xs text-primary">
+                (Filtered)
+              </span>
+            )}
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-muted">
@@ -413,14 +630,17 @@ export default function LogbookPage() {
                 </tr>
               </thead>
               <tbody>
-                {entries.length === 0 ? (
+                {filteredEntries.length === 0 ? (
                   <tr>
                     <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground">
-                      No entries yet. Click &quot;Add Entry&quot; to log your first flight!
+                      {entries.length === 0 
+                        ? 'No entries yet. Click "Add Entry" to log your first flight!'
+                        : 'No entries match your filters. Try adjusting your search criteria.'
+                      }
                     </td>
                   </tr>
                 ) : (
-                  entries.map((entry) => (
+                  filteredEntries.map((entry) => (
                     <tr key={entry.id} className="border-t border-border hover:bg-muted/50">
                       <td className="px-4 py-3 text-foreground">
                         {new Date(entry.date).toLocaleDateString()}

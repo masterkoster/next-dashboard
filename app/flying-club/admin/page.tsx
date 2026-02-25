@@ -68,6 +68,44 @@ const maintenance = [
   { id: "m4", aircraft: "N5501X", item: "ELT Battery",         status: "OK",          due: "Aug 10", priority: "low",    shop: "—" },
 ]
 
+const pendingFuelExpenses = [
+  { id: "f1", pilot: "Sarah Johnson", aircraft: "N172SP", date: "Feb 22", gallons: 18.5, pricePerGal: 5.89, total: 108.97, status: "Pending", submittedAt: "Feb 22, 2026 4:30 PM" },
+  { id: "f2", pilot: "Mike Wilson", aircraft: "N345AB", date: "Feb 21", gallons: 22.3, pricePerGal: 5.75, total: 128.23, status: "Pending", submittedAt: "Feb 21, 2026 6:15 PM" },
+  { id: "f3", pilot: "Emily Davis", aircraft: "N5501X", date: "Feb 19", gallons: 35.0, pricePerGal: 5.95, total: 208.25, status: "Pending", submittedAt: "Feb 19, 2026 8:45 PM" },
+  { id: "f4", pilot: "James Carter", aircraft: "N172SP", date: "Feb 18", gallons: 16.2, pricePerGal: 5.89, total: 95.42, status: "Approved", submittedAt: "Feb 18, 2026 3:20 PM" },
+]
+
+const pendingMaintenanceIssues = [
+  { id: "mx1", pilot: "Sarah Johnson", aircraft: "N172SP", date: "Feb 22", issue: "Low oil pressure indication during climb", category: "Engine", isPlaneSpecific: true, severity: "high", status: "Pending Review", flightId: "flt-001" },
+  { id: "mx2", pilot: "Mike Wilson", aircraft: "N345AB", date: "Feb 20", issue: "Landing gear retract light intermittent", category: "Avionics", isPlaneSpecific: true, severity: "medium", status: "Pending Review", flightId: "flt-002" },
+  { id: "mx3", pilot: "Emily Davis", aircraft: "N172SP", date: "Feb 18", issue: "Flap actuator making noise", category: "Airframe", isPlaneSpecific: false, severity: "low", status: "Pending Review", flightId: "flt-003" },
+]
+
+// Maintenance history for each aircraft
+const maintenanceHistory = {
+  "N172SP": [
+    { id: "h1", date: "Feb 15, 2026", item: "Oil Change", type: "Scheduled", status: "Completed", cost: 150, hobbs: 1250.0, shop: "Self" },
+    { id: "h2", date: "Jan 20, 2026", item: "Annual Inspection", type: "Scheduled", status: "Completed", cost: 2800, hobbs: 1200.5, shop: "Boston Avionics" },
+    { id: "h3", date: "Dec 5, 2025", item: "Altimeter Calibration", type: "AD Compliance", status: "Completed", cost: 450, hobbs: 1150.2, shop: "Boston Avionics" },
+    { id: "h4", date: "Oct 18, 2025", item: "Brake Pad Replacement", type: "Unscheduled", status: "Completed", cost: 380, hobbs: 1100.0, shop: "Logan FBO" },
+    { id: "h5", date: "Aug 22, 2025", item: "100-Hour Inspection", type: "Scheduled", status: "Completed", cost: 1850, hobbs: 1000.3, shop: "Boston Avionics" },
+  ],
+  "N345AB": [
+    { id: "h1", date: "Jan 10, 2026", item: "Annual Inspection", type: "Scheduled", status: "Completed", cost: 3200, hobbs: 4890.5, shop: "Pittsburgh Aviation" },
+    { id: "h2", date: "Nov 15, 2025", item: "Engine Overhaul", type: "Major", status: "Completed", cost: 18500, hobbs: 4500.0, shop: "Continental Motors" },
+    { id: "h3", date: "Sep 3, 2025", item: "Fuel Selector Repair", type: "Unscheduled", status: "Completed", cost: 275, hobbs: 4200.2, shop: "Pittsburgh Aviation" },
+  ],
+  "N9876P": [
+    { id: "h1", date: "Mar 1, 2026", item: "Annual Inspection", type: "Scheduled", status: "In Progress", cost: 0, hobbs: 1842.3, shop: "Boston Avionics" },
+    { id: "h2", date: "Aug 15, 2025", item: "100-Hour Inspection", type: "Scheduled", status: "Completed", cost: 1650, hobbs: 1700.0, shop: "Boston Avionics" },
+    { id: "h3", date: "Jun 20, 2025", item: "New Tires", type: "Scheduled", status: "Completed", cost: 320, hobbs: 1600.5, shop: "Logan FBO" },
+  ],
+  "N5501X": [
+    { id: "h1", date: "Dec 10, 2025", item: "Annual Inspection", type: "Scheduled", status: "Completed", cost: 3500, hobbs: 2201.7, shop: "Garmin Service" },
+    { id: "h2", date: "Jul 22, 2025", item: "GPS Update", type: "AD Compliance", status: "Completed", cost: 850, hobbs: 2000.0, shop: "Garmin Service" },
+  ],
+}
+
 const billing = [
   { id: "b1", member: "Mike Wilson",   type: "Flight",          aircraft: "N172SP", date: "Feb 22", amount: 297,  status: "Paid" },
   { id: "b2", member: "Tom Reynolds",  type: "Monthly Dues",    aircraft: "—",      date: "Feb 1",  amount: 120,  status: "Overdue" },
@@ -94,6 +132,7 @@ type Tab =
   | "members" | "instructors" | "administrators" | "groups"
   | "aircraft" | "items" | "adjustments" | "forms"
   | "billing" | "invoices"
+  | "fuel-approvals" | "maintenance-reviews"
   | "general-settings" | "member-settings" | "schedule-settings"
   | "notification-settings" | "add-ons"
 
@@ -108,6 +147,13 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "awaiting-dispatch",     label: "Awaiting Dispatch" },
       { id: "currently-dispatched",  label: "Currently Dispatched" },
       { id: "past-flights",          label: "Past Flights" },
+    ],
+  },
+  {
+    label: "Approvals",
+    items: [
+      { id: "fuel-approvals",        label: "Fuel Expenses" },
+      { id: "maintenance-reviews",   label: "Maintenance Issues" },
     ],
   },
   {
@@ -190,6 +236,7 @@ function PlaceholderPanel({ title, description }: { title: string; description: 
 export default function ClubAdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>("overview")
   const [memberSearch, setMemberSearch] = useState("")
+  const [selectedAircraft, setSelectedAircraft] = useState<string | null>(null)
 
   const filteredMembers = members.filter(m =>
     m.name.toLowerCase().includes(memberSearch.toLowerCase()) ||
@@ -532,7 +579,108 @@ export default function ClubAdminPage() {
           )}
 
           {/* ── AIRCRAFT ─────────────────────────────────────────────────────── */}
-          {activeTab === "aircraft" && (
+          {activeTab === "aircraft" && selectedAircraft && (
+            <>
+              {/* Back button */}
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setSelectedAircraft(null)}
+                className="mb-4"
+              >
+                <ChevronRight className="h-4 w-4 rotate-180 mr-1" />
+                Back to Aircraft List
+              </Button>
+
+              {/* Maintenance History for selected aircraft */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Wrench className="h-4 w-4" />
+                        Maintenance History: {selectedAircraft}
+                      </CardTitle>
+                      <CardDescription className="text-xs">Complete maintenance records for this aircraft</CardDescription>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
+                      <Download className="h-3 w-3" /> Export
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-border">
+                          {["Date", "Item", "Type", "Status", "Hobbs", "Shop", "Cost", ""].map(h => (
+                            <th key={h} className="pb-2 pr-4 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(maintenanceHistory as any)[selectedAircraft]?.map((record: any) => (
+                          <tr key={record.id} className="border-b border-border/50 last:border-0">
+                            <td className="py-2.5 pr-4">{record.date}</td>
+                            <td className="py-2.5 pr-4 font-medium">{record.item}</td>
+                            <td className="py-2.5 pr-4">
+                              <Badge variant="outline" className="text-xs">{record.type}</Badge>
+                            </td>
+                            <td className="py-2.5 pr-4">
+                              <StatusBadge status={record.status} />
+                            </td>
+                            <td className="py-2.5 pr-4 text-muted-foreground">{record.hobbs}</td>
+                            <td className="py-2.5 pr-4 text-muted-foreground">{record.shop}</td>
+                            <td className="py-2.5 pr-4 font-medium">${record.cost.toLocaleString()}</td>
+                            <td className="py-2.5">
+                              <Button size="sm" variant="ghost" className="h-6 text-xs">Details</Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Summary stats */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-muted-foreground">Total Maintenance Cost</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      ${(maintenanceHistory as any)[selectedAircraft]?.reduce((sum: number, r: any) => sum + r.cost, 0).toLocaleString() || 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground">All time</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-muted-foreground">Maintenance Events</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">{(maintenanceHistory as any)[selectedAircraft]?.length || 0}</p>
+                    <p className="text-xs text-muted-foreground">Recorded</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-muted-foreground">Average Cost/Event</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">
+                      ${Math.round((maintenanceHistory as any)[selectedAircraft]?.reduce((sum: number, r: any) => sum + r.cost, 0) / ((maintenanceHistory as any)[selectedAircraft]?.length || 1)) || 0}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Per event</p>
+                  </CardContent>
+                </Card>
+              </div>
+            </>
+          )}
+
+          {activeTab === "aircraft" && !selectedAircraft && (
             <Card>
               <CardHeader>
                 <div className="flex items-center justify-between">
@@ -575,7 +723,15 @@ export default function ClubAdminPage() {
                       </div>
                       <div className="flex gap-2">
                         <Button size="sm" variant="outline" className="h-7 flex-1 text-xs">Edit</Button>
-                        <Button size="sm" variant="outline" className="h-7 flex-1 text-xs">Maintenance</Button>
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="h-7 flex-1 text-xs"
+                          onClick={() => setSelectedAircraft(ac.nNumber)}
+                        >
+                          <Wrench className="h-3 w-3 mr-1" />
+                          History
+                        </Button>
                         <Button size="sm" variant="outline" className="h-7 flex-1 text-xs">Logbook</Button>
                       </div>
                     </div>
@@ -692,6 +848,223 @@ export default function ClubAdminPage() {
             </div>
           )}
 
+          {/* ── FUEL APPROVALS ───────────────────────────────────────────────────── */}
+          {activeTab === "fuel-approvals" && (
+            <>
+              {/* Summary cards */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-muted-foreground">Pending Approval</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-chart-3">{pendingFuelExpenses.filter(f => f.status === "Pending").length}</p>
+                    <p className="text-xs text-muted-foreground">expenses waiting</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-muted-foreground">Total Pending</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold">${pendingFuelExpenses.filter(f => f.status === "Pending").reduce((sum, f) => sum + f.total, 0).toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">fuel expenses</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-muted-foreground">This Month</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-chart-2">$540.87</p>
+                    <p className="text-xs text-muted-foreground">approved fuel</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Pending expenses list */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-sm">Pending Fuel Expenses</CardTitle>
+                      <CardDescription className="text-xs">Review and approve fuel expenses submitted after flights</CardDescription>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
+                      <Download className="h-3 w-3" /> Export
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {pendingFuelExpenses.filter(f => f.status === "Pending").map((fuel) => (
+                      <div key={fuel.id} className="flex items-center justify-between rounded-lg border border-border p-4">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium">{fuel.pilot}</p>
+                            <Badge variant="outline" className="text-xs">{fuel.aircraft}</Badge>
+                            <StatusBadge status="Pending" />
+                          </div>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{fuel.date}</span>
+                            <span className="flex items-center gap-1"><Fuel className="h-3 w-3" />{fuel.gallons} gal @ ${fuel.pricePerGal}/gal</span>
+                            <span>Submitted: {fuel.submittedAt}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <div className="text-right">
+                            <p className="text-sm font-bold">${fuel.total.toFixed(2)}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button size="sm" variant="outline" className="h-7 text-xs">Deny</Button>
+                            <Button size="sm" className="h-7 text-xs">Approve</Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Approved history */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Recently Approved</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="border-b border-border">
+                          {["Pilot", "Aircraft", "Date", "Gallons", "Rate", "Total", "Status", "Approved"].map(h => (
+                            <th key={h} className="pb-2 pr-4 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pendingFuelExpenses.filter(f => f.status === "Approved").map((fuel) => (
+                          <tr key={fuel.id} className="border-b border-border/50 last:border-0">
+                            <td className="py-2.5 pr-4 font-medium">{fuel.pilot}</td>
+                            <td className="py-2.5 pr-4"><Badge variant="outline" className="text-xs">{fuel.aircraft}</Badge></td>
+                            <td className="py-2.5 pr-4 text-muted-foreground">{fuel.date}</td>
+                            <td className="py-2.5 pr-4">{fuel.gallons}</td>
+                            <td className="py-2.5 pr-4 text-muted-foreground">${fuel.pricePerGal}</td>
+                            <td className="py-2.5 pr-4 font-medium">${fuel.total.toFixed(2)}</td>
+                            <td className="py-2.5 pr-4"><StatusBadge status="Approved" /></td>
+                            <td className="py-2.5 pr-4 text-muted-foreground">Feb 18</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {/* ── MAINTENANCE REVIEWS ────────────────────────────────────────────── */}
+          {activeTab === "maintenance-reviews" && (
+            <>
+              {/* Summary cards */}
+              <div className="grid gap-4 sm:grid-cols-3">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-muted-foreground">Pending Review</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-chart-3">{pendingMaintenanceIssues.length}</p>
+                    <p className="text-xs text-muted-foreground">issues reported</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-muted-foreground">High Priority</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-destructive">{pendingMaintenanceIssues.filter(m => m.severity === "high").length}</p>
+                    <p className="text-xs text-muted-foreground">require attention</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-xs text-muted-foreground">Plane-Specific</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-2xl font-bold text-chart-4">{pendingMaintenanceIssues.filter(m => m.isPlaneSpecific).length}</p>
+                    <p className="text-xs text-muted-foreground">need inspection</p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Pending issues list */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-sm">Maintenance Issues Requiring Review</CardTitle>
+                      <CardDescription className="text-xs">Plane-specific issues reported by pilots after flights</CardDescription>
+                    </div>
+                    <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
+                      <Download className="h-3 w-3" /> Export
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {pendingMaintenanceIssues.map((issue) => (
+                      <div key={issue.id} className={`flex items-center justify-between rounded-lg border p-4 ${issue.severity === "high" ? "border-destructive/50 bg-destructive/5" : "border-border"}`}>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium">{issue.pilot}</p>
+                            <Badge variant="outline" className="text-xs">{issue.aircraft}</Badge>
+                            <Badge variant={issue.severity === "high" ? "destructive" : issue.severity === "medium" ? "default" : "secondary"} className="text-xs">
+                              {issue.severity === "high" ? "High" : issue.severity === "medium" ? "Medium" : "Low"}
+                            </Badge>
+                            {issue.isPlaneSpecific && (
+                              <Badge variant="outline" className="border-chart-4/50 text-chart-4 text-xs">Plane-Specific</Badge>
+                            )}
+                            {!issue.isPlaneSpecific && (
+                              <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground text-xs">Generic</Badge>
+                            )}
+                          </div>
+                          <p className="text-sm">{issue.issue}</p>
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{issue.date}</span>
+                            <span className="flex items-center gap-1"><Wrench className="h-3 w-3" />{issue.category}</span>
+                            <span>Flight: {issue.flightId}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button size="sm" variant="outline" className="h-7 text-xs">Dismiss</Button>
+                          <Button size="sm" className="h-7 text-xs">Create Work Order</Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Info card */}
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-start gap-4">
+                    <div className="rounded-full bg-primary/10 p-2">
+                      <Wrench className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold">How Maintenance Reviews Work</h4>
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        When pilots report issues during flight completion, they can mark them as "Plane-Specific" (affecting only that aircraft) 
+                        or "Generic" (could apply to any aircraft). Plane-specific issues require admin review and may generate work orders. 
+                        Generic issues are logged for general tracking but don't require immediate action.
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
           {/* ── PLACEHOLDER SECTIONS ────────────────────────────────────────── */}
           {activeTab === "instructors" && <PlaceholderPanel title="Instructors" description="Manage CFIs and CFIIs who can log dual instruction in club aircraft." />}
           {activeTab === "administrators" && <PlaceholderPanel title="Administrators" description="Manage club admins, owners, and dispatch roles." />}
@@ -702,7 +1075,116 @@ export default function ClubAdminPage() {
           {activeTab === "invoices" && <PlaceholderPanel title="Invoices" description="Generate and send invoices to members for dues, flights, and fees." />}
           {activeTab === "member-settings" && <PlaceholderPanel title="Member Settings" description="Configure self-registration, required documents, and profile fields." />}
           {activeTab === "schedule-settings" && <PlaceholderPanel title="Schedule Settings" description="Set operating hours, blackout dates, and scheduling constraints." />}
-          {activeTab === "notification-settings" && <PlaceholderPanel title="Notification Settings" description="Configure email and SMS alerts for bookings, maintenance, and dues." />}
+
+          {/* ── NOTIFICATION SETTINGS ────────────────────────────────────────── */}
+          {activeTab === "notification-settings" && (
+            <div className="space-y-6">
+              {/* Email Notifications */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Email Notifications</CardTitle>
+                  <CardDescription className="text-xs">Configure what email alerts members receive</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    { id: "booking-confirmed", label: "Booking Confirmed", description: "When a flight is booked", enabled: true },
+                    { id: "booking-reminder", label: "Flight Reminder", description: "24 hours before scheduled flight", enabled: true },
+                    { id: "maintenance-alert", label: "Maintenance Alerts", description: "When aircraft maintenance is due", enabled: true },
+                    { id: "billing-reminder", label: "Billing Reminders", description: "Due invoices and overdue balances", enabled: true },
+                    { id: "club-announcements", label: "Club Announcements", description: "News and updates from club admins", enabled: false },
+                    { id: "weather-alerts", label: "Weather Alerts", description: "METAR/TAF changes at home airport", enabled: false },
+                  ].map((item) => (
+                    <div key={item.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium">{item.label}</p>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                      </div>
+                      <button 
+                        className={`relative h-6 w-11 rounded-full transition-colors ${item.enabled ? 'bg-primary' : 'bg-muted'}`}
+                        onClick={() => alert(`Toggle ${item.label} - Demo only`)}
+                      >
+                        <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${item.enabled ? 'left-6' : 'left-1'}`} />
+                      </button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Push Notifications */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Push Notifications</CardTitle>
+                  <CardDescription className="text-xs">Mobile app push notification preferences</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {[
+                    { id: "flight-dispatched", label: "Flight Dispatched", description: "When your flight is released", enabled: true },
+                    { id: "flight-landing", label: "Flight Completed", description: "When aircraft lands", enabled: true },
+                    { id: "maintenance-grounded", label: "Aircraft Grounded", description: "When aircraft becomes unavailable", enabled: true },
+                    { id: "schedule-changes", label: "Schedule Changes", description: "When bookings are modified", enabled: false },
+                  ].map((item) => (
+                    <div key={item.id} className="flex items-center justify-between rounded-lg border border-border p-3">
+                      <div className="space-y-0.5">
+                        <p className="text-sm font-medium">{item.label}</p>
+                        <p className="text-xs text-muted-foreground">{item.description}</p>
+                      </div>
+                      <button 
+                        className={`relative h-6 w-11 rounded-full transition-colors ${item.enabled ? 'bg-primary' : 'bg-muted'}`}
+                        onClick={() => alert(`Toggle ${item.label} - Demo only`)}
+                      >
+                        <span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition-transform ${item.enabled ? 'left-6' : 'left-1'}`} />
+                      </button>
+                    </div>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Notification Timing */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Notification Timing</CardTitle>
+                  <CardDescription className="text-xs">When to send daily/weekly summaries</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium">Daily Summary Time</label>
+                      <select className="h-8 w-full rounded-md border border-input bg-background px-3 text-xs">
+                        <option>6:00 AM</option>
+                        <option>7:00 AM</option>
+                        <option selected>8:00 AM</option>
+                        <option>9:00 AM</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium">Weekly Report Day</label>
+                      <select className="h-8 w-full rounded-md border border-input bg-background px-3 text-xs">
+                        <option>Monday</option>
+                        <option selected>Wednesday</option>
+                        <option>Friday</option>
+                        <option>Saturday</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium">Weekly Flight Summary</p>
+                      <p className="text-xs text-muted-foreground">Send weekly recap of flight hours and expenses</p>
+                    </div>
+                    <button className="relative h-6 w-11 rounded-full bg-primary">
+                      <span className="absolute top-1 left-6 h-4 w-4 rounded-full bg-white" />
+                    </button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Save Button */}
+              <div className="flex justify-end">
+                <Button size="sm" className="h-8 text-xs">Save Notification Settings</Button>
+              </div>
+            </div>
+          )}
+
           {activeTab === "add-ons" && <PlaceholderPanel title="Add-ons" description="Enable premium features: weather briefings, ATIS, fuel ordering, and more." />}
 
         </div>

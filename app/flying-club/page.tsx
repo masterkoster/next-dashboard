@@ -28,6 +28,7 @@ import {
   BookOpen,
   Settings
 } from "lucide-react"
+import { FlightCompleteWizard } from "@/components/flight-complete/FlightCompleteWizard"
 
 // Mock data structure
 const mockGroups = [
@@ -98,6 +99,10 @@ export default function FlyingClubPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedGroup, setSelectedGroup] = useState('all')
   const [viewingGroupDetails, setViewingGroupDetails] = useState<string | null>(null)
+  
+  // Flight completion wizard state
+  const [showFlightComplete, setShowFlightComplete] = useState(false)
+  const [activeFlight, setActiveFlight] = useState<{id: string; aircraftId: string; aircraftName: string; userId: string; userName: string; hobbsStart?: number} | null>(null)
 
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -390,6 +395,24 @@ export default function FlyingClubPage() {
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
+                  <Button 
+                    className="ml-2 bg-emerald-500 hover:bg-emerald-600"
+                    size="sm"
+                    onClick={() => {
+                      setActiveFlight({
+                        id: 'calendar-flight-1',
+                        aircraftId: 'aircraft-1',
+                        aircraftName: 'N172SP (C172)',
+                        userId: 'user-1',
+                        userName: 'John Doe',
+                        hobbsStart: 1250.5
+                      });
+                      setShowFlightComplete(true);
+                    }}
+                  >
+                    <Plane className="mr-2 h-4 w-4" />
+                    Complete Flight
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -627,6 +650,19 @@ export default function FlyingClubPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Flight Completion Wizard */}
+        {activeFlight && (
+          <FlightCompleteWizard
+            open={showFlightComplete}
+            onOpenChange={setShowFlightComplete}
+            flight={activeFlight}
+            onComplete={async (data) => {
+              console.log('Flight completed:', data);
+              alert('Flight logged! (Demo - API not connected yet)');
+            }}
+          />
         )}
       </main>
     </div>
