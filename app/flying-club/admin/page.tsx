@@ -715,6 +715,7 @@ export default function ClubAdminPage() {
                     <CardTitle className="text-sm">Flight Hours — Last 6 Months</CardTitle>
                   </CardHeader>
                   <CardContent>
+                    <div className="min-h-[200px]">
                     <ResponsiveContainer width="100%" height={200}>
                       <AreaChart data={flightHoursData}>
                         <defs>
@@ -724,12 +725,13 @@ export default function ClubAdminPage() {
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                        <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-                        <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                        <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
                         <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, color: "#f1f5f9" }} />
                         <Area type="monotone" dataKey="hours" stroke="#3b82f6" strokeWidth={2} fill="url(#gh)" />
                       </AreaChart>
                     </ResponsiveContainer>
+                    </div>
                   </CardContent>
                 </Card>
 
@@ -738,15 +740,17 @@ export default function ClubAdminPage() {
                     <CardTitle className="text-sm">Club Revenue — Last 6 Months</CardTitle>
                   </CardHeader>
                   <CardContent>
+                    <div className="min-h-[200px]">
                     <ResponsiveContainer width="100%" height={200}>
                       <BarChart data={revenueData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                        <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 11 }} />
-                        <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} />
+                        <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
                         <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, color: "#f1f5f9" }} />
                         <Bar dataKey="revenue" fill="#10b981" radius={[4, 4, 0, 0]} />
                       </BarChart>
                     </ResponsiveContainer>
+                    </div>
                   </CardContent>
                 </Card>
               </div>

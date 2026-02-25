@@ -57,6 +57,7 @@ export default function FinancialTracker({
   })
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'inputs' | 'projections'>('inputs')
 
   // Load financials from API
   useEffect(() => {
@@ -66,7 +67,7 @@ export default function FinancialTracker({
         if (res.ok) {
           const data = await res.json()
           if (data) {
-            setFinancials({
+            const nextFinancials = {
               aircraftRate: Number(data.aircraftRate) || 0,
               instructorRate: Number(data.instructorRate) || 0,
               checkrideFee: Number(data.checkrideFee) || 0,
@@ -76,7 +77,13 @@ export default function FinancialTracker({
               equipmentCost: Number(data.equipmentCost) || 0,
               flightsPerMonth: data.flightsPerMonth || 0,
               avgFlightHours: Number(data.avgFlightHours) || 0,
-            })
+            }
+            setFinancials(nextFinancials)
+
+            const hasSavedInputs = Object.values(nextFinancials).some((value) => Number(value) > 0)
+            if (hasSavedInputs) {
+              setActiveTab('projections')
+            }
           }
         }
       } catch (error) {
@@ -184,7 +191,7 @@ export default function FinancialTracker({
         </div>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="inputs" className="w-full">
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'inputs' | 'projections')} className="w-full">
           <TabsList className="mb-4">
             <TabsTrigger value="inputs">Cost Inputs</TabsTrigger>
             <TabsTrigger value="projections">Projections</TabsTrigger>
