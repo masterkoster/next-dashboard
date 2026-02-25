@@ -110,6 +110,7 @@ const savedFlightPlans = [
 export default function PilotDashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const [groupId, setGroupId] = useState<string | null>(null)
   const [customizeMode, setCustomizeMode] = useState(false)
   const [visibleWidgets, setVisibleWidgets] = useState<WidgetType[]>([
     'airport-weather',
@@ -127,6 +128,7 @@ export default function PilotDashboard() {
   const [selectedCurrencyItem, setSelectedCurrencyItem] = useState<typeof currencyItems[0] | null>(null)
   const [showFlightComplete, setShowFlightComplete] = useState(false)
   const [activeFlight, setActiveFlight] = useState<{id: string; aircraftId: string; aircraftName: string; userId: string; userName: string; hobbsStart?: number} | null>(null)
+  const [showDemoNotice, setShowDemoNotice] = useState(true)
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -144,6 +146,77 @@ export default function PilotDashboard() {
   useEffect(() => {
     localStorage.setItem('dashboard-widgets', JSON.stringify(visibleWidgets))
   }, [visibleWidgets])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadGroups() {
+      try {
+        const res = await fetch('/api/groups')
+        if (!res.ok) return
+        const data = await res.json()
+        if (!Array.isArray(data) || data.length === 0) return
+
+        const adminGroup =
+          data.find((g: any) => g.role === 'ADMIN' || g.role === 'OWNER') ?? data[0]
+
+        if (!adminGroup || cancelled) return
+        setGroupId(adminGroup.id)
+        setShowDemoNotice(false)
+      } catch (error) {
+        console.error('Failed to load groups for dashboard', error)
+      }
+    }
+
+    loadGroups()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleOpenFlightComplete = async () => {
+    if (!groupId) {
+      alert('Please join or select a flying club to complete a flight')
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/clubs/${groupId}/flights/active`)
+      if (!res.ok) {
+        const error = await res.json()
+        alert(error.error || 'Failed to load active flights')
+        return
+      }
+
+      const active = await res.json()
+      if (!Array.isArray(active) || active.length === 0) {
+        alert('No active flights found')
+        return
+      }
+
+      const sessionUserId = session?.user?.id
+      const myFlight = sessionUserId
+        ? active.find((f: any) => f.user?.id === sessionUserId || f.userId === sessionUserId)
+        : null
+
+      const flight = myFlight ?? active[0]
+
+      setActiveFlight({
+        id: flight.id,
+        aircraftId: flight.aircraftId,
+        aircraftName: flight.aircraft?.nNumber
+          ? `${flight.aircraft.nNumber}${flight.aircraft.name ? ` (${flight.aircraft.name})` : ''}`
+          : 'Unknown Aircraft',
+        userId: flight.user?.id ?? flight.userId ?? sessionUserId ?? 'unknown',
+        userName: flight.user?.name ?? session?.user?.name ?? 'Pilot',
+        hobbsStart: flight.hobbsStart ? Number(flight.hobbsStart) : undefined,
+      })
+      setShowFlightComplete(true)
+    } catch (error) {
+      console.error('Failed to open flight completion wizard', error)
+      alert('Failed to load active flights')
+    }
+  }
 
   const toggleWidget = (widget: WidgetType) => {
     setVisibleWidgets(prev => 
@@ -255,7 +328,7 @@ export default function PilotDashboard() {
           </div>
 
           {/* Demo Data Notice */}
-          <DemoNotice />
+          {showDemoNotice && <DemoNotice />}
 
           {/* Customize Mode Panel */}
           {customizeMode && (
@@ -437,18 +510,7 @@ export default function PilotDashboard() {
                   <Button 
                     size="sm" 
                     className="w-full bg-emerald-500 hover:bg-emerald-600" 
-                    onClick={() => {
-                      // Demo: Set active flight and open wizard
-                      setActiveFlight({
-                        id: 'demo-flight-1',
-                        aircraftId: 'aircraft-1',
-                        aircraftName: 'N123AB (C172)',
-                        userId: 'user-1',
-                        userName: 'John Doe',
-                        hobbsStart: 1250.5
-                      });
-                      setShowFlightComplete(true);
-                    }}
+                    onClick={handleOpenFlightComplete}
                   >
                     Complete Flight
                   </Button>
@@ -743,18 +805,49 @@ export default function PilotDashboard() {
         </div>
 
         {/* Flight Completion Wizard */}
-        {activeFlight && (
-          <FlightCompleteWizard
-            open={showFlightComplete}
-            onOpenChange={setShowFlightComplete}
-            flight={activeFlight}
-            onComplete={async (data) => {
-              console.log('Flight completed:', data);
-              // TODO: Submit to API
-              alert('Flight logged! (Demo - API not connected yet)');
-            }}
-          />
-        )}
+          {activeFlight && (
+            <FlightCompleteWizard
+              open={showFlightComplete}
+              onOpenChange={setShowFlightComplete}
+              flight={activeFlight}
+              onComplete={async (data) => {
+                if (!groupId) {
+                  alert('Please join or select a flying club to complete a flight')
+                  return
+                }
+
+                try {
+                  const res = await fetch(`/api/clubs/${groupId}/flights/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      flightLogId: data.flightId,
+                      hobbsEnd: data.hobbsEnd,
+                      notes: data.notes || null,
+                    }),
+                  })
+
+                  if (!res.ok) {
+                    const error = await res.json()
+                    alert(error.error || 'Failed to complete flight')
+                    return
+                  }
+
+                  const result = await res.json()
+                  const flight = result.flight
+                  if (flight?.hobbsTime && flight?.calculatedCost) {
+                    alert(`Flight complete! Hobbs: ${Number(flight.hobbsTime).toFixed(1)}, Cost: $${Number(flight.calculatedCost).toFixed(2)}`)
+                  } else {
+                    alert('Flight complete!')
+                  }
+                  setActiveFlight(null)
+                } catch (error) {
+                  console.error('Failed to complete flight', error)
+                  alert('Failed to complete flight')
+                }
+              }}
+            />
+          )}
       </main>
     </div>
   )
