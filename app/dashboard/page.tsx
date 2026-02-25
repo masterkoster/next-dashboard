@@ -68,7 +68,7 @@ type WidgetType =
 
 const WIDGET_INFO: Record<WidgetType, { name: string; description: string }> = {
   'airport-weather': { name: 'Home Airport Weather', description: 'Current conditions at your home airport' },
-  'quick-alerts': { name: 'Quick Alerts', description: 'Urgent maintenance, next flight, and hours' },
+  'quick-alerts': { name: 'Quick Alerts', description: 'Scheduled maintenance, next flight, and hours' },
   'flight-hours': { name: 'Flight Hours Chart', description: 'Your flying activity over time' },
   'upcoming-flights': { name: 'Upcoming Flights', description: 'Your scheduled flights and lessons' },
   'maintenance': { name: 'Aircraft Maintenance', description: 'Due maintenance items' },
@@ -421,16 +421,25 @@ export default function PilotDashboard() {
       try {
         setFuelPriceLoading(true)
         setFuelPriceError(null)
-        const [dbRes, communityRes] = await Promise.all([
-          fetch(`/api/fuel/nearest?icao=${encodeURIComponent(homeAirportIcao ?? '')}&radius=0`),
-          fetch(`/api/fuel-prices/community?icaos=${encodeURIComponent(homeAirportIcao ?? '')}`),
-        ])
+        const communityRes = fetch(`/api/fuel-prices/community?icaos=${encodeURIComponent(homeAirportIcao ?? '')}`)
+        const dbRes = fetch(`/api/fuel/nearest?icao=${encodeURIComponent(homeAirportIcao ?? '')}&radius=0`)
 
-        if (dbRes.ok) {
-          const data = await dbRes.json()
-          const exact = Array.isArray(data?.results)
+        const [dbResponse, communityResponse] = await Promise.all([dbRes, communityRes])
+
+        if (dbResponse.ok) {
+          const data = await dbResponse.json()
+          let exact = Array.isArray(data?.results)
             ? data.results.find((r: any) => r.icao === homeAirportIcao)
             : null
+
+          if (!exact) {
+            const fallbackRes = await fetch(`/api/fuel/nearest?icao=${encodeURIComponent(homeAirportIcao ?? '')}&radius=50`)
+            if (fallbackRes.ok) {
+              const fallbackData = await fallbackRes.json()
+              exact = Array.isArray(fallbackData?.results) ? fallbackData.results[0] : null
+            }
+          }
+
           if (!cancelled) {
             setFuelPrice(typeof exact?.price100ll === 'number' ? exact.price100ll : null)
             setFuelPriceUpdatedAt(exact?.lastReported || null)
@@ -439,8 +448,8 @@ export default function PilotDashboard() {
           setFuelPriceError('Failed to load airport fuel price')
         }
 
-        if (communityRes.ok) {
-          const communityData = await communityRes.json()
+        if (communityResponse.ok) {
+          const communityData = await communityResponse.json()
           const community = Array.isArray(communityData?.prices)
             ? communityData.prices.find((p: any) => p.icao === homeAirportIcao && p.fuelType === '100LL')
             : null
@@ -776,7 +785,7 @@ export default function PilotDashboard() {
                         ? '—'
                         : homeWeather?.windDir && homeWeather?.windSpeed
                           ? `${homeWeather.windDir}° @ ${homeWeather.windSpeed}kt`
-                          : '—'}
+                          : homeWeatherError ? '—' : 'No wind data'}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {homeWeather?.windGust ? `Gusting to ${homeWeather.windGust}kt` : ' '}
@@ -812,7 +821,7 @@ export default function PilotDashboard() {
                             : '—'}
                       </div>
                       <p className="text-[11px] text-muted-foreground">
-                        Airport price {fuelPriceUpdatedAt ? `• ${new Date(fuelPriceUpdatedAt).toLocaleDateString()}` : ''}
+                        Airport price {fuelPriceUpdatedAt ? `• ${new Date(fuelPriceUpdatedAt).toLocaleDateString()}` : '• No airport price'}
                       </p>
                       <div className="text-sm font-medium">
                         {communityFuelLoading
@@ -822,7 +831,7 @@ export default function PilotDashboard() {
                             : '—'}
                       </div>
                       <p className="text-[11px] text-muted-foreground">
-                        Community price {communityFuelUpdatedAt ? `• ${new Date(communityFuelUpdatedAt).toLocaleDateString()}` : ''}
+                        Community price {communityFuelUpdatedAt ? `• ${new Date(communityFuelUpdatedAt).toLocaleDateString()}` : '• No community price'}
                       </p>
                       {fuelPriceError && <p className="text-[11px] text-destructive">{fuelPriceError}</p>}
                       {communityFuelError && <p className="text-[11px] text-destructive">{communityFuelError}</p>}
@@ -842,12 +851,13 @@ export default function PilotDashboard() {
           {/* Alerts & Important Items */}
           {isWidgetVisible('quick-alerts') && (
           <div className="grid gap-4 lg:grid-cols-3">
+            {maintenanceItems.length > 0 && (
             <Card className="border-destructive/50 bg-destructive/5">
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-5 w-5 text-destructive" />
-                    <CardTitle className="text-base">Urgent Maintenance</CardTitle>
+                    <CardTitle className="text-base">Scheduled Maintenance</CardTitle>
                   </div>
                   <div className="flex items-center gap-1">
                     <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowMaintenanceModal(true)}>
@@ -865,15 +875,13 @@ export default function PilotDashboard() {
                     <p className="text-xs text-muted-foreground">Loading maintenance…</p>
                   ) : maintenanceError ? (
                     <p className="text-xs text-destructive">{maintenanceError}</p>
-                  ) : maintenanceItems.length > 0 ? (
+                  ) : (
                     <>
                       <p className="text-sm font-medium">{maintenanceItems[0]?.description || 'Maintenance needed'}</p>
                       <p className="text-xs text-muted-foreground">
                         {maintenanceItems[0]?.nNumber || 'Aircraft'}
                       </p>
                     </>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">No urgent maintenance items</p>
                   )}
                   <div className="text-xs text-muted-foreground">
                     Use the icons above to view details or open full page.
@@ -881,6 +889,7 @@ export default function PilotDashboard() {
                 </div>
               </CardContent>
             </Card>
+            )}
             
             <Card className="border-chart-3/50 bg-chart-3/5">
               <CardHeader className="pb-3">
@@ -1154,11 +1163,12 @@ export default function PilotDashboard() {
             </DialogContent>
           </Dialog>
 
+          {maintenanceItems.length > 0 && (
           <Dialog open={showMaintenanceModal} onOpenChange={setShowMaintenanceModal}>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Urgent Maintenance</DialogTitle>
-                <DialogDescription>Review urgent maintenance items.</DialogDescription>
+                <DialogTitle>Scheduled Maintenance</DialogTitle>
+                <DialogDescription>Review scheduled maintenance items.</DialogDescription>
               </DialogHeader>
               <div className="space-y-3">
                 {maintenanceLoading ? (
@@ -1183,6 +1193,7 @@ export default function PilotDashboard() {
               </div>
             </DialogContent>
           </Dialog>
+          )}
 
           <Dialog open={showNextFlightModal} onOpenChange={setShowNextFlightModal}>
             <DialogContent>
