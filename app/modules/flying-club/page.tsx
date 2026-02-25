@@ -332,7 +332,10 @@ export default function FlyingClubPage() {
           const bookingsRes = await fetch('/api/bookings')
           if (bookingsRes.ok) {
             const bookingsData = await bookingsRes.json()
-            setBookings(bookingsData)
+            const resolvedBookings = Array.isArray(bookingsData)
+              ? bookingsData
+              : bookingsData.bookings || []
+            setBookings(resolvedBookings)
           }
           // Set empty for demo-like state when logged in
           setMaintenance([])
@@ -396,7 +399,13 @@ export default function FlyingClubPage() {
     if (!session?.user?.id) return
     if (selectedView === 'personal') {
       // Fetch personal bookings
-      fetch('/api/bookings').then(r => r.ok && r.json()).then(data => { if (data) setBookings(data) })
+      fetch('/api/bookings')
+        .then(r => r.ok && r.json())
+        .then(data => {
+          if (!data) return
+          const resolvedBookings = Array.isArray(data) ? data : data.bookings || []
+          setBookings(resolvedBookings)
+        })
       setMaintenance([])
       setMembers([])
       setFlightLogs([])
@@ -413,7 +422,13 @@ export default function FlyingClubPage() {
           fetch(`/api/groups/${selectedView}/chat`)
         ])
         
-        if (bookingsRes.ok) setBookings(await bookingsRes.json())
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json()
+          const resolvedBookings = Array.isArray(bookingsData)
+            ? bookingsData
+            : bookingsData.bookings || []
+          setBookings(resolvedBookings)
+        }
         if (membersRes.ok) setMembers(await membersRes.json())
         if (logsRes.ok) {
           const logsData = await logsRes.json()
