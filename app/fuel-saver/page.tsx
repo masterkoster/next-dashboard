@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import dynamic from 'next/dynamic'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -100,6 +100,18 @@ export default function FuelSaverPage() {
   const [selectedAircraft, setSelectedAircraft] = useState(AIRCRAFT_PROFILES[0])
   const [activeTab, setActiveTab] = useState('route')
   
+  // Map state
+  const [airports, setAirports] = useState<any[]>([])
+  const [fuelPrices, setFuelPrices] = useState<Record<string, any>>({})
+  const [mapCenter, setMapCenter] = useState<[number, number]>([39.8283, -98.5795])
+  const [mapZoom, setMapZoom] = useState(4)
+  const [mapBounds, setMapBounds] = useState({
+    minLat: 25,
+    maxLat: 50,
+    minLon: -125,
+    maxLon: -65
+  })
+  
   // Flight plan fields
   const [flightPlanName, setFlightPlanName] = useState('')
   const [callsign, setCallsign] = useState('')
@@ -118,11 +130,66 @@ export default function FuelSaverPage() {
   const [showNotams, setShowNotams] = useState(false)
   const [includeLandingFees, setIncludeLandingFees] = useState(true)
   const [includeFboFees, setIncludeFboFees] = useState(false)
+  
+  // Fetch airports when bounds change
+  const handleBoundsChange = async (bounds: typeof mapBounds) => {
+    setMapBounds(bounds)
+    try {
+      const response = await fetch(`/api/airports/nearby?minLat=${bounds.minLat}&maxLat=${bounds.maxLat}&minLon=${bounds.minLon}&maxLon=${bounds.maxLon}`)
+      if (response.ok) {
+        const data = await response.json()
+        setAirports(data.airports || [])
+      }
+    } catch (error) {
+      console.error('Error fetching airports:', error)
+    }
+  }
+  
+  // Handle airport click
+  const handleAirportClick = (airport: any) => {
+    if (airport.icao) {
+      addWaypoint(airport.icao)
+    }
+  }
 
-  const addWaypoint = (icao: string) => {
+  const addWaypoint = async (icao: string) => {
+    const upperIcao = icao.toUpperCase()
+    
+    // Check if waypoint already exists
+    if (waypoints.some(w => w.icao === upperIcao)) {
+      return
+    }
+    
+    try {
+      // Try to fetch airport data
+      const response = await fetch(`/api/airports/search?q=${upperIcao}`)
+      if (response.ok) {
+        const data = await response.json()
+        const airport = data.airports?.[0]
+        
+        if (airport) {
+          const newWaypoint: Waypoint = {
+            id: Date.now().toString(),
+            icao: upperIcao,
+            name: airport.name || 'Airport',
+            city: airport.city,
+            latitude: airport.latitude || 40.0,
+            longitude: airport.longitude || -100.0,
+            sequence: waypoints.length,
+            fuelPrice: airport.fuel?.price100ll
+          }
+          setWaypoints([...waypoints, newWaypoint])
+          return
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching airport:', error)
+    }
+    
+    // Fallback if API fails
     const newWaypoint: Waypoint = {
       id: Date.now().toString(),
-      icao: icao.toUpperCase(),
+      icao: upperIcao,
       name: 'Airport',
       latitude: 40.0,
       longitude: -100.0,
@@ -134,6 +201,20 @@ export default function FuelSaverPage() {
   const removeWaypoint = (id: string) => {
     setWaypoints(waypoints.filter(w => w.id !== id))
   }
+
+  // Fetch initial airports on mount
+  useEffect(() => {
+    handleBoundsChange(mapBounds)
+  }, [])
+  
+  // Update map center when waypoints change
+  useEffect(() => {
+    if (waypoints.length > 0) {
+      const lastWaypoint = waypoints[waypoints.length - 1]
+      setMapCenter([lastWaypoint.latitude, lastWaypoint.longitude])
+      setMapZoom(8)
+    }
+  }, [waypoints])
 
   const calculateStats = () => {
     if (waypoints.length < 2) return null
@@ -381,15 +462,41 @@ export default function FuelSaverPage() {
 
               {/* Quick Actions */}
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => alert('Import flight plan - Coming soon!')}
+                >
                   <Upload className="h-3 w-3 mr-1" />
                   Import
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => {
+                    const data = JSON.stringify({ waypoints, aircraft: selectedAircraft, flightPlan: { name: flightPlanName, callsign, cruisingAlt } }, null, 2)
+                    const blob = new Blob([data], { type: 'application/json' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `flight-plan-${Date.now()}.json`
+                    a.click()
+                  }}
+                >
                   <Download className="h-3 w-3 mr-1" />
                   Export
                 </Button>
-                <Button size="sm" className="flex-1">
+                <Button 
+                  size="sm" 
+                  className="flex-1"
+                  onClick={() => {
+                    localStorage.setItem('fuel-saver-plan', JSON.stringify({ waypoints, aircraft: selectedAircraft, flightPlan: { name: flightPlanName, callsign, cruisingAlt } }))
+                    alert('Flight plan saved!')
+                  }}
+                  disabled={waypoints.length === 0}
+                >
                   <Save className="h-3 w-3 mr-1" />
                   Save
                 </Button>
@@ -599,6 +706,21 @@ export default function FuelSaverPage() {
                     className="w-full" 
                     size="sm"
                     disabled={waypoints.length < 2}
+                    onClick={async () => {
+                      const icaos = waypoints.map(w => w.icao).join(',')
+                      try {
+                        const response = await fetch(`/api/weather/metar?airports=${icaos}`)
+                        if (response.ok) {
+                          const data = await response.json()
+                          alert('Weather data fetched! Check console for details.')
+                          console.log('Weather data:', data)
+                        } else {
+                          alert('Weather data not available')
+                        }
+                      } catch (error) {
+                        alert('Error fetching weather')
+                      }
+                    }}
                   >
                     Fetch Weather
                   </Button>
@@ -622,8 +744,12 @@ export default function FuelSaverPage() {
                     className="w-full" 
                     size="sm"
                     disabled={waypoints.length === 0}
+                    onClick={() => {
+                      setShowNotams(!showNotams)
+                      alert(showNotams ? 'NOTAMs hidden on map' : 'NOTAMs shown on map')
+                    }}
                   >
-                    Fetch NOTAMs
+                    {showNotams ? 'Hide' : 'Show'} NOTAMs
                   </Button>
                   <div className="text-center py-6 text-sm text-muted-foreground">
                     View TFRs, runway closures, and notices
@@ -680,6 +806,12 @@ export default function FuelSaverPage() {
                     size="sm"
                     variant="outline"
                     disabled={waypoints.length < 2}
+                    onClick={() => {
+                      const routeString = waypoints.map(w => w.icao).join('-')
+                      const shareUrl = `${window.location.origin}/fuel-saver?route=${routeString}`
+                      navigator.clipboard.writeText(shareUrl)
+                      alert('Share link copied to clipboard!')
+                    }}
                   >
                     <Copy className="h-3 w-3 mr-2" />
                     Copy Share Link
@@ -744,17 +876,15 @@ export default function FuelSaverPage() {
           {/* Integrated LeafletMap Component */}
           <LeafletMap 
             waypoints={waypoints}
-            airports={[]}
-            fuelPrices={{}}
-            mapCenter={[39.8283, -98.5795]}
-            mapZoom={4}
-            onBoundsChange={() => {}}
-            onAirportClick={(airport) => {
-              if (airport.icao) {
-                addWaypoint(airport.icao)
-              }
-            }}
+            airports={airports}
+            fuelPrices={fuelPrices}
+            mapCenter={mapCenter}
+            mapZoom={mapZoom}
+            onBoundsChange={handleBoundsChange}
+            onAirportClick={handleAirportClick}
             showNotams={showNotams}
+            showTfrs={showNotams}
+            showStateOverlay={showAllAirports}
           />
 
           {/* Getting Started Hint */}
