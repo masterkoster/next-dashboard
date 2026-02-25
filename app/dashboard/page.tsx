@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -107,6 +108,7 @@ const savedFlightPlans = [
 
 export default function PilotDashboard() {
   const { data: session, status } = useSession()
+  const router = useRouter()
   const [customizeMode, setCustomizeMode] = useState(false)
   const [visibleWidgets, setVisibleWidgets] = useState<WidgetType[]>([
     'airport-weather',
@@ -117,6 +119,11 @@ export default function PilotDashboard() {
     'currency',
     'flight-plans',
   ])
+
+  // Modal/selection state
+  const [selectedFlightPlan, setSelectedFlightPlan] = useState<typeof savedFlightPlans[0] | null>(null)
+  const [selectedMaintenanceItem, setSelectedMaintenanceItem] = useState<typeof maintenanceItems[0] | null>(null)
+  const [selectedCurrencyItem, setSelectedCurrencyItem] = useState<typeof currencyItems[0] | null>(null)
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -387,7 +394,7 @@ export default function PilotDashboard() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Oil Change Due Soon</p>
                   <p className="text-xs text-muted-foreground">N12345 - Due in 2.3 hours</p>
-                  <Button size="sm" variant="destructive" className="w-full">
+                  <Button size="sm" variant="destructive" className="w-full" onClick={() => router.push('/modules/flying-club?tab=maintenance')}>
                     Schedule Now
                   </Button>
                 </div>
@@ -405,7 +412,7 @@ export default function PilotDashboard() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">IFR Training</p>
                   <p className="text-xs text-muted-foreground">Tomorrow at 14:00 with John Smith</p>
-                  <Button size="sm" variant="outline" className="w-full">
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => router.push('/modules/flying-club?tab=bookings')}>
                     View Details
                   </Button>
                 </div>
@@ -423,7 +430,7 @@ export default function PilotDashboard() {
                 <div className="space-y-2">
                   <p className="text-2xl font-bold">16.2 hrs</p>
                   <p className="text-xs text-muted-foreground">Logged this month</p>
-                  <Button size="sm" variant="outline" className="w-full">
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => router.push('/modules/logbook')}>
                     View Logbook
                   </Button>
                 </div>
@@ -500,7 +507,7 @@ export default function PilotDashboard() {
                     <CardTitle>Upcoming Flights</CardTitle>
                     <CardDescription>Your schedule</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => router.push('/modules/flying-club?tab=bookings')}>
                     <Plus className="mr-1 h-4 w-4" />
                     Add
                   </Button>
@@ -554,7 +561,7 @@ export default function PilotDashboard() {
                     <CardTitle>Aircraft Maintenance</CardTitle>
                     <CardDescription>Due items for N12345</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => router.push('/modules/flying-club?tab=maintenance')}>
                     <Wrench className="mr-1 h-4 w-4" />
                     Manage
                   </Button>
@@ -581,7 +588,7 @@ export default function PilotDashboard() {
                         </div>
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-muted-foreground">{item.hoursRemaining.toFixed(1)} hours remaining</p>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs">
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => router.push('/modules/flying-club?tab=maintenance')}>
                             Details
                             <ArrowRight className="ml-1 h-3 w-3" />
                           </Button>
@@ -603,7 +610,7 @@ export default function PilotDashboard() {
                     <CardTitle>Currency & Licenses</CardTitle>
                     <CardDescription>Keep your credentials current</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button size="sm" variant="outline" onClick={() => router.push('/profile')}>
                     <FileText className="mr-1 h-4 w-4" />
                     View All
                   </Button>
@@ -631,7 +638,7 @@ export default function PilotDashboard() {
                         </div>
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-muted-foreground">Expires: {item.expiryDate} ({item.daysRemaining} days)</p>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs">
+                          <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => router.push('/profile')}>
                             Renew
                             <ArrowRight className="ml-1 h-3 w-3" />
                           </Button>
@@ -650,16 +657,16 @@ export default function PilotDashboard() {
           {isWidgetVisible('flight-plans') && (
           <Card>
             <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Saved Flight Plans</CardTitle>
-                  <CardDescription>Quick access to your routes</CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Saved Flight Plans</CardTitle>
+                    <CardDescription>Quick access to your routes</CardDescription>
+                  </div>
+                  <Button size="sm" variant="default" onClick={() => router.push('/modules/fuel-saver')}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    New Plan
+                  </Button>
                 </div>
-                <Button size="sm" variant="default">
-                  <Plus className="mr-1 h-4 w-4" />
-                  New Plan
-                </Button>
-              </div>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -680,10 +687,10 @@ export default function PilotDashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="ghost">
+                      <Button size="sm" variant="ghost" onClick={() => router.push(`/modules/fuel-saver/view/${plan.id}`)}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost">
+                      <Button size="sm" variant="ghost" onClick={() => router.push(`/modules/fuel-saver?edit=${plan.id}`)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
