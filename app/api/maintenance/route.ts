@@ -14,11 +14,11 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    // Get all maintenance with aircraft info
     const maintenance = await prisma.$queryRaw`
       SELECT m.*, a.nNumber, a.customName, a.nickname, a.make, a.model
       FROM Maintenance m
       LEFT JOIN ClubAircraft a ON m.aircraftId = a.id
+      WHERE m.userId = ${user.id}
       ORDER BY m.reportedDate DESC
     `;
 

@@ -42,7 +42,8 @@ import {
   EyeOff,
   Loader2,
   Navigation,
-  User
+  User,
+  ExternalLink
 } from "lucide-react"
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from "recharts"
 import { FlightCompleteWizard } from "@/components/flight-complete/FlightCompleteWizard"
@@ -147,6 +148,12 @@ export default function PilotDashboard() {
   const [showNextFlightModal, setShowNextFlightModal] = useState(false)
   const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
   const [showLogbookModal, setShowLogbookModal] = useState(false)
+  const [maintenanceItems, setMaintenanceItems] = useState<any[]>([])
+  const [maintenanceError, setMaintenanceError] = useState<string | null>(null)
+  const [maintenanceLoading, setMaintenanceLoading] = useState(false)
+  const [logbookEntries, setLogbookEntries] = useState<any[]>([])
+  const [logbookError, setLogbookError] = useState<string | null>(null)
+  const [logbookLoading, setLogbookLoading] = useState(false)
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -317,6 +324,59 @@ export default function PilotDashboard() {
       cancelled = true
     }
   }, [session?.user?.id, groupIds, scheduledWindow, scheduledRefreshKey])
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    let cancelled = false
+
+    async function loadMaintenance() {
+      try {
+        setMaintenanceLoading(true)
+        setMaintenanceError(null)
+        const res = await fetch('/api/maintenance')
+        if (!res.ok) throw new Error('Failed to load maintenance')
+        const data = await res.json()
+        if (!cancelled) setMaintenanceItems(Array.isArray(data) ? data : data.items || [])
+      } catch (error) {
+        console.error('Failed to load maintenance', error)
+        if (!cancelled) setMaintenanceError('Failed to load maintenance')
+      } finally {
+        if (!cancelled) setMaintenanceLoading(false)
+      }
+    }
+
+    loadMaintenance()
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user?.id])
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    let cancelled = false
+
+    async function loadLogbook() {
+      try {
+        setLogbookLoading(true)
+        setLogbookError(null)
+        const res = await fetch('/api/logbook')
+        if (!res.ok) throw new Error('Failed to load logbook')
+        const data = await res.json()
+        const entries = Array.isArray(data) ? data : data.entries || []
+        if (!cancelled) setLogbookEntries(entries)
+      } catch (error) {
+        console.error('Failed to load logbook', error)
+        if (!cancelled) setLogbookError('Failed to load logbook')
+      } finally {
+        if (!cancelled) setLogbookLoading(false)
+      }
+    }
+
+    loadLogbook()
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user?.id])
 
   const toggleWidget = (widget: WidgetType) => {
     setVisibleWidgets(prev => 
@@ -561,22 +621,39 @@ export default function PilotDashboard() {
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="border-destructive/50 bg-destructive/5">
               <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="h-5 w-5 text-destructive" />
-                  <CardTitle className="text-base">Urgent Maintenance</CardTitle>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
+                    <CardTitle className="text-base">Urgent Maintenance</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowMaintenanceModal(true)}>
+                      <Search className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => router.push('/modules/flying-club?tab=maintenance')}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">Oil Change Due Soon</p>
-                  <p className="text-xs text-muted-foreground">N12345 - Due in 2.3 hours</p>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="destructive" className="flex-1" onClick={() => setShowMaintenanceModal(true)}>
-                      View
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => router.push('/modules/flying-club?tab=maintenance')}>
-                      Full Page
-                    </Button>
+                  {maintenanceLoading ? (
+                    <p className="text-xs text-muted-foreground">Loading maintenance…</p>
+                  ) : maintenanceError ? (
+                    <p className="text-xs text-destructive">{maintenanceError}</p>
+                  ) : maintenanceItems.length > 0 ? (
+                    <>
+                      <p className="text-sm font-medium">{maintenanceItems[0]?.description || 'Maintenance needed'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {maintenanceItems[0]?.nNumber || 'Aircraft'}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No urgent maintenance items</p>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    Use the icons above to view details or open full page.
                   </div>
                 </div>
               </CardContent>
@@ -584,22 +661,37 @@ export default function PilotDashboard() {
             
             <Card className="border-chart-3/50 bg-chart-3/5">
               <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-chart-3" />
-                  <CardTitle className="text-base">Next Flight</CardTitle>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-5 w-5 text-chart-3" />
+                    <CardTitle className="text-base">Next Flight</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowNextFlightModal(true)}>
+                      <Search className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => router.push('/modules/flying-club?tab=scheduled')}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <p className="text-sm font-medium">IFR Training</p>
-                  <p className="text-xs text-muted-foreground">Tomorrow at 14:00 with John Smith</p>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setShowNextFlightModal(true)}>
-                      View
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => router.push('/modules/flying-club?tab=scheduled')}>
-                      Full Page
-                    </Button>
+                  {scheduledFlights.length > 0 ? (
+                    <>
+                      <p className="text-sm font-medium">
+                        {scheduledFlights[0]?.aircraft?.nNumber || 'Upcoming flight'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(scheduledFlights[0].startTime).toLocaleString()}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No upcoming flights</p>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    Use the icons above to view details or open full page.
                   </div>
                 </div>
               </CardContent>
@@ -630,22 +722,41 @@ export default function PilotDashboard() {
             
             <Card className="border-chart-2/50 bg-chart-2/5">
               <CardHeader className="pb-3">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-chart-2" />
-                  <CardTitle className="text-base">Flight Hours</CardTitle>
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-chart-2" />
+                    <CardTitle className="text-base">Flight Hours</CardTitle>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowLogbookModal(true)}>
+                      <Search className="h-4 w-4" />
+                    </Button>
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => router.push('/modules/logbook')}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  <p className="text-2xl font-bold">16.2 hrs</p>
-                  <p className="text-xs text-muted-foreground">Logged this month</p>
-                  <div className="flex items-center gap-2">
-                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setShowLogbookModal(true)}>
-                      View
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => router.push('/modules/logbook')}>
-                      Full Page
-                    </Button>
+                  {logbookLoading ? (
+                    <p className="text-xs text-muted-foreground">Loading logbook…</p>
+                  ) : logbookError ? (
+                    <p className="text-xs text-destructive">{logbookError}</p>
+                  ) : logbookEntries.length > 0 ? (
+                    <>
+                      <p className="text-2xl font-bold">
+                        {Number(logbookEntries[0]?.totalTime || 0).toFixed(1)} hrs
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Last flight on {new Date(logbookEntries[0].date).toLocaleDateString()}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">No logbook entries</p>
+                  )}
+                  <div className="text-xs text-muted-foreground">
+                    Use the icons above to view details or open full page.
                   </div>
                 </div>
               </CardContent>
@@ -811,8 +922,26 @@ export default function PilotDashboard() {
                 <DialogTitle>Urgent Maintenance</DialogTitle>
                 <DialogDescription>Review urgent maintenance items.</DialogDescription>
               </DialogHeader>
-              <div className="text-sm text-muted-foreground">
-                Maintenance details will appear here.
+              <div className="space-y-3">
+                {maintenanceLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading maintenance…</p>
+                ) : maintenanceError ? (
+                  <p className="text-sm text-destructive">{maintenanceError}</p>
+                ) : maintenanceItems.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No urgent maintenance items.</p>
+                ) : (
+                  maintenanceItems.slice(0, 5).map((item) => (
+                    <div key={item.id} className="rounded-md border border-border p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">{item.description || 'Maintenance item'}</p>
+                          <p className="text-xs text-muted-foreground">{item.nNumber || 'Aircraft'}</p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px]">{item.status || 'NEEDED'}</Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </DialogContent>
           </Dialog>
@@ -823,8 +952,28 @@ export default function PilotDashboard() {
                 <DialogTitle>Next Flight</DialogTitle>
                 <DialogDescription>Review your upcoming flight details.</DialogDescription>
               </DialogHeader>
-              <div className="text-sm text-muted-foreground">
-                Upcoming flight details will appear here.
+              <div className="space-y-3">
+                {scheduledFlights.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No upcoming flights scheduled.</p>
+                ) : (
+                  scheduledFlights.slice(0, 5).map((flight) => (
+                    <div key={flight.id} className="rounded-md border border-border p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">
+                            {flight.aircraft?.nNumber || 'Aircraft'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(flight.startTime).toLocaleString()} — {new Date(flight.endTime).toLocaleString()}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px]">
+                          {flight.groupName ? `Club: ${flight.groupName}` : 'Personal'}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </DialogContent>
           </Dialog>
@@ -835,8 +984,30 @@ export default function PilotDashboard() {
                 <DialogTitle>Logbook</DialogTitle>
                 <DialogDescription>Recent logbook entries.</DialogDescription>
               </DialogHeader>
-              <div className="text-sm text-muted-foreground">
-                Logbook entries will appear here.
+              <div className="space-y-3">
+                {logbookLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading logbook…</p>
+                ) : logbookError ? (
+                  <p className="text-sm text-destructive">{logbookError}</p>
+                ) : logbookEntries.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No logbook entries yet.</p>
+                ) : (
+                  logbookEntries.slice(0, 5).map((entry) => (
+                    <div key={entry.id} className="rounded-md border border-border p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm font-medium">
+                            {entry.aircraft || 'Flight'}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(entry.date).toLocaleDateString()} • {Number(entry.totalTime || 0).toFixed(1)} hrs
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[10px]">Logbook</Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </DialogContent>
           </Dialog>

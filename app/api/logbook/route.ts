@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 // GET - Fetch user's logbook entries
 export async function GET() {
