@@ -179,10 +179,11 @@ export default function TrainingRoadmap({
                     
                     {/* Tooltip with full details */}
                     <TooltipContent
-                      side="right"
-                      align="start"
-                      sideOffset={12}
+                      side="top"
+                      align="center"
+                      sideOffset={8}
                       collisionPadding={16}
+                      avoidCollisions
                       className="w-80 max-w-[calc(100vw-2rem)]"
                     >
                       <div className="space-y-2">
