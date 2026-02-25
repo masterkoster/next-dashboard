@@ -20,7 +20,7 @@ export default function LoginPage() {
       .then(res => res.json())
       .then(data => {
         if (data?.user) {
-          router.push("/dashboard");
+          router.push("/");
         }
       })
       .catch(() => {});

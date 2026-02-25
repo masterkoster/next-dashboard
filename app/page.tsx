@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useEffect } from "react"
-import Link from "next/link"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { signIn, useSession } from "next-auth/react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -130,7 +131,30 @@ const savedFlightPlans = [
 
 export default function PilotDashboard() {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [customizeMode, setCustomizeMode] = useState(false)
+
+  // Redirect to welcome page if not logged in
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/welcome')
+    }
+  }, [status, router])
+
+  // Show loading while checking session
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  // Don't render dashboard if not logged in
+  if (status === 'unauthenticated') {
+    return null
+  }
+
   const [visibleWidgets, setVisibleWidgets] = useState<WidgetType[]>([
     'airport-weather',
     'quick-alerts',
