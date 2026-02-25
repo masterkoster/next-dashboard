@@ -76,15 +76,7 @@ const WIDGET_INFO: Record<WidgetType, { name: string; description: string }> = {
   'flight-plans': { name: 'Saved Flight Plans', description: 'Quick access to your routes' },
 }
 
-// Flight hours over past 6 months
-const flightHoursData = [
-  { month: "Sep", hours: 12.5 },
-  { month: "Oct", hours: 15.2 },
-  { month: "Nov", hours: 9.8 },
-  { month: "Dec", hours: 18.4 },
-  { month: "Jan", hours: 14.6 },
-  { month: "Feb", hours: 16.2 },
-]
+// Flight hours data is computed from logbook entries
 
 // Demo currency - NOT IMPLEMENTED - needs new table
 const currencyItems = [
@@ -169,6 +161,20 @@ export default function PilotDashboard() {
   const [communityFuelError, setCommunityFuelError] = useState<string | null>(null)
   const [communityFuelLoading, setCommunityFuelLoading] = useState(false)
 
+  const flightHoursData = logbookEntries.reduce((acc: any[], entry: any) => {
+    const date = entry?.date ? new Date(entry.date) : null
+    if (!date || Number.isNaN(date.getTime())) return acc
+    const key = date.toLocaleString('en-US', { month: 'short' })
+    const existing = acc.find((item) => item.month === key)
+    const hours = Number(entry.totalTime || 0)
+    if (existing) {
+      existing.hours += hours
+    } else {
+      acc.push({ month: key, hours })
+    }
+    return acc
+  }, [])
+
   // Load preferences from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem('dashboard-widgets')
@@ -241,7 +247,49 @@ export default function PilotDashboard() {
         })
 
         if (!upcoming) {
-          alert('No active flights found')
+          const nextClub = scheduledFlights.find((f) => f?.groupId)
+          if (!nextClub) {
+            alert('No active flights found')
+            return
+          }
+
+          const hobbsStartInput = window.prompt('Enter Hobbs start time to check out this flight')
+          const hobbsStart = hobbsStartInput ? Number(hobbsStartInput) : NaN
+          if (!hobbsStart || Number.isNaN(hobbsStart)) {
+            alert('Valid Hobbs start time is required')
+            return
+          }
+
+          const checkoutRes = await fetch(`/api/clubs/${nextClub.groupId}/flights/checkout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              aircraftId: nextClub.aircraftId,
+              hobbsStart,
+              notes: nextClub.purpose || null,
+            }),
+          })
+
+          if (!checkoutRes.ok) {
+            const error = await checkoutRes.json()
+            alert(error.error || 'Failed to start flight')
+            return
+          }
+
+          const checkout = await checkoutRes.json()
+          const flight = checkout.flight
+
+          setActiveFlight({
+            id: flight.id,
+            aircraftId: flight.aircraftId,
+            aircraftName: flight.aircraft?.nNumber
+              ? `${flight.aircraft.nNumber}${flight.aircraft.name ? ` (${flight.aircraft.name})` : ''}`
+              : 'Unknown Aircraft',
+            userId: flight.user?.id ?? session?.user?.id ?? 'unknown',
+            userName: flight.user?.name ?? session?.user?.name ?? 'Pilot',
+            hobbsStart: flight.hobbsStart ? Number(flight.hobbsStart) : undefined,
+          })
+          setShowFlightComplete(true)
           return
         }
 
@@ -724,9 +772,11 @@ export default function PilotDashboard() {
                   </div>
                   <div className="space-y-1">
                     <div className="text-2xl font-bold">
-                      {homeWeather?.windDir && homeWeather?.windSpeed
-                        ? `${homeWeather.windDir}° @ ${homeWeather.windSpeed}kt`
-                        : '—'}
+                      {homeWeatherLoading
+                        ? '—'
+                        : homeWeather?.windDir && homeWeather?.windSpeed
+                          ? `${homeWeather.windDir}° @ ${homeWeather.windSpeed}kt`
+                          : '—'}
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {homeWeather?.windGust ? `Gusting to ${homeWeather.windGust}kt` : ' '}
@@ -947,54 +997,69 @@ export default function PilotDashboard() {
               </CardHeader>
               <CardContent className="pl-2">
                 <div className="min-h-[300px]">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <AreaChart data={flightHoursData}>
-                    <defs>
-                      <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                    <XAxis 
-                      dataKey="month" 
-                      tick={{ fill: '#94a3b8', fontSize: 12 }}
-                      stroke="#475569"
-                    />
-                    <YAxis 
-                      tick={{ fill: '#94a3b8', fontSize: 12 }}
-                      stroke="#475569"
-                      label={{ value: 'Hours', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
-                    />
-                    <RechartsTooltip 
-                      contentStyle={{ 
-                        backgroundColor: '#1e293b',
-                        border: '1px solid #334155',
-                        borderRadius: '8px',
-                        color: '#f1f5f9'
-                      }}
-                    />
-                    <Area 
-                      type="monotone" 
-                      dataKey="hours" 
-                      stroke="#3b82f6" 
-                      strokeWidth={2}
-                      fillOpacity={1} 
-                      fill="url(#colorHours)" 
-                    />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                  {logbookEntries.length === 0 ? (
+                    <div className="flex h-[300px] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border text-sm text-muted-foreground">
+                      <span>No flying? :( schedule now!</span>
+                      <Button size="sm" variant="outline" onClick={() => setShowScheduler(true)}>
+                        Open Scheduler
+                      </Button>
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height={300}>
+                      <AreaChart data={flightHoursData}>
+                        <defs>
+                          <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                        <XAxis 
+                          dataKey="month" 
+                          tick={{ fill: '#94a3b8', fontSize: 12 }}
+                          stroke="#475569"
+                        />
+                        <YAxis 
+                          tick={{ fill: '#94a3b8', fontSize: 12 }}
+                          stroke="#475569"
+                          label={{ value: 'Hours', angle: -90, position: 'insideLeft', fill: '#94a3b8' }}
+                        />
+                        <RechartsTooltip 
+                          contentStyle={{ 
+                            backgroundColor: '#1e293b',
+                            border: '1px solid #334155',
+                            borderRadius: '8px',
+                            color: '#f1f5f9'
+                          }}
+                        />
+                        <Area 
+                          type="monotone" 
+                          dataKey="hours" 
+                          stroke="#3b82f6" 
+                          strokeWidth={2}
+                          fillOpacity={1} 
+                          fill="url(#colorHours)" 
+                        />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
-                <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Total Hours (Last 6 months)</p>
-                    <p className="text-2xl font-bold">86.7 hrs</p>
+                {logbookEntries.length > 0 && (
+                  <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-4">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Total Hours (Last 6 months)</p>
+                      <p className="text-2xl font-bold">
+                        {flightHoursData.reduce((sum: number, item: any) => sum + Number(item.hours || 0), 0).toFixed(1)} hrs
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-muted-foreground">Average per Month</p>
+                      <p className="text-2xl font-bold">
+                        {(flightHoursData.reduce((sum: number, item: any) => sum + Number(item.hours || 0), 0) / Math.max(flightHoursData.length, 1)).toFixed(1)} hrs
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Average per Month</p>
-                    <p className="text-2xl font-bold">14.5 hrs</p>
-                  </div>
-                </div>
+                )}
               </CardContent>
             </Card>
             )}
