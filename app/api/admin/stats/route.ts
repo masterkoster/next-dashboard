@@ -31,6 +31,13 @@ export async function GET() {
     const openErrorReports = await prisma.errorReport.count({ where: { status: 'open' } });
     const totalFlightPlans = await prisma.flightPlan.count();
     const totalGroups = await prisma.flyingGroup.count();
+    const totalAircraft = await prisma.clubAircraft.count();
+
+    const listingCounts = await prisma.marketplaceListing.groupBy({
+      by: ['status'],
+      _count: { _all: true },
+    });
+    const listingCountMap = new Map(listingCounts.map((l) => [l.status, l._count._all]));
 
     // Estimate revenue (assuming $39.99/year for pro users)
     const estimatedAnnualRevenue = proUsers * 39.99;
@@ -44,6 +51,11 @@ export async function GET() {
       openErrorReports,
       totalFlightPlans,
       totalGroups,
+      totalAircraft,
+      listingActive: Number(listingCountMap.get('active') || 0),
+      listingPending: Number(listingCountMap.get('pending') || 0),
+      listingFlagged: Number(listingCountMap.get('flagged') || 0),
+      listingSold: Number(listingCountMap.get('sold') || 0),
       estimatedAnnualRevenue: Math.round(estimatedAnnualRevenue * 100) / 100,
       estimatedMRR: Math.round(estimatedMRR * 100) / 100,
     });

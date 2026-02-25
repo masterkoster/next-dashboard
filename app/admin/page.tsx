@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -71,82 +71,19 @@ import {
 
 // ── Mock data ──────────────────────────────────────────────────────────────────
 
-const signupData = [
-  { month: "Sep", users: 42 },
-  { month: "Oct", users: 67 },
-  { month: "Nov", users: 53 },
-  { month: "Dec", users: 89 },
-  { month: "Jan", users: 114 },
-  { month: "Feb", users: 138 },
-]
+const signupData: { month: string; users: number }[] = []
+const revenueData: { month: string; revenue: number }[] = []
+const activityData: { day: string; flights: number; plans: number }[] = []
 
-const revenueData = [
-  { month: "Sep", revenue: 8200 },
-  { month: "Oct", revenue: 11400 },
-  { month: "Nov", revenue: 9800 },
-  { month: "Dec", revenue: 15200 },
-  { month: "Jan", revenue: 18700 },
-  { month: "Feb", revenue: 21400 },
-]
 
-const activityData = [
-  { day: "Mon", flights: 34, plans: 89 },
-  { day: "Tue", flights: 28, plans: 64 },
-  { day: "Wed", flights: 51, plans: 120 },
-  { day: "Thu", flights: 43, plans: 97 },
-  { day: "Fri", flights: 67, plans: 145 },
-  { day: "Sat", flights: 92, plans: 188 },
-  { day: "Sun", flights: 78, plans: 162 },
-]
-
-const users = [
-  { id: 1, name: "James Carter", email: "james@example.com", role: "pilot", plan: "Pro", status: "active", joined: "Jan 12, 2024", hours: 312.4, club: "Boston Flying Club" },
-  { id: 2, name: "Sarah Chen", email: "sarah@example.com", role: "admin", plan: "Enterprise", status: "active", joined: "Feb 3, 2024", hours: 1204.8, club: "New England Aero" },
-  { id: 3, name: "Mike Torres", email: "mike@example.com", role: "pilot", plan: "Free", status: "suspended", joined: "Dec 5, 2023", hours: 48.2, club: "" },
-  { id: 4, name: "Lisa Park", email: "lisa@example.com", role: "pilot", plan: "Pro", status: "active", joined: "Jan 28, 2024", hours: 567.1, club: "Cape Cod Flyers" },
-  { id: 5, name: "David Ruiz", email: "david@example.com", role: "instructor", plan: "Pro", status: "active", joined: "Nov 14, 2023", hours: 2341.6, club: "Boston Flying Club" },
-  { id: 6, name: "Emma Walsh", email: "emma@example.com", role: "pilot", plan: "Free", status: "pending", joined: "Feb 18, 2024", hours: 12.0, club: "" },
-]
-
-const aircraft = [
-  { id: 1, reg: "N12345", type: "Cessna 172S", owner: "Boston Flying Club", status: "active", hobbs: 4213.4, nextMx: "Mar 15, 2024", airworthiness: "valid" },
-  { id: 2, reg: "N67890", type: "Piper PA-28", owner: "Cape Cod Flyers", status: "maintenance", hobbs: 2891.2, nextMx: "Overdue", airworthiness: "valid" },
-  { id: 3, reg: "N24601", type: "Beechcraft Bonanza", owner: "David Ruiz", status: "active", hobbs: 1102.7, nextMx: "Jun 4, 2024", airworthiness: "valid" },
-  { id: 4, reg: "N55522", type: "Cirrus SR22", owner: "New England Aero", status: "grounded", hobbs: 788.3, nextMx: "Mar 2, 2024", airworthiness: "expired" },
-]
-
-const clubs = [
-  { id: 1, name: "Boston Flying Club", members: 48, aircraft: 6, plan: "Enterprise", revenue: 4200, status: "active", joined: "Mar 2023" },
-  { id: 2, name: "New England Aero", members: 31, aircraft: 4, plan: "Pro", revenue: 2800, status: "active", joined: "Jul 2023" },
-  { id: 3, name: "Cape Cod Flyers", members: 17, aircraft: 2, plan: "Pro", revenue: 1400, status: "active", joined: "Jan 2024" },
-  { id: 4, name: "Harbor Air Group", members: 9, aircraft: 1, plan: "Free", revenue: 0, status: "trial", joined: "Feb 2024" },
-]
-
-const listings = [
-  { id: 1, title: "2019 Cessna 172S", price: 289000, seller: "James Carter", status: "active", views: 312, listed: "Feb 1, 2024", flagged: false },
-  { id: 2, title: "2015 Piper PA-28-181", price: 178000, seller: "David Ruiz", status: "pending", views: 54, listed: "Feb 16, 2024", flagged: false },
-  { id: 3, title: "2008 Cirrus SR20", price: 195000, seller: "Emma Walsh", status: "flagged", views: 89, listed: "Feb 10, 2024", flagged: true },
-  { id: 4, title: "2022 Diamond DA40", price: 410000, seller: "Lisa Park", status: "sold", views: 741, listed: "Jan 5, 2024", flagged: false },
-]
-
-const systemServices = [
-  { name: "API Gateway", status: "operational", latency: "42ms", uptime: "99.98%" },
-  { name: "Auth Service", status: "operational", latency: "18ms", uptime: "100%" },
-  { name: "Database (Primary)", status: "operational", latency: "8ms", uptime: "99.99%" },
-  { name: "File Storage", status: "degraded", latency: "320ms", uptime: "98.12%" },
-  { name: "Email Service", status: "operational", latency: "95ms", uptime: "99.95%" },
-  { name: "Map Tiles CDN", status: "operational", latency: "65ms", uptime: "99.97%" },
-  { name: "Weather API", status: "operational", latency: "112ms", uptime: "99.84%" },
-]
-
-const billingTransactions = [
-  { id: "TXN-001", user: "Boston Flying Club", plan: "Enterprise", amount: 499, date: "Feb 1, 2024", status: "paid" },
-  { id: "TXN-002", user: "New England Aero", plan: "Pro", amount: 79, date: "Feb 3, 2024", status: "paid" },
-  { id: "TXN-003", user: "Mike Torres", plan: "Pro", amount: 29, date: "Feb 5, 2024", status: "failed" },
-  { id: "TXN-004", user: "Cape Cod Flyers", plan: "Pro", amount: 79, date: "Feb 10, 2024", status: "paid" },
-  { id: "TXN-005", user: "Lisa Park", plan: "Pro", amount: 29, date: "Feb 14, 2024", status: "refunded" },
-  { id: "TXN-006", user: "Sarah Chen", plan: "Enterprise", amount: 499, date: "Feb 18, 2024", status: "paid" },
-]
+const billingTransactions: {
+  id: string
+  user: string
+  plan: string
+  amount: number
+  date: string
+  status: string
+}[] = []
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -280,16 +217,49 @@ function PlaceholderPanel({ title, description }: { title: string; description: 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("awaiting-dispatch")
   const [userSearch, setUserSearch] = useState("")
+
+  const [stats, setStats] = useState<any | null>(null)
+  const [users, setUsers] = useState<any[]>([])
+  const [aircraft, setAircraft] = useState<any[]>([])
+  const [clubs, setClubs] = useState<any[]>([])
+  const [listings, setListings] = useState<any[]>([])
+  const [billingTransactions, setBillingTransactions] = useState<any[]>([])
+  const [flightSummary, setFlightSummary] = useState<any | null>(null)
+  const [systemServices, setSystemServices] = useState<any[]>([])
+
+  const [isOverviewLoading, setIsOverviewLoading] = useState(false)
+  const [overviewError, setOverviewError] = useState<string | null>(null)
+
+  const [isUsersLoading, setIsUsersLoading] = useState(false)
+  const [usersError, setUsersError] = useState<string | null>(null)
+
+  const [isAircraftLoading, setIsAircraftLoading] = useState(false)
+  const [aircraftError, setAircraftError] = useState<string | null>(null)
+
+  const [isClubsLoading, setIsClubsLoading] = useState(false)
+  const [clubsError, setClubsError] = useState<string | null>(null)
+
+  const [isMarketplaceLoading, setIsMarketplaceLoading] = useState(false)
+  const [marketplaceError, setMarketplaceError] = useState<string | null>(null)
+
+  const [isBillingLoading, setIsBillingLoading] = useState(false)
+  const [billingError, setBillingError] = useState<string | null>(null)
+
+  const [isFlightsLoading, setIsFlightsLoading] = useState(false)
+  const [flightsError, setFlightsError] = useState<string | null>(null)
+
+  const [isSystemLoading, setIsSystemLoading] = useState(false)
+  const [systemError, setSystemError] = useState<string | null>(null)
   
   // Modal states
-  const [viewUserModal, setViewUserModal] = useState<typeof users[0] | null>(null)
-  const [editUserModal, setEditUserModal] = useState<typeof users[0] | null>(null)
-  const [viewAircraftModal, setViewAircraftModal] = useState<typeof aircraft[0] | null>(null)
-  const [editAircraftModal, setEditAircraftModal] = useState<typeof aircraft[0] | null>(null)
-  const [viewClubModal, setViewClubModal] = useState<typeof clubs[0] | null>(null)
-  const [editClubModal, setEditClubModal] = useState<typeof clubs[0] | null>(null)
-  const [viewListingModal, setViewListingModal] = useState<typeof listings[0] | null>(null)
-  const [viewTransactionModal, setViewTransactionModal] = useState<typeof billingTransactions[0] | null>(null)
+  const [viewUserModal, setViewUserModal] = useState<any | null>(null)
+  const [editUserModal, setEditUserModal] = useState<any | null>(null)
+  const [viewAircraftModal, setViewAircraftModal] = useState<any | null>(null)
+  const [editAircraftModal, setEditAircraftModal] = useState<any | null>(null)
+  const [viewClubModal, setViewClubModal] = useState<any | null>(null)
+  const [editClubModal, setEditClubModal] = useState<any | null>(null)
+  const [viewListingModal, setViewListingModal] = useState<any | null>(null)
+  const [viewTransactionModal, setViewTransactionModal] = useState<any | null>(null)
   const [inviteUserModal, setInviteUserModal] = useState(false)
   const [addClubModal, setAddClubModal] = useState(false)
   
@@ -313,17 +283,236 @@ export default function AdminDashboard() {
   })
 
   const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-    u.email.toLowerCase().includes(userSearch.toLowerCase())
+    u.name?.toLowerCase().includes(userSearch.toLowerCase()) ||
+    u.email?.toLowerCase().includes(userSearch.toLowerCase())
   )
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadOverview() {
+      setIsOverviewLoading(true)
+      setOverviewError(null)
+      try {
+        const [statsRes, flightsRes, usersRes, aircraftRes, listingsRes] = await Promise.all([
+          fetch('/api/admin/stats'),
+          fetch('/api/admin/flights/summary'),
+          fetch('/api/admin/users?limit=4'),
+          fetch('/api/admin/aircraft'),
+          fetch('/api/admin/marketplace/listings?take=50'),
+        ])
+
+        if (!statsRes.ok) throw new Error('Failed to load stats')
+        if (!flightsRes.ok) throw new Error('Failed to load flight summary')
+        if (!usersRes.ok) throw new Error('Failed to load users')
+        if (!aircraftRes.ok) throw new Error('Failed to load aircraft')
+        if (!listingsRes.ok) throw new Error('Failed to load listings')
+
+        const statsData = await statsRes.json()
+        const flightsData = await flightsRes.json()
+        const usersData = await usersRes.json()
+        const aircraftData = await aircraftRes.json()
+        const listingsData = await listingsRes.json()
+
+        if (!cancelled) {
+          setStats(statsData)
+          setFlightSummary(flightsData)
+          setUsers(usersData.users || [])
+          setAircraft(aircraftData.aircraft || [])
+          setListings(listingsData.listings || [])
+        }
+      } catch (error) {
+        console.error('Failed to load overview data', error)
+        if (!cancelled) setOverviewError('Failed to load overview data')
+      } finally {
+        if (!cancelled) setIsOverviewLoading(false)
+      }
+    }
+
+    loadOverview()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    setIsSystemLoading(true)
+    setSystemError(null)
+
+    if (!cancelled) {
+      setSystemServices([])
+      setIsSystemLoading(false)
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (activeTab !== 'users') return
+    let cancelled = false
+
+    async function loadUsers() {
+      setIsUsersLoading(true)
+      setUsersError(null)
+      try {
+        const res = await fetch(`/api/admin/users?limit=50&search=${encodeURIComponent(userSearch)}`)
+        if (!res.ok) throw new Error('Failed to load users')
+        const data = await res.json()
+        if (!cancelled) setUsers(data.users || [])
+      } catch (error) {
+        console.error('Failed to load users', error)
+        if (!cancelled) setUsersError('Failed to load users')
+      } finally {
+        if (!cancelled) setIsUsersLoading(false)
+      }
+    }
+
+    loadUsers()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, userSearch])
+
+  useEffect(() => {
+    if (activeTab !== 'aircraft') return
+    let cancelled = false
+
+    async function loadAircraft() {
+      setIsAircraftLoading(true)
+      setAircraftError(null)
+      try {
+        const res = await fetch('/api/admin/aircraft')
+        if (!res.ok) throw new Error('Failed to load aircraft')
+        const data = await res.json()
+        if (!cancelled) setAircraft(data.aircraft || [])
+      } catch (error) {
+        console.error('Failed to load aircraft', error)
+        if (!cancelled) setAircraftError('Failed to load aircraft')
+      } finally {
+        if (!cancelled) setIsAircraftLoading(false)
+      }
+    }
+
+    loadAircraft()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab !== 'clubs') return
+    let cancelled = false
+
+    async function loadClubs() {
+      setIsClubsLoading(true)
+      setClubsError(null)
+      try {
+        const res = await fetch('/api/admin/clubs')
+        if (!res.ok) throw new Error('Failed to load clubs')
+        const data = await res.json()
+        if (!cancelled) setClubs(data.clubs || [])
+      } catch (error) {
+        console.error('Failed to load clubs', error)
+        if (!cancelled) setClubsError('Failed to load clubs')
+      } finally {
+        if (!cancelled) setIsClubsLoading(false)
+      }
+    }
+
+    loadClubs()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab !== 'marketplace') return
+    let cancelled = false
+
+    async function loadListings() {
+      setIsMarketplaceLoading(true)
+      setMarketplaceError(null)
+      try {
+        const res = await fetch('/api/admin/marketplace/listings?take=50')
+        if (!res.ok) throw new Error('Failed to load listings')
+        const data = await res.json()
+        if (!cancelled) setListings(data.listings || [])
+      } catch (error) {
+        console.error('Failed to load listings', error)
+        if (!cancelled) setMarketplaceError('Failed to load listings')
+      } finally {
+        if (!cancelled) setIsMarketplaceLoading(false)
+      }
+    }
+
+    loadListings()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab !== 'billing') return
+    let cancelled = false
+
+    async function loadBilling() {
+      setIsBillingLoading(true)
+      setBillingError(null)
+      try {
+        const res = await fetch('/api/admin/billing/transactions?take=50')
+        if (!res.ok) throw new Error('Failed to load transactions')
+        const data = await res.json()
+        if (!cancelled) setBillingTransactions(data.transactions || [])
+      } catch (error) {
+        console.error('Failed to load billing', error)
+        if (!cancelled) setBillingError('Failed to load billing')
+      } finally {
+        if (!cancelled) setIsBillingLoading(false)
+      }
+    }
+
+    loadBilling()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    if (!['awaiting-dispatch', 'currently-dispatched', 'past-flights'].includes(activeTab)) return
+    let cancelled = false
+
+    async function loadFlightSummary() {
+      setIsFlightsLoading(true)
+      setFlightsError(null)
+      try {
+        const res = await fetch('/api/admin/flights/summary')
+        if (!res.ok) throw new Error('Failed to load flight summary')
+        const data = await res.json()
+        if (!cancelled) setFlightSummary(data)
+      } catch (error) {
+        console.error('Failed to load flight summary', error)
+        if (!cancelled) setFlightsError('Failed to load flight summary')
+      } finally {
+        if (!cancelled) setIsFlightsLoading(false)
+      }
+    }
+
+    loadFlightSummary()
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab])
   
   // Handler functions
   const handleExport = () => {
     const dataMap: Record<Tab, any[]> = {
       overview: [],
-      users: users,
-      aircraft: aircraft,
-      clubs: clubs,
+      users,
+      aircraft,
+      clubs,
       marketplace: listings,
       billing: billingTransactions,
       "general-settings": [],
@@ -362,15 +551,15 @@ export default function AdminDashboard() {
   }
   
   // User actions
-  const handleViewUser = (user: typeof users[0]) => {
+  const handleViewUser = (user: any) => {
     setViewUserModal(user)
   }
   
-  const handleEditUser = (user: typeof users[0]) => {
+  const handleEditUser = (user: any) => {
     setEditUserModal(user)
   }
   
-  const handleBanUser = (userId: number) => {
+  const handleBanUser = (userId: string | number) => {
     if (confirm('Are you sure you want to suspend this user?')) {
       alert(`User ${userId} suspended. In production, this would call API.`)
     }
@@ -381,30 +570,30 @@ export default function AdminDashboard() {
   }
   
   // Aircraft actions
-  const handleViewAircraft = (ac: typeof aircraft[0]) => {
+  const handleViewAircraft = (ac: any) => {
     setViewAircraftModal(ac)
   }
   
-  const handleEditAircraft = (ac: typeof aircraft[0]) => {
+  const handleEditAircraft = (ac: any) => {
     setEditAircraftModal(ac)
   }
   
-  const handleDeleteAircraft = (id: number) => {
+  const handleDeleteAircraft = (id: string | number) => {
     if (confirm('Are you sure you want to delete this aircraft?')) {
       alert(`Aircraft ${id} deleted. In production, this would call API.`)
     }
   }
   
   // Club actions
-  const handleViewClub = (club: typeof clubs[0]) => {
+  const handleViewClub = (club: any) => {
     setViewClubModal(club)
   }
   
-  const handleEditClub = (club: typeof clubs[0]) => {
+  const handleEditClub = (club: any) => {
     setEditClubModal(club)
   }
   
-  const handleDeleteClub = (id: number) => {
+  const handleDeleteClub = (id: string | number) => {
     if (confirm('Are you sure you want to delete this club?')) {
       alert(`Club ${id} deleted. In production, this would call API.`)
     }
@@ -415,22 +604,22 @@ export default function AdminDashboard() {
   }
   
   // Marketplace actions
-  const handleViewListing = (listing: typeof listings[0]) => {
+  const handleViewListing = (listing: any) => {
     setViewListingModal(listing)
   }
   
-  const handleApproveListing = (id: number) => {
+  const handleApproveListing = (id: string | number) => {
     alert(`Listing ${id} approved. In production, this would call API.`)
   }
   
-  const handleDeleteListing = (id: number) => {
+  const handleDeleteListing = (id: string | number) => {
     if (confirm('Are you sure you want to delete this listing?')) {
       alert(`Listing ${id} deleted. In production, this would call API.`)
     }
   }
   
   // Billing actions
-  const handleViewTransaction = (txn: typeof billingTransactions[0]) => {
+  const handleViewTransaction = (txn: any) => {
     setViewTransactionModal(txn)
   }
   
@@ -534,13 +723,61 @@ export default function AdminDashboard() {
 
         {/* ── FLIGHTS ─────────────────────────────────────────────────────────── */}
         {activeTab === "awaiting-dispatch" && (
-          <PlaceholderPanel title="Awaiting Dispatch" description="Flights that have been filed and are waiting for dispatcher approval before departure." />
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Scheduled Flights</CardTitle>
+              <CardDescription className="text-xs">
+                Upcoming bookings waiting to start
+                {flightsError && <span className="ml-2 text-destructive">{flightsError}</span>}
+                {isFlightsLoading && !flightsError && <span className="ml-2 text-muted-foreground">Loading…</span>}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard label="Scheduled" value={String(flightSummary?.scheduledFlights ?? 0)} sub="Upcoming" trend="neutral" icon={Clock} accent="bg-muted text-muted-foreground" />
+                <StatCard label="Active" value={String(flightSummary?.activeFlights ?? 0)} sub="In progress" trend="neutral" icon={Plane} accent="bg-chart-2/10 text-chart-2" />
+                <StatCard label="Completed" value={String(flightSummary?.completedFlights ?? 0)} sub="Logged" trend="neutral" icon={CheckCircle2} accent="bg-primary/10 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
         )}
         {activeTab === "currently-dispatched" && (
-          <PlaceholderPanel title="Currently Dispatched" description="Flights currently in the air or on the ground with an active dispatch release." />
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Active Flights</CardTitle>
+              <CardDescription className="text-xs">
+                Flights currently in progress
+                {flightsError && <span className="ml-2 text-destructive">{flightsError}</span>}
+                {isFlightsLoading && !flightsError && <span className="ml-2 text-muted-foreground">Loading…</span>}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard label="Active" value={String(flightSummary?.activeFlights ?? 0)} sub="In progress" trend="neutral" icon={Plane} accent="bg-chart-2/10 text-chart-2" />
+                <StatCard label="Scheduled" value={String(flightSummary?.scheduledFlights ?? 0)} sub="Upcoming" trend="neutral" icon={Clock} accent="bg-muted text-muted-foreground" />
+                <StatCard label="Completed" value={String(flightSummary?.completedFlights ?? 0)} sub="Logged" trend="neutral" icon={CheckCircle2} accent="bg-primary/10 text-primary" />
+              </div>
+            </CardContent>
+          </Card>
         )}
         {activeTab === "past-flights" && (
-          <PlaceholderPanel title="Past Flights" description="Historical flight records including hobbs times, pilot, and route information." />
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-sm">Completed Flights</CardTitle>
+              <CardDescription className="text-xs">
+                Historical flight count across the platform
+                {flightsError && <span className="ml-2 text-destructive">{flightsError}</span>}
+                {isFlightsLoading && !flightsError && <span className="ml-2 text-muted-foreground">Loading…</span>}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <StatCard label="Completed" value={String(flightSummary?.completedFlights ?? 0)} sub="Logged" trend="neutral" icon={CheckCircle2} accent="bg-primary/10 text-primary" />
+                <StatCard label="Active" value={String(flightSummary?.activeFlights ?? 0)} sub="In progress" trend="neutral" icon={Plane} accent="bg-chart-2/10 text-chart-2" />
+                <StatCard label="Scheduled" value={String(flightSummary?.scheduledFlights ?? 0)} sub="Upcoming" trend="neutral" icon={Clock} accent="bg-muted text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
         )}
 
         {/* ── PEOPLE ──────────────────────────────────────────────────────────── */}
@@ -582,12 +819,14 @@ export default function AdminDashboard() {
         {/* ── PLATFORM OVERVIEW ───────────────────────────────────────────────── */}
         {activeTab === "general-settings" && (
           <>
+            {overviewError && <div className="text-xs text-destructive">{overviewError}</div>}
+            {isOverviewLoading && !overviewError && <div className="text-xs text-muted-foreground">Loading…</div>}
             {/* Stat cards */}
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Total Users" value="1,842" sub="+138 this month" trend="up" icon={Users} accent="bg-primary/10 text-primary" />
-              <StatCard label="Active Aircraft" value="247" sub="+12 this month" trend="up" icon={Plane} accent="bg-chart-2/10 text-chart-2" />
-              <StatCard label="MRR" value="$21,400" sub="+14.4% vs last month" trend="up" icon={DollarSign} accent="bg-chart-3/10 text-chart-3" />
-              <StatCard label="Flagged Items" value="3" sub="Needs review" trend="down" icon={AlertTriangle} accent="bg-destructive/10 text-destructive" />
+              <StatCard label="Total Users" value={String(stats?.totalUsers ?? 0)} sub="All users" trend="neutral" icon={Users} accent="bg-primary/10 text-primary" />
+              <StatCard label="Active Aircraft" value={String(stats?.totalAircraft ?? aircraft.length)} sub="Registered" trend="neutral" icon={Plane} accent="bg-chart-2/10 text-chart-2" />
+              <StatCard label="MRR" value={`$${Number(stats?.estimatedMRR ?? 0).toFixed(2)}`} sub="Estimated" trend="neutral" icon={DollarSign} accent="bg-chart-3/10 text-chart-3" />
+              <StatCard label="Flagged Items" value={String(stats?.listingFlagged ?? listings.filter(l => l.flagged).length)} sub="Needs review" trend="neutral" icon={AlertTriangle} accent="bg-destructive/10 text-destructive" />
             </div>
 
             {/* Charts row */}
@@ -599,19 +838,25 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={180}>
-                    <AreaChart data={signupData}>
-                      <defs>
-                        <linearGradient id="gUsers" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                      <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }} />
-                      <Area type="monotone" dataKey="users" stroke="#3b82f6" strokeWidth={2} fill="url(#gUsers)" />
-                    </AreaChart>
+                    {signupData.length === 0 ? (
+                      <div className="flex h-[180px] items-center justify-center text-xs text-muted-foreground">
+                        No signup data yet
+                      </div>
+                    ) : (
+                      <AreaChart data={signupData}>
+                        <defs>
+                          <linearGradient id="gUsers" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.05} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                        <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }} />
+                        <Area type="monotone" dataKey="users" stroke="#3b82f6" strokeWidth={2} fill="url(#gUsers)" />
+                      </AreaChart>
+                    )}
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
@@ -623,13 +868,19 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={180}>
-                    <LineChart data={revenueData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                      <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
-                      <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }} formatter={(v: any) => [`$${v.toLocaleString()}`, "Revenue"]} />
-                      <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={{ fill: "#10b981", r: 3 }} />
-                    </LineChart>
+                    {revenueData.length === 0 ? (
+                      <div className="flex h-[180px] items-center justify-center text-xs text-muted-foreground">
+                        No revenue data yet
+                      </div>
+                    ) : (
+                      <LineChart data={revenueData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                        <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
+                        <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }} formatter={(v: any) => [`$${v.toLocaleString()}`, "Revenue"]} />
+                        <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={{ fill: "#10b981", r: 3 }} />
+                      </LineChart>
+                    )}
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
@@ -641,14 +892,20 @@ export default function AdminDashboard() {
                 </CardHeader>
                 <CardContent>
                   <ResponsiveContainer width="100%" height={180}>
-                    <BarChart data={activityData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                      <XAxis dataKey="day" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
-                      <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }} />
-                      <Bar dataKey="plans" fill="#a855f7" opacity={0.4} radius={[2, 2, 0, 0]} />
-                      <Bar dataKey="flights" fill="#a855f7" radius={[2, 2, 0, 0]} />
-                    </BarChart>
+                    {activityData.length === 0 ? (
+                      <div className="flex h-[180px] items-center justify-center text-xs text-muted-foreground">
+                        No activity data yet
+                      </div>
+                    ) : (
+                      <BarChart data={activityData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                        <XAxis dataKey="day" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                        <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }} />
+                        <Bar dataKey="plans" fill="#a855f7" opacity={0.4} radius={[2, 2, 0, 0]} />
+                        <Bar dataKey="flights" fill="#a855f7" radius={[2, 2, 0, 0]} />
+                      </BarChart>
+                    )}
                   </ResponsiveContainer>
                 </CardContent>
               </Card>
@@ -660,11 +917,10 @@ export default function AdminDashboard() {
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm">Plan Distribution</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3">
+                  <CardContent className="space-y-3">
                   {[
-                    { plan: "Enterprise", count: 12, total: 1842, color: "bg-primary" },
-                    { plan: "Pro", count: 438, total: 1842, color: "bg-chart-2" },
-                    { plan: "Free", count: 1392, total: 1842, color: "bg-muted-foreground" },
+                    { plan: "Pro", count: Number(stats?.proUsers ?? 0), total: Number(stats?.totalUsers ?? 0) || 1, color: "bg-chart-2" },
+                    { plan: "Free", count: Number(stats?.freeUsers ?? 0), total: Number(stats?.totalUsers ?? 0) || 1, color: "bg-muted-foreground" },
                   ].map((p) => (
                     <div key={p.plan} className="space-y-1.5">
                       <div className="flex items-center justify-between text-xs">
@@ -678,7 +934,7 @@ export default function AdminDashboard() {
                   ))}
                   <Separator />
                   <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Total users</span><span className="font-semibold text-foreground">1,842</span>
+                    <span>Total users</span><span className="font-semibold text-foreground">{Number(stats?.totalUsers ?? 0).toLocaleString()}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -696,7 +952,7 @@ export default function AdminDashboard() {
                       <div key={user.id} className="flex items-center justify-between rounded-lg border border-border p-3">
                         <div className="flex items-center gap-3">
                           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                            {user.name.split(" ").map(n => n[0]).join("")}
+                            {user.name?.split(" ").map((n: string) => n[0]).join("")}
                           </div>
                           <div>
                             <p className="text-xs font-medium">{user.name}</p>
@@ -704,8 +960,8 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Badge variant="outline" className="text-[10px]">{user.plan}</Badge>
-                          <UserStatusBadge status={user.status} />
+                          <Badge variant="outline" className="text-[10px]">{user.tier || 'free'}</Badge>
+                          <UserStatusBadge status={user.status || 'active'} />
                         </div>
                       </div>
                     ))}
@@ -758,9 +1014,9 @@ export default function AdminDashboard() {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-3">
-              <StatCard label="Total Users" value="1,842" sub="+138 this month" trend="up" icon={Users} accent="bg-primary/10 text-primary" />
-              <StatCard label="Active" value="1,698" sub="92.2% of total" trend="up" icon={CheckCircle2} accent="bg-chart-2/10 text-chart-2" />
-              <StatCard label="Suspended" value="18" sub="-3 from last month" trend="up" icon={Ban} accent="bg-destructive/10 text-destructive" />
+              <StatCard label="Total Users" value={String(stats?.totalUsers ?? users.length ?? 0)} sub="All users" trend="neutral" icon={Users} accent="bg-primary/10 text-primary" />
+              <StatCard label="Active" value={String(users.filter(u => u.status === 'active').length)} sub="Active users" trend="neutral" icon={CheckCircle2} accent="bg-chart-2/10 text-chart-2" />
+              <StatCard label="Suspended" value={String(users.filter(u => u.status === 'suspended').length)} sub="Suspended" trend="neutral" icon={Ban} accent="bg-destructive/10 text-destructive" />
             </div>
 
             <Card>
@@ -778,6 +1034,8 @@ export default function AdminDashboard() {
                   <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
                     <Filter className="h-3 w-3" /> Filter
                   </Button>
+                  {usersError && <span className="text-xs text-destructive">{usersError}</span>}
+                  {isUsersLoading && !usersError && <span className="text-xs text-muted-foreground">Loading…</span>}
                 </div>
               </CardHeader>
               <CardContent className="p-0">
@@ -800,7 +1058,7 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-2.5">
                             <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-[11px] font-semibold text-primary shrink-0">
-                              {user.name.split(" ").map(n => n[0]).join("")}
+                                {user.name?.split(" ").map((n: string) => n[0]).join("")}
                             </div>
                             <div>
                               <p className="font-medium text-foreground">{user.name}</p>
@@ -810,12 +1068,12 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-4 py-3 capitalize text-muted-foreground">{user.role}</td>
                         <td className="px-4 py-3">
-                          <Badge variant="outline" className="text-[10px]">{user.plan}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{user.tier || 'free'}</Badge>
                         </td>
-                        <td className="px-4 py-3"><UserStatusBadge status={user.status} /></td>
-                        <td className="px-4 py-3 text-muted-foreground">{user.hours.toFixed(1)}</td>
+                        <td className="px-4 py-3"><UserStatusBadge status={user.status || 'active'} /></td>
+                        <td className="px-4 py-3 text-muted-foreground">{Number(user.hours || 0).toFixed(1)}</td>
                         <td className="px-4 py-3 text-muted-foreground">{user.club || "—"}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{user.joined}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{user.joined || "—"}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
                             <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleViewUser(user)}><Eye className="h-3 w-3" /></Button>
@@ -844,12 +1102,14 @@ export default function AdminDashboard() {
                 <Download className="h-3 w-3" /> Export
               </Button>
             </div>
+            {aircraftError && <div className="text-xs text-destructive">{aircraftError}</div>}
+            {isAircraftLoading && !aircraftError && <div className="text-xs text-muted-foreground">Loading…</div>}
 
             <div className="grid gap-4 sm:grid-cols-4">
-              <StatCard label="Total Aircraft" value="247" sub="+12 this month" trend="up" icon={Plane} accent="bg-primary/10 text-primary" />
-              <StatCard label="Active" value="231" sub="93.5% operational" trend="up" icon={CheckCircle2} accent="bg-chart-2/10 text-chart-2" />
-              <StatCard label="In Maintenance" value="12" sub="4.9% of fleet" trend="neutral" icon={Wrench} accent="bg-chart-3/10 text-chart-3" />
-              <StatCard label="Grounded" value="4" sub="Airworthiness issue" trend="down" icon={AlertTriangle} accent="bg-destructive/10 text-destructive" />
+              <StatCard label="Total Aircraft" value={String(aircraft.length)} sub="Registered" trend="neutral" icon={Plane} accent="bg-primary/10 text-primary" />
+              <StatCard label="Active" value={String(aircraft.filter(a => a.status === 'Available').length)} sub="Available" trend="neutral" icon={CheckCircle2} accent="bg-chart-2/10 text-chart-2" />
+              <StatCard label="In Maintenance" value={String(aircraft.filter(a => a.status === 'Maintenance').length)} sub="Needs service" trend="neutral" icon={Wrench} accent="bg-chart-3/10 text-chart-3" />
+              <StatCard label="Grounded" value={String(aircraft.filter(a => a.status === 'Grounded').length)} sub="Not airworthy" trend="neutral" icon={AlertTriangle} accent="bg-destructive/10 text-destructive" />
             </div>
 
             <Card>
@@ -870,18 +1130,18 @@ export default function AdminDashboard() {
                   <tbody className="divide-y divide-border">
                     {aircraft.map((a) => (
                       <tr key={a.id} className="hover:bg-muted/30 transition-colors">
-                        <td className="px-4 py-3 font-mono font-semibold text-foreground">{a.reg}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{a.type}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{a.owner}</td>
+                        <td className="px-4 py-3 font-mono font-semibold text-foreground">{a.nNumber || 'N/A'}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{[a.make, a.model].filter(Boolean).join(' ') || '—'}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{a.groupName || '—'}</td>
                         <td className="px-4 py-3">
-                          <UserStatusBadge status={a.status === "active" ? "active" : a.status === "maintenance" ? "pending" : "suspended"} />
+                          <UserStatusBadge status={a.status === "Available" ? "active" : a.status === "Maintenance" ? "pending" : "suspended"} />
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{a.hobbs.toFixed(1)}</td>
-                        <td className={`px-4 py-3 font-medium ${a.nextMx === "Overdue" ? "text-destructive" : "text-muted-foreground"}`}>{a.nextMx}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{Number(a.hobbs || 0).toFixed(1)}</td>
+                        <td className={`px-4 py-3 font-medium ${a.nextMx === "Overdue" ? "text-destructive" : "text-muted-foreground"}`}>{a.nextMx || '—'}</td>
                         <td className="px-4 py-3">
-                          <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${a.airworthiness === "valid" ? "text-chart-2" : "text-destructive"}`}>
-                            {a.airworthiness === "valid" ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
-                            {a.airworthiness}
+                          <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${a.status === "Available" ? "text-chart-2" : "text-destructive"}`}>
+                            {a.status === "Available" ? <CheckCircle2 className="h-3 w-3" /> : <AlertTriangle className="h-3 w-3" />}
+                            {a.status || 'Unknown'}
                           </span>
                         </td>
                         <td className="px-4 py-3">
@@ -912,44 +1172,46 @@ export default function AdminDashboard() {
                 <Building2 className="h-3 w-3" /> Add Club
               </Button>
             </div>
+            {clubsError && <div className="text-xs text-destructive">{clubsError}</div>}
+            {isClubsLoading && !clubsError && <div className="text-xs text-muted-foreground">Loading…</div>}
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="Total Clubs" value="24" sub="+4 this month" trend="up" icon={Building2} accent="bg-primary/10 text-primary" />
-              <StatCard label="Total Members" value="612" sub="Across all clubs" trend="up" icon={Users} accent="bg-chart-2/10 text-chart-2" />
-              <StatCard label="Club Revenue" value="$8,400" sub="This month" trend="up" icon={DollarSign} accent="bg-chart-3/10 text-chart-3" />
-              <StatCard label="On Trial" value="3" sub="Expire within 30d" trend="neutral" icon={Clock} accent="bg-muted text-muted-foreground" />
+              <StatCard label="Total Clubs" value={String(clubs.length)} sub="Registered" trend="neutral" icon={Building2} accent="bg-primary/10 text-primary" />
+              <StatCard label="Total Members" value={String(clubs.reduce((sum, c) => sum + (c.members || 0), 0))} sub="Across clubs" trend="neutral" icon={Users} accent="bg-chart-2/10 text-chart-2" />
+              <StatCard label="Club Revenue" value={`$${clubs.reduce((sum, c) => sum + (c.revenue || 0), 0).toLocaleString()}`} sub="This month" trend="neutral" icon={DollarSign} accent="bg-chart-3/10 text-chart-3" />
+              <StatCard label="On Trial" value={String(clubs.filter(c => c.status === 'trial').length)} sub="Trial groups" trend="neutral" icon={Clock} accent="bg-muted text-muted-foreground" />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
               {clubs.map((club) => (
-                <Card key={club.id} className="hover:border-primary/40 transition-colors">
+                  <Card key={club.id} className="hover:border-primary/40 transition-colors">
                   <CardContent className="p-5">
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-sm font-bold text-primary">
-                          {club.name.split(" ").map(w => w[0]).slice(0, 2).join("")}
+                          {club.name?.split(" ").map((w: string) => w[0]).slice(0, 2).join("")}
                         </div>
                         <div>
                           <p className="text-sm font-semibold">{club.name}</p>
-                          <p className="text-xs text-muted-foreground">Since {club.joined}</p>
+                          <p className="text-xs text-muted-foreground">Since {club.createdAt ? new Date(club.createdAt).toLocaleDateString() : '—'}</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="text-[10px]">{club.plan}</Badge>
+                        <Badge variant="outline" className="text-[10px]">{club.plan || 'Free'}</Badge>
                         <UserStatusBadge status={club.status === "trial" ? "pending" : "active"} />
                       </div>
                     </div>
                     <div className="grid grid-cols-3 gap-3 text-center">
                       <div className="rounded-lg bg-muted/50 p-2">
-                        <p className="text-sm font-bold">{club.members}</p>
+                        <p className="text-sm font-bold">{club.members ?? 0}</p>
                         <p className="text-[11px] text-muted-foreground">Members</p>
                       </div>
                       <div className="rounded-lg bg-muted/50 p-2">
-                        <p className="text-sm font-bold">{club.aircraft}</p>
+                        <p className="text-sm font-bold">{club.aircraft ?? 0}</p>
                         <p className="text-[11px] text-muted-foreground">Aircraft</p>
                       </div>
                       <div className="rounded-lg bg-muted/50 p-2">
-                        <p className="text-sm font-bold">${club.revenue.toLocaleString()}</p>
+                        <p className="text-sm font-bold">${Number(club.revenue || 0).toLocaleString()}</p>
                         <p className="text-[11px] text-muted-foreground">Revenue/mo</p>
                       </div>
                     </div>
@@ -977,12 +1239,14 @@ export default function AdminDashboard() {
                 <Download className="h-3 w-3" /> Export
               </Button>
             </div>
+            {marketplaceError && <div className="text-xs text-destructive">{marketplaceError}</div>}
+            {isMarketplaceLoading && !marketplaceError && <div className="text-xs text-muted-foreground">Loading…</div>}
 
             <div className="grid gap-4 sm:grid-cols-4">
-              <StatCard label="Active Listings" value="142" sub="+18 this week" trend="up" icon={Globe} accent="bg-primary/10 text-primary" />
-              <StatCard label="Pending Review" value="7" sub="Awaiting approval" trend="neutral" icon={Clock} accent="bg-chart-3/10 text-chart-3" />
-              <StatCard label="Flagged" value="3" sub="Require action" trend="down" icon={ShieldAlert} accent="bg-destructive/10 text-destructive" />
-              <StatCard label="Sold (30d)" value="24" sub="$4.2M total value" trend="up" icon={DollarSign} accent="bg-chart-2/10 text-chart-2" />
+              <StatCard label="Active Listings" value={String(stats?.listingActive ?? listings.filter(l => l.status === 'active').length)} sub="Active" trend="neutral" icon={Globe} accent="bg-primary/10 text-primary" />
+              <StatCard label="Pending Review" value={String(stats?.listingPending ?? listings.filter(l => l.status === 'pending').length)} sub="Awaiting" trend="neutral" icon={Clock} accent="bg-chart-3/10 text-chart-3" />
+              <StatCard label="Flagged" value={String(stats?.listingFlagged ?? listings.filter(l => l.flagged).length)} sub="Require action" trend="neutral" icon={ShieldAlert} accent="bg-destructive/10 text-destructive" />
+              <StatCard label="Sold (30d)" value={String(stats?.listingSold ?? listings.filter(l => l.status === 'sold').length)} sub="Sold" trend="neutral" icon={DollarSign} accent="bg-chart-2/10 text-chart-2" />
             </div>
 
             <Card>
@@ -1009,12 +1273,12 @@ export default function AdminDashboard() {
                           </div>
                         </td>
                         <td className="px-4 py-3 text-muted-foreground">{l.seller}</td>
-                        <td className="px-4 py-3 font-medium text-foreground">${l.price.toLocaleString()}</td>
+                        <td className="px-4 py-3 font-medium text-foreground">${Number(l.price || 0).toLocaleString()}</td>
                         <td className="px-4 py-3">
                           <UserStatusBadge status={l.status === "active" ? "active" : l.status === "flagged" ? "suspended" : l.status === "sold" ? "active" : "pending"} />
                         </td>
-                        <td className="px-4 py-3 text-muted-foreground">{l.views}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{l.listed}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{l.views ?? 0}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{l.listed ? new Date(l.listed).toLocaleDateString() : '—'}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
                             <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleViewListing(l)}><Eye className="h-3 w-3" /></Button>
@@ -1043,12 +1307,14 @@ export default function AdminDashboard() {
                 <Download className="h-3 w-3" /> Export CSV
               </Button>
             </div>
+            {billingError && <div className="text-xs text-destructive">{billingError}</div>}
+            {isBillingLoading && !billingError && <div className="text-xs text-muted-foreground">Loading…</div>}
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <StatCard label="MRR" value="$21,400" sub="+14.4% vs last month" trend="up" icon={TrendingUp} accent="bg-chart-2/10 text-chart-2" />
-              <StatCard label="ARR" value="$256,800" sub="Annualised" trend="up" icon={DollarSign} accent="bg-primary/10 text-primary" />
-              <StatCard label="Failed Payments" value="3" sub="$87 at risk" trend="down" icon={AlertTriangle} accent="bg-destructive/10 text-destructive" />
-              <StatCard label="Refunds (30d)" value="$29" sub="1 refund issued" trend="neutral" icon={TrendingDown} accent="bg-muted text-muted-foreground" />
+              <StatCard label="MRR" value={`$${Number(stats?.estimatedMRR ?? 0).toFixed(2)}`} sub="Estimated" trend="neutral" icon={TrendingUp} accent="bg-chart-2/10 text-chart-2" />
+              <StatCard label="ARR" value={`$${Number(stats?.estimatedAnnualRevenue ?? 0).toFixed(2)}`} sub="Estimated" trend="neutral" icon={DollarSign} accent="bg-primary/10 text-primary" />
+              <StatCard label="Failed Payments" value={String(billingTransactions.filter((t) => t.status === 'failed').length)} sub="Failed" trend="neutral" icon={AlertTriangle} accent="bg-destructive/10 text-destructive" />
+              <StatCard label="Refunds (30d)" value={String(billingTransactions.filter((t) => t.status === 'refunded').length)} sub="Refunded" trend="neutral" icon={TrendingDown} accent="bg-muted text-muted-foreground" />
             </div>
 
             <Card>
@@ -1074,8 +1340,8 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3 font-mono text-muted-foreground">{txn.id}</td>
                         <td className="px-4 py-3 font-medium text-foreground">{txn.user}</td>
                         <td className="px-4 py-3"><Badge variant="outline" className="text-[10px]">{txn.plan}</Badge></td>
-                        <td className="px-4 py-3 font-semibold">${txn.amount}</td>
-                        <td className="px-4 py-3 text-muted-foreground">{txn.date}</td>
+                        <td className="px-4 py-3 font-semibold">${Number(txn.amount || 0).toFixed(2)}</td>
+                        <td className="px-4 py-3 text-muted-foreground">{txn.date || '—'}</td>
                         <td className="px-4 py-3"><TxnStatusBadge status={txn.status} /></td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
@@ -1104,6 +1370,8 @@ export default function AdminDashboard() {
                 <RefreshCw className="h-3 w-3" /> Refresh
               </Button>
             </div>
+            {systemError && <div className="text-xs text-destructive">{systemError}</div>}
+            {isSystemLoading && !systemError && <div className="text-xs text-muted-foreground">Loading…</div>}
 
             <div className="grid gap-4 sm:grid-cols-4">
               <StatCard label="Services Online" value="6/7" sub="1 degraded" trend="neutral" icon={Server} accent="bg-chart-3/10 text-chart-3" />

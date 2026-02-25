@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
 export async function GET(request: Request) {
   try {
@@ -23,34 +23,41 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const groupId = searchParams.get('groupId');
 
-    if (!groupId) {
-      return NextResponse.json({ error: 'Group ID required' }, { status: 400 });
-    }
-
-    // Fetch all aircraft in the group
+    // Fetch aircraft across all groups (or a specific group)
     const aircraft = await prisma.clubAircraft.findMany({
-      where: { groupId },
+      where: groupId ? { groupId } : undefined,
       orderBy: { createdAt: 'desc' }
     });
 
-    // Get maintenance info for each aircraft
-    const aircraftWithMaintenance = await Promise.all(aircraft.map(async (ac) => {
-      // Get latest maintenance item
-      const latestMaintenance = await prisma.maintenance.findFirst({
-        where: { aircraftId: ac.id },
-        orderBy: { createdAt: 'desc' },
-        select: {
-          status: true,
-          description: true,
-          reportedDate: true
-        }
-      });
+    const groupIds = [...new Set(aircraft.map(a => a.groupId))];
+    const groups = await prisma.flyingGroup.findMany({
+      where: { id: { in: groupIds } },
+      select: { id: true, name: true }
+    });
+    const groupMap = new Map(groups.map(g => [g.id, g.name]));
 
-      // Calculate hours until next maintenance (simplified - would need actual logic)
+    // Get maintenance info for each aircraft
+    const maintenance = await prisma.maintenance.findMany({
+      where: { aircraftId: { in: aircraft.map(a => a.id) } },
+      orderBy: { reportedDate: 'desc' },
+      select: { aircraftId: true, reportedDate: true }
+    });
+
+    const maintenanceMap = new Map<string, { reportedDate: Date | null }>();
+    for (const item of maintenance) {
+      if (!maintenanceMap.has(item.aircraftId)) {
+        maintenanceMap.set(item.aircraftId, { reportedDate: item.reportedDate || null });
+      }
+    }
+
+    const aircraftWithMaintenance = aircraft.map((ac) => {
+      const latestMaintenance = maintenanceMap.get(ac.id);
       const nextMxHours = ac.totalHobbsHours ? 50 - (ac.totalHobbsHours.toNumber() % 50) : 50;
 
       return {
         id: ac.id,
+        groupId: ac.groupId,
+        groupName: groupMap.get(ac.groupId) || 'Unknown',
         nNumber: ac.nNumber || 'N/A',
         nickname: ac.nickname || '',
         make: ac.make || '',
@@ -62,7 +69,7 @@ export async function GET(request: Request) {
         nextMx: latestMaintenance?.reportedDate?.toISOString().split('T')[0] || 'N/A',
         mxHours: nextMxHours,
       };
-    }));
+    });
 
     return NextResponse.json({ aircraft: aircraftWithMaintenance });
   } catch (error) {

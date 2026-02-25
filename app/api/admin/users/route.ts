@@ -49,22 +49,42 @@ export async function GET(request: Request) {
         orderBy: { createdAt: 'desc' },
         skip: offset,
         take: limit,
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          username: true,
-          tier: true,
-          role: true,
-          createdAt: true,
-          updatedAt: true,
-          _count: { select: { flightPlans: true, memberships: true } },
-        },
-      }),
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            username: true,
+            tier: true,
+            role: true,
+            createdAt: true,
+            updatedAt: true,
+            _count: { select: { flightPlans: true, memberships: true } },
+          },
+        }),
     ]);
 
+    const userIds = users.map((u: any) => u.id);
+    const memberships = await prisma.groupMember.findMany({
+      where: { userId: { in: userIds } },
+      include: { group: { select: { name: true } } },
+    });
+
+    const groupNameByUser = new Map<string, string>();
+    memberships.forEach((m: any) => {
+      if (!groupNameByUser.has(m.userId)) {
+        groupNameByUser.set(m.userId, m.group?.name || '');
+      }
+    });
+
+    const logbookHours = await prisma.logbookEntry.groupBy({
+      by: ['userId'],
+      _sum: { totalTime: true },
+      where: { userId: { in: userIds } },
+    });
+    const hoursMap = new Map(logbookHours.map(h => [h.userId, h._sum.totalTime || 0]));
+
     return NextResponse.json({
-      users: users.map((u: any) => ({
+       users: users.map((u: any) => ({
         id: u.id,
         email: u.email,
         name: u.name,
@@ -75,6 +95,10 @@ export async function GET(request: Request) {
         updatedAt: u.updatedAt?.toISOString(),
         flightPlanCount: Number(u._count?.flightPlans || 0),
         clubCount: Number(u._count?.memberships || 0),
+        status: 'active',
+        hours: Number(hoursMap.get(u.id) || 0),
+        club: groupNameByUser.get(u.id) || '—',
+        joined: u.createdAt?.toISOString()?.split('T')[0],
       })),
       pagination: {
         page,
