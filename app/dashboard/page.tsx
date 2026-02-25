@@ -164,6 +164,10 @@ export default function PilotDashboard() {
   const [fuelPriceUpdatedAt, setFuelPriceUpdatedAt] = useState<string | null>(null)
   const [fuelPriceError, setFuelPriceError] = useState<string | null>(null)
   const [fuelPriceLoading, setFuelPriceLoading] = useState(false)
+  const [communityFuelPrice, setCommunityFuelPrice] = useState<number | null>(null)
+  const [communityFuelUpdatedAt, setCommunityFuelUpdatedAt] = useState<string | null>(null)
+  const [communityFuelError, setCommunityFuelError] = useState<string | null>(null)
+  const [communityFuelLoading, setCommunityFuelLoading] = useState(false)
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -369,20 +373,45 @@ export default function PilotDashboard() {
       try {
         setFuelPriceLoading(true)
         setFuelPriceError(null)
-        const res = await fetch(`/api/fuel/nearest?icao=${encodeURIComponent(homeAirportIcao ?? '')}&radius=50`)
-        if (!res.ok) throw new Error('Failed to load fuel price')
-        const data = await res.json()
-        const first = Array.isArray(data?.results) ? data.results[0] : null
+        const [dbRes, communityRes] = await Promise.all([
+          fetch(`/api/fuel/nearest?icao=${encodeURIComponent(homeAirportIcao ?? '')}&radius=0`),
+          fetch(`/api/fuel-prices/community?icaos=${encodeURIComponent(homeAirportIcao ?? '')}`),
+        ])
 
-        if (!cancelled) {
-          setFuelPrice(typeof first?.price100ll === 'number' ? first.price100ll : null)
-          setFuelPriceUpdatedAt(first?.lastReported || null)
+        if (dbRes.ok) {
+          const data = await dbRes.json()
+          const exact = Array.isArray(data?.results)
+            ? data.results.find((r: any) => r.icao === homeAirportIcao)
+            : null
+          if (!cancelled) {
+            setFuelPrice(typeof exact?.price100ll === 'number' ? exact.price100ll : null)
+            setFuelPriceUpdatedAt(exact?.lastReported || null)
+          }
+        } else if (!cancelled) {
+          setFuelPriceError('Failed to load airport fuel price')
+        }
+
+        if (communityRes.ok) {
+          const communityData = await communityRes.json()
+          const community = Array.isArray(communityData?.prices)
+            ? communityData.prices.find((p: any) => p.icao === homeAirportIcao && p.fuelType === '100LL')
+            : null
+          if (!cancelled) {
+            setCommunityFuelPrice(typeof community?.price === 'number' ? community.price : null)
+            setCommunityFuelUpdatedAt(community?.purchaseDate || null)
+          }
+        } else if (!cancelled) {
+          setCommunityFuelError('Failed to load community price')
         }
       } catch (error) {
         console.error('Failed to load fuel price', error)
-        if (!cancelled) setFuelPriceError('Failed to load fuel price')
+        if (!cancelled) {
+          setFuelPriceError('Failed to load fuel price')
+          setCommunityFuelError('Failed to load community price')
+        }
       } finally {
         if (!cancelled) setFuelPriceLoading(false)
+        if (!cancelled) setCommunityFuelLoading(false)
       }
     }
 
@@ -724,20 +753,30 @@ export default function PilotDashboard() {
                     Fuel Price (100LL)
                   </div>
                   <div className="space-y-1">
-                    <div className="text-2xl font-bold">
-                      {fuelPriceLoading
-                        ? '—'
-                        : typeof fuelPrice === 'number'
-                          ? `$${fuelPrice.toFixed(2)}`
-                          : '—'}
+                    <div className="space-y-1">
+                      <div className="text-2xl font-bold">
+                        {fuelPriceLoading
+                          ? '—'
+                          : typeof fuelPrice === 'number'
+                            ? `$${fuelPrice.toFixed(2)}`
+                            : '—'}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Airport price {fuelPriceUpdatedAt ? `• ${new Date(fuelPriceUpdatedAt).toLocaleDateString()}` : ''}
+                      </p>
+                      <div className="text-sm font-medium">
+                        {communityFuelLoading
+                          ? '—'
+                          : typeof communityFuelPrice === 'number'
+                            ? `$${communityFuelPrice.toFixed(2)}`
+                            : '—'}
+                      </div>
+                      <p className="text-[11px] text-muted-foreground">
+                        Community price {communityFuelUpdatedAt ? `• ${new Date(communityFuelUpdatedAt).toLocaleDateString()}` : ''}
+                      </p>
+                      {fuelPriceError && <p className="text-[11px] text-destructive">{fuelPriceError}</p>}
+                      {communityFuelError && <p className="text-[11px] text-destructive">{communityFuelError}</p>}
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {fuelPriceError
-                        ? fuelPriceError
-                        : fuelPriceUpdatedAt
-                          ? `Updated ${new Date(fuelPriceUpdatedAt).toLocaleDateString()}`
-                          : 'Not available'}
-                    </p>
                   </div>
                 </div>
               </div>
