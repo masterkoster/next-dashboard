@@ -165,6 +165,29 @@ export default function PilotDashboard() {
   }
 
   const isWidgetVisible = (widget: WidgetType) => visibleWidgets.includes(widget)
+  
+  // Calculate summary stats based on zoom level
+  const getChartSummary = () => {
+    const data = generateFlightHoursData(chartZoomLevel)
+    const total = data.reduce((sum, item) => sum + item.hours, 0)
+    const average = total / data.length
+    
+    const labels = {
+      year: { period: 'Past 5 years', unit: 'per year' },
+      months: { period: 'Past 6 months', unit: 'per month' },
+      weeks: { period: 'Past 8 weeks', unit: 'per week' },
+      days: { period: 'This week', unit: 'per day' }
+    }
+    
+    return {
+      total: total.toFixed(1),
+      average: average.toFixed(1),
+      period: labels[chartZoomLevel].period,
+      unit: labels[chartZoomLevel].unit
+    }
+  }
+  
+  const chartSummary = getChartSummary()
 
   return (
     <div className="min-h-screen bg-background pt-[44px]">
@@ -422,6 +445,7 @@ export default function PilotDashboard() {
                 <div 
                   onWheel={(e) => {
                     e.preventDefault()
+                    e.stopPropagation()
                     const levels: Array<'year' | 'months' | 'weeks' | 'days'> = ['year', 'months', 'weeks', 'days']
                     const currentIndex = levels.indexOf(chartZoomLevel)
                     
@@ -437,6 +461,7 @@ export default function PilotDashboard() {
                       }
                     }
                   }}
+                  style={{ position: 'relative' }}
                 >
                   <ResponsiveContainer width="100%" height={300}>
                     <AreaChart data={generateFlightHoursData(chartZoomLevel)}>
@@ -478,12 +503,12 @@ export default function PilotDashboard() {
                 </div>
                 <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-4">
                   <div>
-                    <p className="text-sm text-muted-foreground">Total Hours (Last 6 months)</p>
-                    <p className="text-2xl font-bold">86.7 hrs</p>
+                    <p className="text-sm text-muted-foreground">Total Hours ({chartSummary.period})</p>
+                    <p className="text-2xl font-bold">{chartSummary.total} hrs</p>
                   </div>
                   <div>
-                    <p className="text-sm text-muted-foreground">Average per Month</p>
-                    <p className="text-2xl font-bold">14.5 hrs</p>
+                    <p className="text-sm text-muted-foreground">Average {chartSummary.unit}</p>
+                    <p className="text-2xl font-bold">{chartSummary.average} hrs</p>
                   </div>
                 </div>
               </CardContent>
