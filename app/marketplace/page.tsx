@@ -1,10 +1,14 @@
 'use client'
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Slider } from "@/components/ui/slider"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import { 
   Search,
   Plane,
@@ -18,7 +22,8 @@ import {
   Star,
   Heart,
   Share2,
-  ChevronRight
+  ChevronRight,
+  X
 } from "lucide-react"
 
 type ListingCategory = 'all' | 'for-sale' | 'full-sale' | 'selling-share' | 'looking-to-join'
@@ -33,9 +38,18 @@ const mockListings = [
 ]
 
 export default function MarketplacePage() {
+  const router = useRouter()
   const [searchQuery, setSearchQuery] = useState('')
   const [activeCategory, setActiveCategory] = useState<ListingCategory>('all')
   const [savedListings, setSavedListings] = useState<number[]>([])
+  
+  // Filter states
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 1000000])
+  const [yearRange, setYearRange] = useState<[number, number]>([1950, 2024])
+  const [hoursRange, setHoursRange] = useState<[number, number]>([0, 10000])
+  const [locationFilter, setLocationFilter] = useState('')
+  const [verifiedOnly, setVerifiedOnly] = useState(false)
 
   const categories = [
     { id: 'all' as const, label: 'All Listings', count: 2400 },
@@ -49,8 +63,41 @@ export default function MarketplacePage() {
     const matchesCategory = activeCategory === 'all' || listing.category === activeCategory
     const matchesSearch = listing.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           listing.location.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    // Advanced filters (skip for 'looking-to-join' category which has 0 values)
+    if (listing.category !== 'looking-to-join') {
+      const matchesPrice = listing.price >= priceRange[0] && listing.price <= priceRange[1]
+      const matchesYear = listing.year >= yearRange[0] && listing.year <= yearRange[1]
+      const matchesHours = listing.hours >= hoursRange[0] && listing.hours <= hoursRange[1]
+      const matchesLocation = !locationFilter || listing.location.toLowerCase().includes(locationFilter.toLowerCase())
+      const matchesVerified = !verifiedOnly || listing.verified
+      
+      return matchesCategory && matchesSearch && matchesPrice && matchesYear && matchesHours && matchesLocation && matchesVerified
+    }
+    
     return matchesCategory && matchesSearch
   })
+  
+  const clearFilters = () => {
+    setPriceRange([0, 1000000])
+    setYearRange([1950, 2024])
+    setHoursRange([0, 10000])
+    setLocationFilter('')
+    setVerifiedOnly(false)
+    setSearchQuery('')
+    setActiveCategory('all')
+  }
+  
+  const handleShare = async (listing: typeof mockListings[0]) => {
+    const url = `${window.location.origin}/modules/marketplace/listing/${listing.id}`
+    try {
+      await navigator.clipboard.writeText(url)
+      // Could add a toast notification here
+      alert('Listing URL copied to clipboard!')
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
 
   const toggleSave = (id: number) => {
     setSavedListings(prev => 
@@ -86,10 +133,117 @@ export default function MarketplacePage() {
                     className="h-11 pl-9 pr-4"
                   />
                 </div>
-                <Button size="lg" className="gap-2">
-                  <Filter className="h-4 w-4" />
-                  Filters
-                </Button>
+                <Sheet open={filtersOpen} onOpenChange={setFiltersOpen}>
+                  <SheetTrigger asChild>
+                    <Button size="lg" className="gap-2">
+                      <Filter className="h-4 w-4" />
+                      Filters
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="w-[400px] overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle>Filter Listings</SheetTitle>
+                      <SheetDescription>
+                        Refine your search with advanced filters
+                      </SheetDescription>
+                    </SheetHeader>
+                    
+                    <div className="mt-6 space-y-6">
+                      {/* Price Range */}
+                      <div className="space-y-3">
+                        <Label>Price Range</Label>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <span>${(priceRange[0] / 1000).toFixed(0)}K</span>
+                          <span className="mx-auto">—</span>
+                          <span>${(priceRange[1] / 1000).toFixed(0)}K</span>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={1000000}
+                          step={10000}
+                          value={priceRange}
+                          onValueChange={(value) => setPriceRange(value as [number, number])}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      {/* Year Range */}
+                      <div className="space-y-3">
+                        <Label>Year Built</Label>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <span>{yearRange[0]}</span>
+                          <span className="mx-auto">—</span>
+                          <span>{yearRange[1]}</span>
+                        </div>
+                        <Slider
+                          min={1950}
+                          max={2024}
+                          step={1}
+                          value={yearRange}
+                          onValueChange={(value) => setYearRange(value as [number, number])}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      {/* Hours Range */}
+                      <div className="space-y-3">
+                        <Label>Total Hours</Label>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <span>{hoursRange[0].toLocaleString()}</span>
+                          <span className="mx-auto">—</span>
+                          <span>{hoursRange[1].toLocaleString()}</span>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={10000}
+                          step={100}
+                          value={hoursRange}
+                          onValueChange={(value) => setHoursRange(value as [number, number])}
+                          className="w-full"
+                        />
+                      </div>
+                      
+                      {/* Location */}
+                      <div className="space-y-3">
+                        <Label>Location (ICAO/IATA)</Label>
+                        <Input
+                          placeholder="e.g. KBOS, BOS"
+                          value={locationFilter}
+                          onChange={(e) => setLocationFilter(e.target.value)}
+                        />
+                      </div>
+                      
+                      {/* Verified Only */}
+                      <div className="flex items-center justify-between">
+                        <Label>Verified Listings Only</Label>
+                        <Button
+                          variant={verifiedOnly ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setVerifiedOnly(!verifiedOnly)}
+                        >
+                          {verifiedOnly ? 'On' : 'Off'}
+                        </Button>
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex gap-3 pt-4 border-t">
+                        <Button
+                          variant="outline"
+                          className="flex-1"
+                          onClick={clearFilters}
+                        >
+                          Clear All
+                        </Button>
+                        <Button
+                          className="flex-1"
+                          onClick={() => setFiltersOpen(false)}
+                        >
+                          Apply Filters
+                        </Button>
+                      </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
               </div>
 
               {/* Stats */}
@@ -161,6 +315,7 @@ export default function MarketplacePage() {
                       size="icon"
                       variant="secondary"
                       className="h-8 w-8 rounded-full"
+                      onClick={() => handleShare(listing)}
                     >
                       <Share2 className="h-4 w-4" />
                     </Button>
@@ -220,7 +375,11 @@ export default function MarketplacePage() {
                         </div>
                       </div>
 
-                      <Button className="w-full gap-2" variant="default">
+                      <Button 
+                        className="w-full gap-2" 
+                        variant="default"
+                        onClick={() => router.push(`/modules/marketplace/listing/${listing.id}`)}
+                      >
                         View Details
                         <ChevronRight className="h-4 w-4" />
                       </Button>
@@ -233,7 +392,11 @@ export default function MarketplacePage() {
                           Looking for reliable partnership with established group.
                         </p>
                       </div>
-                      <Button className="w-full gap-2" variant="outline">
+                      <Button 
+                        className="w-full gap-2" 
+                        variant="outline"
+                        onClick={() => router.push(`/messages?listing=${listing.id}`)}
+                      >
                         Contact
                         <ChevronRight className="h-4 w-4" />
                       </Button>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -35,8 +36,15 @@ import {
 } from "lucide-react"
 
 export default function ProfilePage() {
+  const router = useRouter()
   const [isAdmin, setIsAdmin] = useState(true) // Mock admin status
   const [unsavedChanges, setUnsavedChanges] = useState(false)
+  
+  // Modal states
+  const [licenseModalOpen, setLicenseModalOpen] = useState(false)
+  const [aircraftModalOpen, setAircraftModalOpen] = useState(false)
+  const [editingLicense, setEditingLicense] = useState<typeof licenses[0] | null>(null)
+  const [editingAircraft, setEditingAircraft] = useState<typeof aircraft[0] | null>(null)
 
   // Mock user data
   const [personalInfo, setPersonalInfo] = useState({
@@ -92,6 +100,93 @@ export default function ProfilePage() {
     twoFactorEnabled: false,
     loginAlerts: true
   })
+  
+  // Handler functions
+  const handleSavePersonalInfo = async () => {
+    // TODO: API call to save personal info
+    // await fetch('/api/profile', { method: 'PUT', body: JSON.stringify(personalInfo) })
+    console.log('Saving personal info:', personalInfo)
+    setUnsavedChanges(false)
+    alert('Personal information saved successfully!')
+  }
+  
+  const handleSaveMedical = async () => {
+    // TODO: API call to save medical info
+    console.log('Saving medical info:', medical)
+    setUnsavedChanges(false)
+    alert('Medical certificate saved successfully!')
+  }
+  
+  const handleSaveAirport = async () => {
+    // TODO: API call to save airport info
+    console.log('Saving airport info:', homeAirport)
+    setUnsavedChanges(false)
+    alert('Home airport saved successfully!')
+  }
+  
+  const handleAddLicense = () => {
+    setEditingLicense(null)
+    setLicenseModalOpen(true)
+  }
+  
+  const handleEditLicense = (license: typeof licenses[0]) => {
+    setEditingLicense(license)
+    setLicenseModalOpen(true)
+  }
+  
+  const handleDeleteLicense = async (id: number) => {
+    if (confirm('Are you sure you want to delete this license?')) {
+      // TODO: API call to delete license
+      setLicenses(licenses.filter(l => l.id !== id))
+      alert('License deleted successfully!')
+    }
+  }
+  
+  const handleSaveLicense = (licenseData: typeof licenses[0]) => {
+    if (editingLicense) {
+      // Update existing
+      setLicenses(licenses.map(l => l.id === licenseData.id ? licenseData : l))
+    } else {
+      // Add new
+      const newLicense = { ...licenseData, id: Math.max(...licenses.map(l => l.id)) + 1 }
+      setLicenses([...licenses, newLicense])
+    }
+    setLicenseModalOpen(false)
+    setEditingLicense(null)
+    alert('License saved successfully!')
+  }
+  
+  const handleAddAircraft = () => {
+    setEditingAircraft(null)
+    setAircraftModalOpen(true)
+  }
+  
+  const handleEditAircraft = (ac: typeof aircraft[0]) => {
+    setEditingAircraft(ac)
+    setAircraftModalOpen(true)
+  }
+  
+  const handleDeleteAircraft = async (id: number) => {
+    if (confirm('Are you sure you want to remove this aircraft?')) {
+      // TODO: API call to delete aircraft
+      setAircraft(aircraft.filter(a => a.id !== id))
+      alert('Aircraft removed successfully!')
+    }
+  }
+  
+  const handleSaveAircraft = (aircraftData: typeof aircraft[0]) => {
+    if (editingAircraft) {
+      // Update existing
+      setAircraft(aircraft.map(a => a.id === aircraftData.id ? aircraftData : a))
+    } else {
+      // Add new
+      const newAircraft = { ...aircraftData, id: Math.max(...aircraft.map(a => a.id)) + 1 }
+      setAircraft([...aircraft, newAircraft])
+    }
+    setAircraftModalOpen(false)
+    setEditingAircraft(null)
+    alert('Aircraft saved successfully!')
+  }
 
   return (
     <div className="min-h-screen bg-background pt-[44px]">
@@ -131,7 +226,11 @@ export default function ProfilePage() {
               </p>
             </div>
             {isAdmin && (
-              <Button variant="outline" className="gap-2">
+              <Button 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => router.push('/admin')}
+              >
                 <LayoutDashboard className="h-4 w-4" />
                 Admin Dashboard
               </Button>
@@ -262,7 +361,7 @@ export default function ProfilePage() {
                       <CardTitle>Licenses & Certificates</CardTitle>
                       <CardDescription>Manage your pilot certificates, ratings, and endorsements</CardDescription>
                     </div>
-                    <Button size="sm" className="gap-2">
+                    <Button size="sm" className="gap-2" onClick={handleAddLicense}>
                       <Plus className="h-4 w-4" />
                       Add License
                     </Button>
@@ -280,10 +379,10 @@ export default function ProfilePage() {
                           <p className="text-sm text-muted-foreground">Issued: {license.issueDate}</p>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="ghost">
+                          <Button size="sm" variant="ghost" onClick={() => handleEditLicense(license)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost">
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteLicense(license.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -386,8 +485,8 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline">Cancel</Button>
-                    <Button className="gap-2" onClick={() => setUnsavedChanges(false)}>
+                    <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
+                    <Button className="gap-2" onClick={handleSaveMedical}>
                       <Save className="h-4 w-4" />
                       Save Changes
                     </Button>
@@ -455,8 +554,8 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline">Cancel</Button>
-                    <Button className="gap-2" onClick={() => setUnsavedChanges(false)}>
+                    <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
+                    <Button className="gap-2" onClick={handleSaveAirport}>
                       <Save className="h-4 w-4" />
                       Save Changes
                     </Button>
@@ -474,7 +573,7 @@ export default function ProfilePage() {
                       <CardTitle>Aircraft Assignments</CardTitle>
                       <CardDescription>Manage aircraft you fly regularly</CardDescription>
                     </div>
-                    <Button size="sm" className="gap-2">
+                    <Button size="sm" className="gap-2" onClick={handleAddAircraft}>
                       <Plus className="h-4 w-4" />
                       Add Aircraft
                     </Button>
@@ -492,10 +591,10 @@ export default function ProfilePage() {
                           <p className="text-sm text-muted-foreground">{ac.type}</p>
                         </div>
                         <div className="flex gap-2">
-                          <Button size="sm" variant="ghost">
+                          <Button size="sm" variant="ghost" onClick={() => handleEditAircraft(ac)}>
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button size="sm" variant="ghost">
+                          <Button size="sm" variant="ghost" onClick={() => handleDeleteAircraft(ac.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
@@ -667,8 +766,8 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline">Cancel</Button>
-                    <Button className="gap-2">
+                    <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
+                    <Button className="gap-2" onClick={handleSavePersonalInfo}>
                       <Save className="h-4 w-4" />
                       Save Changes
                     </Button>
