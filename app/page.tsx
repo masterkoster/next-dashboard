@@ -140,7 +140,7 @@ function LandingContent() {
 
       {/* Footer */}
       <div className="border-t border-slate-800 py-8 text-center">
-        <p className="text-slate-500 text-sm">© 2024 AviationHub. All rights reserved.</p>
+        <p className="text-slate-500 text-sm">© 2026 AviationHub. All rights reserved.</p>
       </div>
     </div>
   );
