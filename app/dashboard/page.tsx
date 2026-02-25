@@ -111,6 +111,7 @@ export default function PilotDashboard() {
   const { data: session, status } = useSession()
   const router = useRouter()
   const [groupId, setGroupId] = useState<string | null>(null)
+  const [groupIds, setGroupIds] = useState<string[]>([])
   const [customizeMode, setCustomizeMode] = useState(false)
   const [visibleWidgets, setVisibleWidgets] = useState<WidgetType[]>([
     'airport-weather',
@@ -129,6 +130,10 @@ export default function PilotDashboard() {
   const [showFlightComplete, setShowFlightComplete] = useState(false)
   const [activeFlight, setActiveFlight] = useState<{id: string; aircraftId: string; aircraftName: string; userId: string; userName: string; hobbsStart?: number} | null>(null)
   const [showDemoNotice, setShowDemoNotice] = useState(true)
+  const [scheduledWindow, setScheduledWindow] = useState<'7' | '30' | 'all'>('7')
+  const [scheduledFlights, setScheduledFlights] = useState<any[]>([])
+  const [isScheduledLoading, setIsScheduledLoading] = useState(false)
+  const [scheduledError, setScheduledError] = useState<string | null>(null)
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -159,6 +164,9 @@ export default function PilotDashboard() {
 
         const adminGroup =
           data.find((g: any) => g.role === 'ADMIN' || g.role === 'OWNER') ?? data[0]
+
+        const ids = data.map((g: any) => g.id).filter(Boolean)
+        setGroupIds(ids)
 
         if (!adminGroup || cancelled) return
         setGroupId(adminGroup.id)
@@ -217,6 +225,36 @@ export default function PilotDashboard() {
       alert('Failed to load active flights')
     }
   }
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    if (groupIds.length === 0) return
+    let cancelled = false
+
+    async function loadScheduled() {
+      try {
+        setIsScheduledLoading(true)
+        setScheduledError(null)
+        const res = await fetch(`/api/bookings?days=${scheduledWindow}`)
+        if (!res.ok) throw new Error('Failed to load bookings')
+        const data = await res.json()
+        if (cancelled) return
+
+        const bookings = Array.isArray(data) ? data : data.bookings || []
+        setScheduledFlights(bookings)
+      } catch (error) {
+        console.error('Failed to load scheduled flights', error)
+        if (!cancelled) setScheduledError('Failed to load scheduled flights')
+      } finally {
+        if (!cancelled) setIsScheduledLoading(false)
+      }
+    }
+
+    loadScheduled()
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user?.id, groupIds, scheduledWindow])
 
   const toggleWidget = (widget: WidgetType) => {
     setVisibleWidgets(prev => 
@@ -604,46 +642,69 @@ export default function PilotDashboard() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle>Upcoming Flights</CardTitle>
-                    <CardDescription>Your schedule</CardDescription>
+                    <CardDescription>
+                      Your schedule
+                      {scheduledError && <span className="ml-2 text-destructive">{scheduledError}</span>}
+                      {isScheduledLoading && !scheduledError && <span className="ml-2 text-muted-foreground">Loading…</span>}
+                    </CardDescription>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => router.push('/modules/flying-club?tab=bookings')}>
-                    <Plus className="mr-1 h-4 w-4" />
-                    Add
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <select
+                      className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                      value={scheduledWindow}
+                      onChange={(e) => setScheduledWindow(e.target.value as '7' | '30' | 'all')}
+                    >
+                      <option value="7">Next 7 days</option>
+                      <option value="30">Next 30 days</option>
+                      <option value="all">All upcoming</option>
+                    </select>
+                    <Button size="sm" variant="outline" onClick={() => router.push('/modules/flying-club?tab=bookings')}>
+                      <Plus className="mr-1 h-4 w-4" />
+                      Add
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {upcomingFlights.map((flight) => (
-                    <div key={flight.id} className="space-y-2 rounded-lg border border-border p-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-2">
-                          {flight.type === 'lesson' ? (
-                            <GraduationCap className="h-4 w-4 text-primary" />
-                          ) : (
+                  {scheduledFlights.length === 0 && !isScheduledLoading ? (
+                    <div className="rounded-lg border border-dashed border-border p-4 text-sm text-muted-foreground">
+                      No upcoming flights scheduled
+                    </div>
+                  ) : (
+                    scheduledFlights.map((flight) => (
+                      <div key={flight.id} className="space-y-2 rounded-lg border border-border p-3">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-center gap-2">
                             <Plane className="h-4 w-4 text-chart-2" />
-                          )}
-                          <div>
-                            <p className="text-sm font-medium leading-none">{flight.title}</p>
-                            {flight.instructor && (
-                              <p className="mt-1 text-xs text-muted-foreground">{flight.instructor}</p>
-                            )}
+                            <div>
+                              <p className="text-sm font-medium leading-none">
+                                {flight.aircraft?.nNumber || 'Aircraft'}
+                                {flight.aircraft?.nickname ? ` (${flight.aircraft.nickname})` : ''}
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground">{flight.purpose || 'Scheduled flight'}</p>
+                            </div>
+                          </div>
+                          <Badge variant="outline" className="text-[10px]">
+                            {flight.groupName ? `Club: ${flight.groupName}` : 'Personal'}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1">
+                            <Calendar className="h-3 w-3" />
+                            {new Date(flight.startTime).toLocaleDateString()}
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {new Date(flight.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {' – '}
+                            {new Date(flight.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </div>
                         </div>
+                        <Badge variant="outline" className="text-xs">{flight.aircraft?.nNumber || 'Aircraft'}</Badge>
                       </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Calendar className="h-3 w-3" />
-                          {flight.date}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {flight.time}
-                        </div>
-                      </div>
-                      <Badge variant="outline" className="text-xs">{flight.aircraft}</Badge>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

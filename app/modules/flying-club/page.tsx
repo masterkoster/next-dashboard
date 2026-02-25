@@ -85,6 +85,9 @@ interface Booking {
   aircraft?: GroupAircraft
   userId: string
   user?: { name: string | null; email: string }
+  groupId?: string
+  groupName?: string
+  source?: 'club' | 'personal'
   startTime: string
   endTime: string
   purpose: string | null
@@ -250,6 +253,10 @@ export default function FlyingClubPage() {
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [loading, setLoading] = useState(true)
+  const [scheduledWindow, setScheduledWindow] = useState<'7' | '30' | 'all'>('7')
+  const [scheduledBookings, setScheduledBookings] = useState<Booking[]>([])
+  const [isScheduledLoading, setIsScheduledLoading] = useState(false)
+  const [scheduledError, setScheduledError] = useState<string | null>(null)
   
   // Modal states
   const [showNewGroupModal, setShowNewGroupModal] = useState(false)
@@ -356,6 +363,33 @@ export default function FlyingClubPage() {
     
     fetchData()
   }, [session, status])
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    let cancelled = false
+
+    async function loadScheduled() {
+      setIsScheduledLoading(true)
+      setScheduledError(null)
+      try {
+        const res = await fetch(`/api/bookings?days=${scheduledWindow}`)
+        if (!res.ok) throw new Error('Failed to load scheduled flights')
+        const data = await res.json()
+        const bookings = Array.isArray(data) ? data : data.bookings || []
+        if (!cancelled) setScheduledBookings(bookings)
+      } catch (error) {
+        console.error('Failed to load scheduled flights', error)
+        if (!cancelled) setScheduledError('Failed to load scheduled flights')
+      } finally {
+        if (!cancelled) setIsScheduledLoading(false)
+      }
+    }
+
+    loadScheduled()
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user?.id, scheduledWindow])
 
   // Fetch group-specific data when view changes
   useEffect(() => {
@@ -822,7 +856,7 @@ export default function FlyingClubPage() {
   // Filter data based on selected view
   const displayAircraft = isPersonal ? personalAircraft : (selectedGroup?.aircraft || [])
   const displayBookings = isPersonal 
-    ? personalBookings 
+    ? bookings
     : bookings.filter(b => displayAircraft.some(a => a.id === b.aircraftId))
   const displayMaintenance = isPersonal ? [] : maintenance
   const displayMembers = isPersonal ? [] : members
@@ -942,7 +976,7 @@ export default function FlyingClubPage() {
 
           {/* Tabs */}
           <div className="mt-6 flex gap-1 border-b border-border overflow-x-auto">
-            {(['dashboard', 'calendar', 'bookings', 'aircraft', 'flights', 'maintenance', 'billing', 'members'] as const).map((tab) => (
+            {(['dashboard', 'calendar', 'bookings', 'scheduled', 'aircraft', 'flights', 'maintenance', 'billing', 'members'] as const).map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
@@ -1427,6 +1461,82 @@ export default function FlyingClubPage() {
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {activeTab === 'scheduled' && (
+          <>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Scheduled Flights</h2>
+                <p className="text-xs text-muted-foreground">Your upcoming flights across personal and club aircraft</p>
+              </div>
+              <div className="flex items-center gap-2">
+                <select
+                  className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                  value={scheduledWindow}
+                  onChange={(e) => setScheduledWindow(e.target.value as '7' | '30' | 'all')}
+                >
+                  <option value="7">Next 7 days</option>
+                  <option value="30">Next 30 days</option>
+                  <option value="all">All upcoming</option>
+                </select>
+                <Button size="sm" variant="outline" onClick={() => setActiveTab('bookings')}>
+                  View Calendar
+                </Button>
+              </div>
+            </div>
+
+            {scheduledError && <div className="text-xs text-destructive">{scheduledError}</div>}
+            {isScheduledLoading && !scheduledError && <div className="text-xs text-muted-foreground">Loading…</div>}
+
+            <Card>
+              <CardContent className="p-0">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/40">
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Aircraft</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Type</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Start</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">End</th>
+                      <th className="px-4 py-3 text-left font-medium text-muted-foreground">Purpose</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {scheduledBookings.length === 0 && !isScheduledLoading ? (
+                      <tr>
+                        <td className="px-4 py-6 text-center text-muted-foreground" colSpan={5}>
+                          No scheduled flights
+                        </td>
+                      </tr>
+                    ) : (
+                      scheduledBookings.map((booking) => (
+                        <tr key={booking.id} className="hover:bg-muted/30 transition-colors">
+                          <td className="px-4 py-3">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium text-foreground">{booking.aircraft?.nNumber || 'Aircraft'}</span>
+                              <Badge variant="outline" className="text-[10px]">
+                                {booking.groupName ? `Club: ${booking.groupName}` : 'Personal'}
+                              </Badge>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {[booking.aircraft?.make, booking.aircraft?.model].filter(Boolean).join(' ') || '—'}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {new Date(booking.startTime).toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {new Date(booking.endTime).toLocaleString()}
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">{booking.purpose || '—'}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </CardContent>
+            </Card>
+          </>
         )}
 
         {activeTab === 'maintenance' && (
