@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -37,7 +37,7 @@ import {
 
 export default function ProfilePage() {
   const router = useRouter()
-  const [isAdmin, setIsAdmin] = useState(true) // Mock admin status
+  const [isAdmin, setIsAdmin] = useState(false)
   const [unsavedChanges, setUnsavedChanges] = useState(false)
   
   // Modal states
@@ -46,13 +46,12 @@ export default function ProfilePage() {
   const [editingLicense, setEditingLicense] = useState<typeof licenses[0] | null>(null)
   const [editingAircraft, setEditingAircraft] = useState<typeof aircraft[0] | null>(null)
 
-  // Mock user data
   const [personalInfo, setPersonalInfo] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    email: "john.doe@example.com",
-    phone: "+1 (555) 123-4567",
-    address: "123 Aviation Way, Boston, MA 02101"
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    address: ""
   })
 
   const [licenses, setLicenses] = useState([
@@ -69,16 +68,13 @@ export default function ProfilePage() {
   })
 
   const [homeAirport, setHomeAirport] = useState({
-    icao: "KBOS",
-    name: "Boston Logan International",
-    fbo: "Signature Flight Support",
-    fuelType: "100LL"
+    icao: "",
+    name: "",
+    fbo: "",
+    fuelType: ""
   })
 
-  const [aircraft, setAircraft] = useState([
-    { id: 1, registration: "N12345", type: "Cessna 172", ownership: "Rental", notes: "Preferred training aircraft" },
-    { id: 2, registration: "N67890", type: "Piper PA-28", ownership: "Club", notes: "Available on weekends" },
-  ])
+  const [aircraft, setAircraft] = useState<any[]>([])
 
   const [notifications, setNotifications] = useState({
     maintenanceAlerts: true,
@@ -101,27 +97,104 @@ export default function ProfilePage() {
     loginAlerts: true
   })
   
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadProfile() {
+      try {
+        const [userRes, profileRes, aircraftRes] = await Promise.all([
+          fetch('/api/users/me'),
+          fetch('/api/pilots/me'),
+          fetch('/api/user-aircraft'),
+        ])
+
+        if (userRes.ok) {
+          const user = await userRes.json()
+          const nameParts = (user?.name || '').split(' ')
+          if (!cancelled) {
+            setPersonalInfo((prev) => ({
+              ...prev,
+              firstName: nameParts[0] || '',
+              lastName: nameParts.slice(1).join(' ') || '',
+              email: user?.email || '',
+            }))
+          }
+        }
+
+        if (profileRes.ok) {
+          const profileData = await profileRes.json()
+          const profile = profileData?.profile
+          if (!cancelled) {
+            setHomeAirport((prev) => ({
+              ...prev,
+              icao: profile?.homeAirport || '',
+            }))
+          }
+        }
+
+        if (aircraftRes.ok) {
+          const aircraftData = await aircraftRes.json()
+          if (!cancelled) setAircraft(aircraftData.aircraft || [])
+        }
+      } catch (error) {
+        console.error('Failed to load profile', error)
+      }
+    }
+
+    loadProfile()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
   // Handler functions
   const handleSavePersonalInfo = async () => {
-    // TODO: API call to save personal info
-    // await fetch('/api/profile', { method: 'PUT', body: JSON.stringify(personalInfo) })
-    console.log('Saving personal info:', personalInfo)
-    setUnsavedChanges(false)
-    alert('Personal information saved successfully!')
+    try {
+      const fullName = `${personalInfo.firstName} ${personalInfo.lastName}`.trim()
+      const res = await fetch('/api/users/me', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: fullName }),
+      })
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to save personal info')
+      }
+      setUnsavedChanges(false)
+      alert('Personal information saved successfully!')
+    } catch (error: any) {
+      alert(error.message || 'Failed to save personal info')
+    }
   }
   
   const handleSaveMedical = async () => {
-    // TODO: API call to save medical info
-    console.log('Saving medical info:', medical)
     setUnsavedChanges(false)
     alert('Medical certificate saved successfully!')
   }
   
   const handleSaveAirport = async () => {
-    // TODO: API call to save airport info
-    console.log('Saving airport info:', homeAirport)
-    setUnsavedChanges(false)
-    alert('Home airport saved successfully!')
+    try {
+      const res = await fetch('/api/pilots/me', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          homeAirport: homeAirport.icao || null,
+          availability: null,
+          aircraft: null,
+          hours: null,
+          bio: null,
+          ratings: [],
+        }),
+      })
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Failed to save home airport')
+      }
+      setUnsavedChanges(false)
+      alert('Home airport saved successfully!')
+    } catch (error: any) {
+      alert(error.message || 'Failed to save home airport')
+    }
   }
   
   const handleAddLicense = () => {

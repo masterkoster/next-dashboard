@@ -143,6 +143,7 @@ export default function PilotDashboard() {
   const [isScheduledLoading, setIsScheduledLoading] = useState(false)
   const [scheduledError, setScheduledError] = useState<string | null>(null)
   const [showScheduler, setShowScheduler] = useState(false)
+  const [scheduledRefreshKey, setScheduledRefreshKey] = useState(0)
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -207,7 +208,56 @@ export default function PilotDashboard() {
 
       const active = await res.json()
       if (!Array.isArray(active) || active.length === 0) {
-        alert('No active flights found')
+        const now = new Date()
+        const upcoming = scheduledFlights.find((f) => {
+          if (!f?.startTime || !f?.endTime) return false
+          const start = new Date(f.startTime)
+          const end = new Date(f.endTime)
+          return start <= now && end >= now && f.groupId
+        })
+
+        if (!upcoming) {
+          alert('No active flights found')
+          return
+        }
+
+        const hobbsStartInput = window.prompt('Enter Hobbs start time to check out this flight')
+        const hobbsStart = hobbsStartInput ? Number(hobbsStartInput) : NaN
+        if (!hobbsStart || Number.isNaN(hobbsStart)) {
+          alert('Valid Hobbs start time is required')
+          return
+        }
+
+        const checkoutRes = await fetch(`/api/clubs/${upcoming.groupId}/flights/checkout`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            aircraftId: upcoming.aircraftId,
+            hobbsStart,
+            notes: upcoming.purpose || null,
+          }),
+        })
+
+        if (!checkoutRes.ok) {
+          const error = await checkoutRes.json()
+          alert(error.error || 'Failed to start flight')
+          return
+        }
+
+        const checkout = await checkoutRes.json()
+        const flight = checkout.flight
+
+        setActiveFlight({
+          id: flight.id,
+          aircraftId: flight.aircraftId,
+          aircraftName: flight.aircraft?.nNumber
+            ? `${flight.aircraft.nNumber}${flight.aircraft.name ? ` (${flight.aircraft.name})` : ''}`
+            : 'Unknown Aircraft',
+          userId: flight.user?.id ?? session?.user?.id ?? 'unknown',
+          userName: flight.user?.name ?? session?.user?.name ?? 'Pilot',
+          hobbsStart: flight.hobbsStart ? Number(flight.hobbsStart) : undefined,
+        })
+        setShowFlightComplete(true)
         return
       }
 
@@ -263,7 +313,7 @@ export default function PilotDashboard() {
     return () => {
       cancelled = true
     }
-  }, [session?.user?.id, groupIds, scheduledWindow])
+  }, [session?.user?.id, groupIds, scheduledWindow, scheduledRefreshKey])
 
   const toggleWidget = (widget: WidgetType) => {
     setVisibleWidgets(prev => 
@@ -594,8 +644,9 @@ export default function PilotDashboard() {
                 <CardDescription>Your flying activity over the past 6 months</CardDescription>
               </CardHeader>
               <CardContent className="pl-2">
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={flightHoursData}>
+                <div className="min-h-[300px]">
+                  <ResponsiveContainer width="100%" height={300}>
+                    <AreaChart data={flightHoursData}>
                     <defs>
                       <linearGradient id="colorHours" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
@@ -629,8 +680,9 @@ export default function PilotDashboard() {
                       fillOpacity={1} 
                       fill="url(#colorHours)" 
                     />
-                  </AreaChart>
-                </ResponsiveContainer>
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
                 <div className="mt-4 flex items-center justify-between rounded-lg bg-muted/50 p-4">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Hours (Last 6 months)</p>
@@ -670,9 +722,6 @@ export default function PilotDashboard() {
                     <Button size="sm" variant="outline" onClick={() => setShowScheduler(true)}>
                       <Plus className="mr-1 h-4 w-4" />
                       Add
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => router.push('/scheduler')}>
-                      Open Scheduler
                     </Button>
                   </div>
                 </div>
@@ -731,7 +780,10 @@ export default function PilotDashboard() {
                   Choose personal or flying club scheduling. Availability updates automatically.
                 </DialogDescription>
               </DialogHeader>
-              <FlightScheduler onSuccess={() => setShowScheduler(false)} />
+              <FlightScheduler onSuccess={() => {
+                setShowScheduler(false)
+                setScheduledRefreshKey((prev) => prev + 1)
+              }} />
             </DialogContent>
           </Dialog>
 

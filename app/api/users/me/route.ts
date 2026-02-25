@@ -15,6 +15,7 @@ export async function GET() {
         id: true,
         email: true,
         name: true,
+        username: true,
         credits: true,
         createdAt: true,
       },
@@ -28,5 +29,38 @@ export async function GET() {
   } catch (error) {
     console.error('Error fetching user:', error);
     return NextResponse.json({ error: 'Failed to fetch user' }, { status: 500 });
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const session = await auth();
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { name, username } = body || {};
+
+    const user = await prisma.user.update({
+      where: { email: session.user.email },
+      data: {
+        name: typeof name === 'string' ? name.trim() : undefined,
+        username: typeof username === 'string' ? username.trim() : undefined,
+      },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        username: true,
+        credits: true,
+        createdAt: true,
+      },
+    });
+
+    return NextResponse.json(user);
+  } catch (error) {
+    console.error('Error updating user:', error);
+    return NextResponse.json({ error: 'Failed to update user' }, { status: 500 });
   }
 }
