@@ -511,6 +511,7 @@ export default function ClubAdminPage() {
   // Maintenance history for selected aircraft
   useEffect(() => {
     if (!selectedAircraft) return
+    const nNumber = selectedAircraft
     let cancelled = false
 
     async function loadHistory() {
@@ -519,7 +520,7 @@ export default function ClubAdminPage() {
         setHistoryError(null)
 
         const res = await fetch(
-          `/api/admin/maintenance/history?nNumber=${encodeURIComponent(selectedAircraft)}`
+          `/api/admin/maintenance/history?nNumber=${encodeURIComponent(nNumber)}`
         )
         if (!res.ok) throw new Error(`Failed to fetch history: ${res.status}`)
         const data = await res.json()
@@ -528,7 +529,7 @@ export default function ClubAdminPage() {
         if (!cancelled) {
           setMaintenanceHistory(prev => ({
             ...prev,
-            [selectedAircraft]: history,
+            [nNumber]: history,
           }))
         }
       } catch (err) {
