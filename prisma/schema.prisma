@@ -67,6 +67,8 @@ model User {
   messages               Message[]
   presence               UserPresence?
   aircraftInquiries      AircraftInquiry[]
+  engineDataUploads     EngineDataUpload[]
+  engineAnomalies       EngineAnomaly[]
 
   @@map("User")
 }
@@ -380,6 +382,83 @@ model TrainingFinancials {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("TrainingFinancials")
+}
+
+// Engine Health Monitoring
+
+model EngineDataUpload {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  aircraftId  String   @db.NVarChar(36)
+  userId     String   @db.NVarChar(36)
+  uploadDate DateTime @default(now())
+  fileName   String   @db.NVarChar(255)
+  fileType   String   @db.NVarChar(20) // "JPI", "GARMIN", "AVIDYNE", "EI", "CSV"
+  data       String   @db.NVarChar(Max) // JSON encoded flight data
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([aircraftId])
+  @@map("EngineDataUpload")
+}
+
+model EngineFlightData {
+  id              String   @id @default(uuid()) @db.NVarChar(36)
+  uploadId        String   @db.NVarChar(36)
+  flightDate      DateTime
+  flightDuration  Decimal  @db.Decimal(6, 2) // hours
+  
+  // Cylinder temps (for JPI/EI)
+  chtMin          Decimal? @db.Decimal(6, 2)
+  chtMax          Decimal? @db.Decimal(6, 2)
+  chtAvg          Decimal? @db.Decimal(6, 2)
+  egtMin          Decimal? @db.Decimal(6, 2)
+  egtMax          Decimal? @db.Decimal(6, 2)
+  egtAvg          Decimal? @db.Decimal(6, 2)
+  
+  // Fuel flow
+  fuelFlowMin     Decimal? @db.Decimal(6, 2)
+  fuelFlowMax     Decimal? @db.Decimal(6, 2)
+  fuelFlowAvg     Decimal? @db.Decimal(6, 2)
+  fuelUsed        Decimal? @db.Decimal(8, 2)
+  
+  // Oil
+  oilTempMin      Decimal? @db.Decimal(6, 2)
+  oilTempMax      Decimal? @db.Decimal(6, 2)
+  oilPressureMin  Decimal? @db.Decimal(6, 2)
+  oilPressureMax  Decimal? @db.Decimal(6, 2)
+  
+  // Other
+  rpmAvg          Decimal? @db.Decimal(6, 2)
+  manifoldPressure Decimal? @db.Decimal(6, 2)
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([uploadId])
+  @@index([flightDate])
+  @@map("EngineFlightData")
+}
+
+model EngineAnomaly {
+  id              String   @id @default(uuid()) @db.NVarChar(36)
+  aircraftId      String   @db.NVarChar(36)
+  userId          String   @db.NVarChar(36)
+  uploadId        String?  @db.NVarChar(36)
+  flightDate      DateTime
+  type            String   @db.NVarChar(30) // "CHT_SPREAD", "EGT_SPREAD", "OIL_TEMP", "OIL_PRESSURE", "FUEL_FLOW"
+  severity        String   @db.NVarChar(10) // "INFO", "WARNING", "CRITICAL"
+  value           Decimal  @db.Decimal(10, 2)
+  threshold       Decimal  @db.Decimal(10, 2)
+  message         String   @db.NVarChar(500)
+  acknowledged    Boolean  @default(false)
+  acknowledgedBy  String?  @db.NVarChar(36)
+  acknowledgedAt  DateTime?
+  createdAt       DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([aircraftId])
+  @@index([severity])
+  @@map("EngineAnomaly")
 }
 
 model UserAircraft {
@@ -1086,4 +1165,67 @@ model SyncLog {
   @@index([status])
   @@index([startedAt])
   @@map("SyncLog")
+}
+
+// Flying Club Currency Tracking - FAA Standard Currency Rules
+
+model PilotCurrency {
+  id              String   @id @default(uuid()) @db.NVarChar(36)
+  userId          String   @db.NVarChar(36)
+  groupId         String   @db.NVarChar(36)
+  
+  // Day currency (3 takeoffs/landings in last 90 days)
+  dayLandings     Int      @default(0)
+  dayLandingsDate DateTime?
+  
+  // Night currency (3 takeoffs/landings in last 90 days)  
+  nightLandings   Int      @default(0)
+  nightLandingsDate DateTime?
+  
+  // Instrument currency (6 approaches, holds, intercepting in last 6 months)
+  approaches     Int      @default(0)
+  holds          Int      @default(0)
+  instrumentTime Decimal  @default(0) @db.Decimal(8, 2)
+  instrumentCurrencyDate DateTime?
+  
+  // Tail-specific currency (aircraft user is cleared for) - stored as JSON
+  clearedAircraft String   @default("[]") @db.NVarChar(Max)
+  
+  // Meta
+  lastFlightDate  DateTime?
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userId, groupId])
+  @@index([userId])
+  @@index([groupId])
+  @@map("PilotCurrency")
+}
+
+model NotificationPreference {
+  id            String   @id @default(uuid()) @db.NVarChar(36)
+  userId        String   @db.NVarChar(36)
+  groupId       String?  @db.NVarChar(36)  // null = global preferences
+  
+  // Email notifications
+  emailBookingConfirm Boolean @default(true)
+  emailBookingReminder Boolean @default(true)
+  emailMaintenanceAlert Boolean @default(true)
+  emailBillingRun    Boolean @default(true)
+  emailCurrencyExpiry Boolean @default(true)
+  
+  // SMS notifications (if enabled)
+  smsBookingConfirm Boolean @default(false)
+  smsBookingReminder Boolean @default(false)
+  smsMaintenanceAlert Boolean @default(false)
+  smsUrgent         Boolean @default(true)
+  
+  // Phone for SMS
+  phone           String?  @db.NVarChar(20)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([userId, groupId])
+  @@index([userId])
+  @@map("NotificationPreference")
 }

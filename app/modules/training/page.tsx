@@ -1,287 +1,265 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { useSession, signIn } from 'next-auth/react';
-import VerificationBanner from '../../components/VerificationBanner';
+import { useState, useEffect } from 'react'
+import { useSession, signIn } from 'next-auth/react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Loader2 } from 'lucide-react'
+
+import GoalSelector from '@/components/training/GoalSelector'
+import TrainingRoadmap from '@/components/training/TrainingRoadmap'
+import HoursChart from '@/components/training/HoursChart'
+import FinancialTracker from '@/components/training/FinancialTracker'
+import { getGoalById, GoalType } from '@/lib/training/requirements'
 
 interface TrainingProgress {
-  id: string;
-  userId: string;
-  totalHours: number;
-  soloHours: number;
-  nightHours: number;
-  instrumentHours: number;
-  crossCountryHours: number;
-  xcSoloHours: number;
-  xcSoloDone: boolean;
-  nightSoloDone: boolean;
-  instrumentDone: boolean;
-  soloDone: boolean;
-  threeTakeoffsLandingsDone: boolean;
-  threeNightTakeoffsLandingsDone: boolean;
-  dualGiven: number;
-  hoodHours: number;
-  lastUpdated: string;
+  totalHours: number
+  soloHours: number
+  nightHours: number
+  instrumentHours: number
+  crossCountryHours: number
+  xcSoloHours: number
+  dualGiven: number
 }
 
-const PPL_REQUIREMENTS = {
-  totalHours: { required: 40, label: 'Total Flight Hours', description: 'Minimum 40 hours' },
-  soloHours: { required: 10, label: 'Solo Hours', description: 'Minimum 10 hours solo' },
-  nightHours: { required: 3, label: 'Night Hours', description: 'Minimum 3 hours night' },
-  instrumentHours: { required: 3, label: 'Instrument Hours', description: 'Minimum 3 hours hood/instrument' },
-  crossCountryHours: { required: 10, label: 'Cross Country Hours', description: 'Minimum 10 hours XC' },
-  xcSoloHours: { required: 5, label: 'Solo XC Hours', description: 'Minimum 5 hours solo XC' },
-  dualGiven: { required: 3, label: 'Dual Given', description: 'Minimum 3 hours dual given' },
-};
+interface TrainingGoal {
+  id: string
+  goalType: string
+  targetDate: string | null
+}
 
 export default function TrainingPage() {
-  const { data: session, status } = useSession();
-  const [progress, setProgress] = useState<TrainingProgress | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-
-  // Local state for editing
-  const [localProgress, setLocalProgress] = useState({
+  const { data: session, status } = useSession()
+  const [loading, setLoading] = useState(true)
+  const [savingGoal, setSavingGoal] = useState(false)
+  
+  // Data states
+  const [currentGoal, setCurrentGoal] = useState<TrainingGoal | null>(null)
+  const [progress, setProgress] = useState<TrainingProgress>({
     totalHours: 0,
     soloHours: 0,
     nightHours: 0,
     instrumentHours: 0,
     crossCountryHours: 0,
     xcSoloHours: 0,
-    xcSoloDone: false,
-    nightSoloDone: false,
-    instrumentDone: false,
-    soloDone: false,
-    threeTakeoffsLandingsDone: false,
-    threeNightTakeoffsLandingsDone: false,
     dualGiven: 0,
-    hoodHours: 0,
-  });
+  })
+  const [completedGoals, setCompletedGoals] = useState<GoalType[]>([])
 
+  // Fetch data on mount
   useEffect(() => {
-    if (session?.user?.email) {
-      fetchProgress();
-    } else {
-      setLoading(false);
+    if (status === 'loading') return
+    
+    if (!session) {
+      setLoading(false)
+      return
     }
-  }, [session]);
 
-  const fetchProgress = async () => {
-    try {
-      const res = await fetch('/api/training-progress');
-      if (res.ok) {
-        const data = await res.json();
-        setProgress(data);
-        setLocalProgress({
-          totalHours: data.totalHours || 0,
-          soloHours: data.soloHours || 0,
-          nightHours: data.nightHours || 0,
-          instrumentHours: data.instrumentHours || 0,
-          crossCountryHours: data.crossCountryHours || 0,
-          xcSoloHours: data.xcSoloHours || 0,
-          xcSoloDone: data.xcSoloDone || false,
-          nightSoloDone: data.nightSoloDone || false,
-          instrumentDone: data.instrumentDone || false,
-          soloDone: data.soloDone || false,
-          threeTakeoffsLandingsDone: data.threeTakeoffsLandingsDone || false,
-          threeNightTakeoffsLandingsDone: data.threeNightTakeoffsLandingsDone || false,
-          dualGiven: data.dualGiven || 0,
-          hoodHours: data.hoodHours || 0,
-        });
+    async function fetchData() {
+      try {
+        // Fetch training goal
+        const goalRes = await fetch('/api/training/goal')
+        if (goalRes.ok) {
+          const goalData = await goalRes.json()
+          if (goalData) {
+            setCurrentGoal(goalData)
+          }
+        }
+
+        // Fetch training progress (existing API)
+        const progressRes = await fetch('/api/training-progress')
+        if (progressRes.ok) {
+          const progressData = await progressRes.json()
+          if (progressData) {
+            setProgress({
+              totalHours: progressData.totalHours || 0,
+              soloHours: progressData.soloHours || 0,
+              nightHours: progressData.nightHours || 0,
+              instrumentHours: progressData.instrumentHours || 0,
+              crossCountryHours: progressData.crossCountryHours || 0,
+              xcSoloHours: progressData.xcSoloHours || 0,
+              dualGiven: progressData.dualGiven || 0,
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error)
+      } finally {
+        setLoading(false)
       }
-    } catch (err) {
-      console.error('Error fetching progress:', err);
-    } finally {
-      setLoading(false);
     }
-  };
 
-  const saveProgress = async () => {
-    setSaving(true);
+    fetchData()
+  }, [session, status])
+
+  // Handle goal selection
+  const handleSelectGoal = async (goalType: GoalType) => {
+    setSavingGoal(true)
     try {
-      await fetch('/api/training-progress', {
+      const res = await fetch('/api/training/goal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(localProgress),
-      });
-      alert('Progress saved!');
-    } catch (err) {
-      console.error('Error saving:', err);
+        body: JSON.stringify({ goalType })
+      })
+      
+      if (res.ok) {
+        const data = await res.json()
+        setCurrentGoal(data)
+      }
+    } catch (error) {
+      console.error('Error saving goal:', error)
     } finally {
-      setSaving(false);
+      setSavingGoal(false)
     }
-  };
+  }
 
-  const getProgressPercent = (current: number, required: number) => {
-    return Math.min(100, (current / required) * 100);
-  };
+  // Map progress to requirement keys for roadmap
+  const progressMap: Record<string, number> = {
+    totalTime: progress.totalHours,
+    soloTime: progress.soloHours,
+    night: progress.nightHours,
+    instrument: progress.instrumentHours,
+    crossCountry: progress.crossCountryHours,
+    xcSolo: progress.xcSoloHours,
+    dualGiven: progress.dualGiven,
+    dualInstrument: progress.instrumentHours,
+    picTime: progress.totalHours,
+  }
+
+  // Calculate hours remaining for financial projections
+  const goalData = currentGoal?.goalType ? getGoalById(currentGoal.goalType as GoalType) : null
+  const hoursRemaining = goalData 
+    ? Math.max(0, goalData.totalHoursRequired - progress.totalHours)
+    : 0
 
   if (status === 'loading' || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-foreground">Loading...</div>
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
-    );
+    )
   }
 
   if (!session) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="max-w-md w-full bg-card border border-border rounded-xl p-8 text-center">
-          <div className="text-6xl mb-4">🎓</div>
-          <h1 className="text-2xl font-bold text-foreground mb-2">Training Progress Tracker</h1>
-          <p className="text-muted-foreground mb-6">Sign in to track your flight training progress</p>
-          <button
-            onClick={() => signIn()}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-3 rounded-lg font-medium"
-          >
-            Sign In to Track Progress
-          </button>
-        </div>
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-6 text-center">
+            <div className="text-6xl mb-4">🎓</div>
+            <h1 className="text-2xl font-bold mb-2">Training Progress Tracker</h1>
+            <p className="text-muted-foreground mb-6">
+              Sign in to track your flight training progress, choose your goals, and see financial projections
+            </p>
+            <Button onClick={() => signIn()}>
+              Sign In to Track Progress
+            </Button>
+          </CardContent>
+        </Card>
       </div>
-    );
+    )
   }
 
   return (
     <div className="min-h-screen bg-background p-4 md:p-8">
-      <div className="max-w-2xl mx-auto">
-        {/* Email Verification Banner */}
-        <VerificationBanner email={session?.user?.email} />
-
-        <div className="flex items-center justify-between mb-6">
+      <div className="max-w-7xl mx-auto space-y-6">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">🎓 Training Progress</h1>
-            <p className="text-muted-foreground">Track your PPL requirements</p>
-          </div>
-          <button
-            onClick={saveProgress}
-            disabled={saving}
-            className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-4 py-2 rounded-lg font-medium"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        </div>
-
-        {/* Hours Input Section */}
-        <div className="bg-card border border-border rounded-xl p-4 mb-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">✏️ Log Your Hours</h2>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { key: 'totalHours', label: 'Total Hours' },
-              { key: 'soloHours', label: 'Solo Hours' },
-              { key: 'nightHours', label: 'Night Hours' },
-              { key: 'instrumentHours', label: 'Instrument Hours' },
-              { key: 'crossCountryHours', label: 'Cross Country Hours' },
-              { key: 'xcSoloHours', label: 'Solo XC Hours' },
-              { key: 'dualGiven', label: 'Dual Given' },
-              { key: 'hoodHours', label: 'Hood/Sim Hours' },
-            ].map(({ key, label }) => (
-              <div key={key}>
-                <label className="block text-xs text-muted-foreground mb-1">{label}</label>
-                <input
-                  type="number"
-                  value={localProgress[key as keyof typeof localProgress] as number}
-                  onChange={(e) => setLocalProgress({ ...localProgress, [key]: Number(e.target.value) })}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-foreground"
-                  min={0}
-                  step={0.5}
-                />
-              </div>
-            ))}
+            <h1 className="text-3xl font-bold">🎓 Training Tracker</h1>
+            <p className="text-muted-foreground">
+              Track your progress toward pilot certification
+            </p>
           </div>
         </div>
 
-        {/* Progress Bars */}
-        <div className="space-y-4">
-          {Object.entries(PPL_REQUIREMENTS).map(([key, req]) => {
-            const current = localProgress[key as keyof typeof localProgress] as number || 0;
-            const percent = getProgressPercent(current, req.required);
-            const isComplete = current >= req.required;
+        <Tabs defaultValue="goals" className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="goals">Goals</TabsTrigger>
+            <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
+            <TabsTrigger value="progress">Progress</TabsTrigger>
+            <TabsTrigger value="costs">Costs</TabsTrigger>
+          </TabsList>
 
-            return (
-              <div key={key} className="bg-card border border-border rounded-xl p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <div>
-                    <div className={`font-medium ${isComplete ? 'text-green-600' : 'text-foreground'}`}>
-                      {req.label}
+          {/* Goals Tab */}
+          <TabsContent value="goals" className="space-y-6">
+            <GoalSelector 
+              currentGoal={currentGoal?.goalType}
+              completedGoals={completedGoals}
+              onSelectGoal={handleSelectGoal}
+              isLoading={savingGoal}
+            />
+            
+            {currentGoal?.goalType && (
+              <Card className="mt-6">
+                <CardHeader>
+                  <CardTitle>Quick Stats</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-3xl font-bold text-blue-600">{progress.totalHours}</div>
+                      <div className="text-sm text-muted-foreground">Total Hours</div>
                     </div>
-                    <div className="text-xs text-muted-foreground">{req.description}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className={`text-lg font-bold ${isComplete ? 'text-green-600' : 'text-blue-600'}`}>
-                      {current.toFixed(1)}/{req.required}
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-3xl font-bold text-green-600">{progress.soloHours}</div>
+                      <div className="text-sm text-muted-foreground">Solo Hours</div>
                     </div>
-                    <div className="text-xs text-muted-foreground">{percent.toFixed(0)}%</div>
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-3xl font-bold text-purple-600">{progress.instrumentHours}</div>
+                      <div className="text-sm text-muted-foreground">Instrument</div>
+                    </div>
+                    <div className="text-center p-4 bg-muted rounded-lg">
+                      <div className="text-3xl font-bold text-amber-600">{progress.crossCountryHours}</div>
+                      <div className="text-sm text-muted-foreground">Cross Country</div>
+                    </div>
                   </div>
-                </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
-                  <div
-                    className={`h-full transition-all ${isComplete ? 'bg-green-500' : 'bg-blue-500'}`}
-                    style={{ width: `${percent}%` }}
-                  />
-                </div>
-              </div>
-            );
-          })}
-        </div>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
 
-        {/* Checkboxes Section */}
-        <div className="bg-card border border-border rounded-xl p-4 mt-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">☑️ Milestones Completed</h2>
-          <div className="space-y-2">
-            {[
-              { key: 'soloDone', label: 'First Solo' },
-              { key: 'nightSoloDone', label: 'Solo Night' },
-              { key: 'instrumentDone', label: 'Instrument Checkride' },
-              { key: 'xcSoloDone', label: 'Solo XC Complete' },
-              { key: 'threeTakeoffsLandingsDone', label: '3 Takeoffs/Landings' },
-              { key: 'threeNightTakeoffsLandingsDone', label: '3 Night Takeoffs/Landings' },
-            ].map(({ key, label }) => (
-              <label key={key} className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={localProgress[key as keyof typeof localProgress] as boolean}
-                  onChange={(e) => setLocalProgress({ ...localProgress, [key]: e.target.checked })}
-                  className="w-5 h-5 rounded accent-green-600"
-                />
-                <span className={localProgress[key as keyof typeof localProgress] ? 'text-green-600' : 'text-foreground'}>
-                  {label}
-                </span>
-              </label>
-            ))}
-          </div>
-        </div>
+          {/* Roadmap Tab */}
+          <TabsContent value="roadmap">
+            <TrainingRoadmap 
+              goalType={currentGoal?.goalType}
+              progress={progressMap}
+            />
+          </TabsContent>
 
-        {/* Summary */}
-        <div className="bg-card border border-border rounded-xl p-4 mt-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">📊 Summary</h2>
-          <div className="grid grid-cols-3 gap-4 text-center">
-            <div className="bg-muted rounded-lg p-3">
-              <div className="text-2xl font-bold text-blue-600">{localProgress.totalHours}</div>
-              <div className="text-xs text-muted-foreground">Total Hours</div>
-            </div>
-            <div className="bg-muted rounded-lg p-3">
-              <div className="text-2xl font-bold text-green-600">
-                {Object.values(PPL_REQUIREMENTS).filter((req, i) => {
-                  const keys = Object.keys(PPL_REQUIREMENTS);
-                  return (localProgress[keys[i] as keyof typeof localProgress] as number) >= req.required;
-                }).length}
-              </div>
-              <div className="text-xs text-muted-foreground">Requirements Met</div>
-            </div>
-            <div className="bg-muted rounded-lg p-3">
-              <div className="text-2xl font-bold text-amber-600">
-                {Object.keys(PPL_REQUIREMENTS).length - 
-                  Object.values(PPL_REQUIREMENTS).filter((req, i) => {
-                    const keys = Object.keys(PPL_REQUIREMENTS);
-                    return (localProgress[keys[i] as keyof typeof localProgress] as number) >= req.required;
-                  }).length}
-              </div>
-              <div className="text-xs text-muted-foreground">Remaining</div>
-            </div>
-          </div>
-        </div>
+          {/* Progress Tab */}
+          <TabsContent value="progress" className="space-y-6">
+            <HoursChart progress={progress} />
+            
+            {/* Hours Input for manual entry */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Log Your Hours</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">
+                  Hours are synced from your logbook. Manual entry coming soon.
+                </p>
+                <Button variant="outline" asChild>
+                  <a href="/modules/logbook" target="_blank">
+                    Open Logbook
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Costs Tab */}
+          <TabsContent value="costs">
+            <FinancialTracker 
+              goalType={currentGoal?.goalType}
+              totalHours={progress.totalHours}
+              hoursRemaining={hoursRemaining}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
-  );
+  )
 }
