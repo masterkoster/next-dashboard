@@ -270,26 +270,6 @@ export function GlobalNav() {
               Sign In
             </Link>
           )}
-                <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-xs text-white/70 hover:bg-white/5 hover:text-white">
-                  <User className="h-3.5 w-3.5" /> Profile
-                </Link>
-                <Link href="/profile" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-xs text-white/70 hover:bg-white/5 hover:text-white">
-                  <Settings className="h-3.5 w-3.5" /> Settings
-                </Link>
-                <Link href="/admin" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-2 text-xs text-white/70 hover:bg-white/5 hover:text-white">
-                  <ShieldCheck className="h-3.5 w-3.5" /> Admin Dashboard
-                </Link>
-                <div className="border-t border-white/10 mt-1">
-                  <button
-                    onClick={() => signOut({ callbackUrl: '/login' })}
-                    className="flex w-full items-center gap-2.5 px-4 py-2 text-xs text-destructive hover:bg-white/5 cursor-pointer"
-                  >
-                    <LogOut className="h-3.5 w-3.5" /> Sign out
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       </div>
 
