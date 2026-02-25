@@ -50,6 +50,10 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Members", href: "/flying-club", description: "View and manage club members" },
       { label: "Aircraft", href: "/flying-club", description: "Club fleet management" },
       { label: "Currency Dashboard", href: "/flying-club/currency", description: "Member currency status at a glance" },
+      { label: "Hobbs Billing", href: "/flying-club/billing", description: "Automated hourly billing" },
+      { label: "Squawk Log", href: "/flying-club/squawks", description: "Report aircraft issues" },
+      { label: "Calendar Sync", href: "/flying-club/calendar-sync", description: "Sync with external calendars" },
+      { label: "Notifications", href: "/flying-club/notifications", description: "Email and SMS preferences" },
     ],
   },
   {
@@ -96,6 +100,7 @@ const SUB_NAV: SubNavConfig = {
   ],
   "/flying-club/currency": [
     { label: "All Members", href: "/flying-club/currency" },
+    { label: "Auto-Update", href: "/flying-club/currency/auto-update" },
     { label: "Expiring Soon", href: "/flying-club/currency" },
     { label: "Not Current", href: "/flying-club/currency" },
   ],
