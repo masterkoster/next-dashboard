@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { usePathname } from "next/navigation"
+import { signOut } from "next-auth/react"
 import Link from "next/link"
 import {
   Plane,
@@ -212,15 +213,15 @@ export function GlobalNav() {
           )}
 
           {/* Notifications */}
-          <button className="relative flex h-7 w-7 items-center justify-center rounded text-white/50 hover:bg-white/10 hover:text-white">
+          <Link href="/messages" className="relative flex h-7 w-7 items-center justify-center rounded text-white/50 hover:bg-white/10 hover:text-white">
             <Bell className="h-3.5 w-3.5" />
             <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-destructive" />
-          </button>
+          </Link>
 
           {/* Help */}
-          <button className="flex h-7 w-7 items-center justify-center rounded text-white/50 hover:bg-white/10 hover:text-white">
+          <Link href="/support" className="flex h-7 w-7 items-center justify-center rounded text-white/50 hover:bg-white/10 hover:text-white">
             <HelpCircle className="h-3.5 w-3.5" />
-          </button>
+          </Link>
 
           {/* User avatar */}
           <div ref={userMenuRef} className="relative ml-1">
@@ -247,9 +248,12 @@ export function GlobalNav() {
                   <ShieldCheck className="h-3.5 w-3.5" /> Admin Dashboard
                 </Link>
                 <div className="border-t border-white/10 mt-1">
-                  <div className="flex items-center gap-2.5 px-4 py-2 text-xs text-destructive hover:bg-white/5 cursor-pointer">
+                  <button
+                    onClick={() => signOut({ callbackUrl: '/login' })}
+                    className="flex w-full items-center gap-2.5 px-4 py-2 text-xs text-destructive hover:bg-white/5 cursor-pointer"
+                  >
                     <LogOut className="h-3.5 w-3.5" /> Sign out
-                  </div>
+                  </button>
                 </div>
               </div>
             )}

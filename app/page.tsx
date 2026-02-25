@@ -132,7 +132,7 @@ export default function PilotDashboard() {
   const isWidgetVisible = (widget: WidgetType) => visibleWidgets.includes(widget)
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pt-[44px]">
       <main className="p-6">
         <div className="mx-auto max-w-[1600px] space-y-6">
           {/* Welcome Section */}
