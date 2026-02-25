@@ -154,6 +154,12 @@ export default function PilotDashboard() {
   const [logbookEntries, setLogbookEntries] = useState<any[]>([])
   const [logbookError, setLogbookError] = useState<string | null>(null)
   const [logbookLoading, setLogbookLoading] = useState(false)
+  const [homeAirportIcao, setHomeAirportIcao] = useState<string | null>(null)
+  const [homeAirportName, setHomeAirportName] = useState<string | null>(null)
+  const [homeWeather, setHomeWeather] = useState<any | null>(null)
+  const [homeWeatherUpdatedAt, setHomeWeatherUpdatedAt] = useState<string | null>(null)
+  const [homeWeatherError, setHomeWeatherError] = useState<string | null>(null)
+  const [homeWeatherLoading, setHomeWeatherLoading] = useState(false)
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -346,6 +352,61 @@ export default function PilotDashboard() {
     }
 
     loadMaintenance()
+    return () => {
+      cancelled = true
+    }
+  }, [session?.user?.id])
+
+  useEffect(() => {
+    if (!session?.user?.id) return
+    let cancelled = false
+
+    async function loadHomeAirport() {
+      try {
+        setHomeWeatherLoading(true)
+        setHomeWeatherError(null)
+
+        const profileRes = await fetch('/api/profile')
+        if (!profileRes.ok) throw new Error('Failed to load profile')
+        const profileData = await profileRes.json()
+        const profile = profileData?.profile
+
+        const icao = profile?.homeAirport || null
+        const name = profile?.homeAirportName || null
+
+        if (!icao) {
+          if (!cancelled) {
+            setHomeAirportIcao(null)
+            setHomeAirportName(null)
+            setHomeWeather(null)
+            setHomeWeatherUpdatedAt(null)
+          }
+          return
+        }
+
+        if (!cancelled) {
+          setHomeAirportIcao(icao)
+          setHomeAirportName(name)
+        }
+
+        const weatherRes = await fetch(`/api/weather?icao=${encodeURIComponent(icao)}`)
+        if (!weatherRes.ok) throw new Error('Failed to load weather')
+        const weatherData = await weatherRes.json()
+        const metar = Array.isArray(weatherData?.data) ? weatherData.data[0] : weatherData?.data
+
+        if (!cancelled) {
+          setHomeWeather(metar || null)
+          setHomeWeatherUpdatedAt(weatherData?.fetchedAt || null)
+        }
+      } catch (error) {
+        console.error('Failed to load home airport weather', error)
+        if (!cancelled) setHomeWeatherError('Failed to load home airport')
+      } finally {
+        if (!cancelled) setHomeWeatherLoading(false)
+      }
+    }
+
+    loadHomeAirport()
     return () => {
       cancelled = true
     }
@@ -557,12 +618,16 @@ export default function PilotDashboard() {
                 <div className="space-y-1">
                   <CardTitle className="flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-primary" />
-                    Home Airport - KBOS (Boston Logan)
+                    {homeAirportIcao ? `Home Airport - ${homeAirportIcao}${homeAirportName ? ` (${homeAirportName})` : ''}` : 'Home Airport not set'}
                   </CardTitle>
-                  <CardDescription>Current conditions and information</CardDescription>
+                  <CardDescription>
+                    Current conditions and information
+                    {homeWeatherError && <span className="ml-2 text-destructive">{homeWeatherError}</span>}
+                    {homeWeatherLoading && !homeWeatherError && <span className="ml-2 text-muted-foreground">Loading…</span>}
+                  </CardDescription>
                 </div>
                 <Badge variant="secondary" className="text-xs">
-                  Updated 5 min ago
+                  {homeWeatherUpdatedAt ? `Updated ${new Date(homeWeatherUpdatedAt).toLocaleTimeString()}` : '—'}
                 </Badge>
               </div>
             </CardHeader>
@@ -574,8 +639,17 @@ export default function PilotDashboard() {
                     Weather
                   </div>
                   <div className="space-y-1">
-                    <div className="text-2xl font-bold">42°F</div>
-                    <p className="text-xs text-muted-foreground">Scattered clouds at 2,500ft</p>
+                    <div className="text-2xl font-bold">
+                      {typeof homeWeather?.temp === 'number'
+                        ? `${Math.round((homeWeather.temp * 9) / 5 + 32)}°F`
+                        : '—'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {homeWeather?.wxString
+                        || (homeWeather?.clouds?.[0]?.cover && homeWeather?.clouds?.[0]?.base
+                          ? `${homeWeather.clouds[0].cover} clouds at ${homeWeather.clouds[0].base}ft`
+                          : homeWeather?.rawOb || 'No METAR data')}
+                    </p>
                   </div>
                 </div>
                 
@@ -585,8 +659,14 @@ export default function PilotDashboard() {
                     Winds
                   </div>
                   <div className="space-y-1">
-                    <div className="text-2xl font-bold">270° @ 12kt</div>
-                    <p className="text-xs text-muted-foreground">Gusting to 18kt</p>
+                    <div className="text-2xl font-bold">
+                      {homeWeather?.windDir && homeWeather?.windSpeed
+                        ? `${homeWeather.windDir}° @ ${homeWeather.windSpeed}kt`
+                        : '—'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {homeWeather?.windGust ? `Gusting to ${homeWeather.windGust}kt` : ' '}
+                    </p>
                   </div>
                 </div>
                 
@@ -596,8 +676,10 @@ export default function PilotDashboard() {
                     Altimeter
                   </div>
                   <div className="space-y-1">
-                    <div className="text-2xl font-bold">29.92</div>
-                    <p className="text-xs text-muted-foreground">inHg (Standard)</p>
+                    <div className="text-2xl font-bold">
+                      {homeWeather?.altim ? Number(homeWeather.altim).toFixed(2) : '—'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">inHg</p>
                   </div>
                 </div>
                 
@@ -607,11 +689,16 @@ export default function PilotDashboard() {
                     Fuel Price (100LL)
                   </div>
                   <div className="space-y-1">
-                    <div className="text-2xl font-bold">$5.89</div>
-                    <p className="text-xs text-chart-2">-$0.12 vs last week</p>
+                    <div className="text-2xl font-bold">—</div>
+                    <p className="text-xs text-muted-foreground">Not available</p>
                   </div>
                 </div>
               </div>
+              {!homeAirportIcao && (
+                <div className="mt-4 rounded-lg border border-dashed border-border p-3 text-xs text-muted-foreground">
+                  Set your home airport in your profile to see live METAR data.
+                </div>
+              )}
             </CardContent>
           </Card>
           )}
@@ -1051,7 +1138,11 @@ export default function PilotDashboard() {
                           </div>
                         </div>
                         <div className="flex items-center justify-between">
-                          <p className="text-xs text-muted-foreground">{item.hoursRemaining.toFixed(1)} hours remaining</p>
+                          <p className="text-xs text-muted-foreground">
+                            {typeof item.hoursRemaining === 'number'
+                              ? `${item.hoursRemaining.toFixed(1)} hours remaining`
+                              : 'Hours remaining unavailable'}
+                          </p>
                           <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => router.push('/modules/flying-club?tab=maintenance')}>
                             Details
                             <ArrowRight className="ml-1 h-3 w-3" />
