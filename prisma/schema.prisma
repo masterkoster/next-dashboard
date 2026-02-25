@@ -690,6 +690,21 @@ model Booking {
   @@map("Booking")
 }
 
+model PersonalBooking {
+  id             String    @id(map: "PK__PersonalBooking__3213E83F") @default("newid()") @db.NVarChar(36)
+  userId         String    @db.NVarChar(36)
+  userAircraftId String    @db.NVarChar(36)
+  startTime      DateTime
+  endTime        DateTime
+  purpose        String?   @db.NVarChar(500)
+  createdAt      DateTime? @default(now())
+  updatedAt      DateTime? @updatedAt
+
+  @@index([userId])
+  @@index([userAircraftId])
+  @@map("PersonalBooking")
+}
+
 model GroupChatMessage {
   id        String   @id @default(uuid()) @db.NVarChar(36)
   groupId   String   @db.NVarChar(36)

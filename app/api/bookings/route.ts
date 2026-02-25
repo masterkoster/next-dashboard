@@ -71,10 +71,39 @@ export async function GET(request: Request) {
         name: b.userName,
         email: b.userEmail,
       },
-      source: b.aircraftGroupId ? 'club' : 'personal',
+      source: 'club',
     }));
 
-    return NextResponse.json({ bookings: formattedBookings });
+    const personalRows = await prisma.$queryRawUnsafe(`
+      SELECT 
+        pb.id, pb.userId, pb.userAircraftId, pb.startTime, pb.endTime, pb.purpose, pb.createdAt, pb.updatedAt,
+        ua.nNumber, ua.nickname
+      FROM PersonalBooking pb
+      JOIN UserAircraft ua ON pb.userAircraftId = ua.id
+      WHERE pb.userId = '${userId}'
+        AND pb.startTime >= '${startFilter}'
+        ${endFilter ? `AND pb.startTime <= '${endFilter}'` : ''}
+      ORDER BY pb.startTime ASC
+    `) as any[];
+
+    const personalBookings = (personalRows || []).map((b: any) => ({
+      id: b.id,
+      userId: b.userId,
+      userAircraftId: b.userAircraftId,
+      startTime: b.startTime,
+      endTime: b.endTime,
+      purpose: b.purpose,
+      createdAt: b.createdAt,
+      updatedAt: b.updatedAt,
+      aircraft: {
+        id: b.userAircraftId,
+        nNumber: b.nNumber,
+        nickname: b.nickname,
+      },
+      source: 'personal',
+    }));
+
+    return NextResponse.json({ bookings: [...formattedBookings, ...personalBookings] });
   } catch (error) {
     console.error('Error fetching bookings:', error);
     return NextResponse.json({ error: 'Failed to fetch bookings' }, { status: 500 });

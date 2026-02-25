@@ -230,20 +230,15 @@ const demoFlightLogs: FlightLog[] = [
   { id: 'fl2', aircraftId: 'a1', aircraft: demoGroups[0].aircraft[0], userId: 'u2', user: { name: 'Frank Miller' }, date: '2026-02-18', hobbsTime: 2.3, tachTime: 2.0, notes: 'Cross country to KSFO' },
 ]
 
-// Personal demo data
-const personalAircraft: GroupAircraft[] = [
-  { id: 'p1', nNumber: 'N12345', nickname: 'My Skyhawk', make: 'Cessna', model: '172S', year: 2020, status: 'Available', hourlyRate: 145, hobbsHours: 450.5 },
-]
-
-const personalBookings: Booking[] = [
-  { id: 'pb1', aircraftId: 'p1', aircraft: personalAircraft[0], userId: 'u1', user: { name: 'Demo User', email: 'demo@test.com' }, startTime: '2026-02-22T10:00', endTime: '2026-02-22T12:00', purpose: 'Personal flight' },
-]
+// Personal demo data (only used for demo when not logged in)
+const personalBookings: Booking[] = []
 
 export default function FlyingClubPage() {
   const { data: session, status } = useSession()
   const [activeTab, setActiveTab] = useState('dashboard')
   const [selectedView, setSelectedView] = useState<string>('personal')
   const [groups, setGroups] = useState<Group[]>([])
+  const [personalAircraft, setPersonalAircraft] = useState<GroupAircraft[]>([])
   const [bookings, setBookings] = useState<Booking[]>([])
   const [maintenance, setMaintenance] = useState<Maintenance[]>([])
   const [members, setMembers] = useState<Member[]>([])
@@ -328,7 +323,13 @@ export default function FlyingClubPage() {
             const groupsData = await groupsRes.json()
             setGroups(groupsData)
           }
-          // Fetch personal bookings from API
+          // Fetch personal aircraft
+          const personalAircraftRes = await fetch('/api/user-aircraft')
+          if (personalAircraftRes.ok) {
+            const personalAircraftData = await personalAircraftRes.json()
+            setPersonalAircraft(personalAircraftData.aircraft || [])
+          }
+          // Fetch personal + club bookings
           const bookingsRes = await fetch('/api/bookings')
           if (bookingsRes.ok) {
             const bookingsData = await bookingsRes.json()
@@ -345,6 +346,7 @@ export default function FlyingClubPage() {
           // Demo mode - only show demo data when NOT logged in
           setGroups(demoGroups)
           setBookings([...personalBookings, ...demoBookings])
+          setPersonalAircraft([])
           setMaintenance(demoMaintenance)
           setMembers(demoMembers)
           setFlightLogs(demoFlightLogs)
@@ -356,6 +358,7 @@ export default function FlyingClubPage() {
           // Only load demo data on error if not logged in
           setGroups(demoGroups)
           setBookings([...personalBookings, ...demoBookings])
+          setPersonalAircraft([])
           setMaintenance(demoMaintenance)
           setMembers(demoMembers)
           setFlightLogs(demoFlightLogs)
@@ -405,6 +408,12 @@ export default function FlyingClubPage() {
           if (!data) return
           const resolvedBookings = Array.isArray(data) ? data : data.bookings || []
           setBookings(resolvedBookings)
+        })
+      fetch('/api/user-aircraft')
+        .then(r => r.ok && r.json())
+        .then(data => {
+          if (!data) return
+          setPersonalAircraft(data.aircraft || [])
         })
       setMaintenance([])
       setMembers([])
@@ -602,10 +611,6 @@ export default function FlyingClubPage() {
       setFormError('Please sign in to create a booking')
       return
     }
-    if (isPersonal || !selectedView || selectedView === 'personal') {
-      setFormError('Please select a flying club first')
-      return
-    }
     if (!bookingAircraftId || !bookingStartTime || !bookingEndTime) {
       setFormError('Aircraft, start time, and end time are required')
       return
@@ -615,15 +620,26 @@ export default function FlyingClubPage() {
     setFormError('')
     
     try {
-      const res = await fetch(`/api/groups/${selectedView}/bookings`, {
+      const isPersonalBooking = isPersonal || selectedView === 'personal'
+      const endpoint = isPersonalBooking ? '/api/personal-bookings' : `/api/groups/${selectedView}/bookings`
+      const payload = isPersonalBooking
+        ? {
+            userAircraftId: bookingAircraftId,
+            startTime: bookingStartTime,
+            endTime: bookingEndTime,
+            purpose: bookingPurpose || null,
+          }
+        : {
+            aircraftId: bookingAircraftId,
+            startTime: bookingStartTime,
+            endTime: bookingEndTime,
+            purpose: bookingPurpose || null,
+          }
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          aircraftId: bookingAircraftId,
-          startTime: bookingStartTime,
-          endTime: bookingEndTime,
-          purpose: bookingPurpose || null,
-        })
+        body: JSON.stringify(payload)
       })
       
       if (res.ok) {
@@ -871,7 +887,7 @@ export default function FlyingClubPage() {
   // Filter data based on selected view
   const displayAircraft = isPersonal ? personalAircraft : (selectedGroup?.aircraft || [])
   const displayBookings = isPersonal 
-    ? bookings
+    ? bookings.filter(b => b.source !== 'club')
     : bookings.filter(b => displayAircraft.some(a => a.id === b.aircraftId))
   const displayMaintenance = isPersonal ? [] : maintenance
   const displayMembers = isPersonal ? [] : members
@@ -1028,10 +1044,10 @@ export default function FlyingClubPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{displayAircraft.length}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {displayAircraft.filter(a => a.status === 'Available').length} available
-                  </p>
+            <div className="text-2xl font-bold">{displayAircraft.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {displayAircraft.filter(a => a.status === 'Available').length} available
+            </p>
                 </CardContent>
               </Card>
 
