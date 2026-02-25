@@ -342,8 +342,8 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button variant="outline">Cancel</Button>
-                    <Button className="gap-2" onClick={() => setUnsavedChanges(false)}>
+                    <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
+                    <Button className="gap-2" onClick={handleSavePersonalInfo}>
                       <Save className="h-4 w-4" />
                       Save Changes
                     </Button>
