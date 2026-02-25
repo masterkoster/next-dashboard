@@ -160,6 +160,10 @@ export default function PilotDashboard() {
   const [homeWeatherUpdatedAt, setHomeWeatherUpdatedAt] = useState<string | null>(null)
   const [homeWeatherError, setHomeWeatherError] = useState<string | null>(null)
   const [homeWeatherLoading, setHomeWeatherLoading] = useState(false)
+  const [fuelPrice, setFuelPrice] = useState<number | null>(null)
+  const [fuelPriceUpdatedAt, setFuelPriceUpdatedAt] = useState<string | null>(null)
+  const [fuelPriceError, setFuelPriceError] = useState<string | null>(null)
+  const [fuelPriceLoading, setFuelPriceLoading] = useState(false)
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -356,6 +360,37 @@ export default function PilotDashboard() {
       cancelled = true
     }
   }, [session?.user?.id])
+
+  useEffect(() => {
+    if (!homeAirportIcao) return
+    let cancelled = false
+
+    async function loadFuelPrice() {
+      try {
+        setFuelPriceLoading(true)
+        setFuelPriceError(null)
+        const res = await fetch(`/api/fuel/nearest?icao=${encodeURIComponent(homeAirportIcao ?? '')}&radius=50`)
+        if (!res.ok) throw new Error('Failed to load fuel price')
+        const data = await res.json()
+        const first = Array.isArray(data?.results) ? data.results[0] : null
+
+        if (!cancelled) {
+          setFuelPrice(typeof first?.price100ll === 'number' ? first.price100ll : null)
+          setFuelPriceUpdatedAt(first?.lastReported || null)
+        }
+      } catch (error) {
+        console.error('Failed to load fuel price', error)
+        if (!cancelled) setFuelPriceError('Failed to load fuel price')
+      } finally {
+        if (!cancelled) setFuelPriceLoading(false)
+      }
+    }
+
+    loadFuelPrice()
+    return () => {
+      cancelled = true
+    }
+  }, [homeAirportIcao])
 
   useEffect(() => {
     if (!session?.user?.id) return
@@ -689,8 +724,20 @@ export default function PilotDashboard() {
                     Fuel Price (100LL)
                   </div>
                   <div className="space-y-1">
-                    <div className="text-2xl font-bold">—</div>
-                    <p className="text-xs text-muted-foreground">Not available</p>
+                    <div className="text-2xl font-bold">
+                      {fuelPriceLoading
+                        ? '—'
+                        : typeof fuelPrice === 'number'
+                          ? `$${fuelPrice.toFixed(2)}`
+                          : '—'}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {fuelPriceError
+                        ? fuelPriceError
+                        : fuelPriceUpdatedAt
+                          ? `Updated ${new Date(fuelPriceUpdatedAt).toLocaleDateString()}`
+                          : 'Not available'}
+                    </p>
                   </div>
                 </div>
               </div>
