@@ -61,6 +61,11 @@ model User {
   flightTracks        FlightTrack[]
   marketplaceListings MarketplaceListing[]
   pilotProfile        PilotProfile?
+  userContact         UserContact?
+  pilotMedical        PilotMedical?
+  pilotLicenses       PilotLicense[]
+  userPreferences     UserPreferences?
+  userNotificationSettings UserNotificationSettings?
   friendRequestsSent     FriendRequest[]       @relation("FriendRequestRequester")
   friendRequestsReceived FriendRequest[]       @relation("FriendRequestRecipient")
   conversationParticipants ConversationParticipant[]
@@ -173,6 +178,9 @@ model PilotProfile {
   id           String   @id @default(cuid()) @db.NVarChar(36)
   userId       String   @unique @db.NVarChar(36)
   homeAirport  String?  @db.NVarChar(10)
+  homeAirportName String? @db.NVarChar(200)
+  homeAirportFbo  String? @db.NVarChar(200)
+  homeAirportFuelType String? @db.NVarChar(50)
   ratings      String?  @db.NVarChar(Max)
   availability String?  @db.NVarChar(50)
   aircraft     String?  @db.NVarChar(Max)
@@ -184,6 +192,88 @@ model PilotProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("PilotProfile")
+}
+
+model UserContact {
+  id         String   @id @default(uuid()) @db.NVarChar(36)
+  userId     String   @unique @db.NVarChar(36)
+  phone      String?  @db.NVarChar(30)
+  address1   String?  @db.NVarChar(255)
+  address2   String?  @db.NVarChar(255)
+  city       String?  @db.NVarChar(100)
+  state      String?  @db.NVarChar(50)
+  postalCode String?  @db.NVarChar(20)
+  country    String?  @db.NVarChar(100)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("UserContact")
+}
+
+model PilotMedical {
+  id               String   @id @default(uuid()) @db.NVarChar(36)
+  userId           String   @unique @db.NVarChar(36)
+  medicalClass     String?  @db.NVarChar(10)
+  certificateNumber String? @db.NVarChar(100)
+  examinerName     String?  @db.NVarChar(200)
+  issueDate        DateTime?
+  expirationDate   DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("PilotMedical")
+}
+
+model PilotLicense {
+  id        String   @id @default(uuid()) @db.NVarChar(36)
+  userId    String   @db.NVarChar(36)
+  type      String   @db.NVarChar(100)
+  number    String?  @db.NVarChar(100)
+  issueDate DateTime?
+  ratings   String?  @db.NVarChar(Max)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("PilotLicense")
+}
+
+model UserPreferences {
+  id               String   @id @default(uuid()) @db.NVarChar(36)
+  userId           String   @unique @db.NVarChar(36)
+  distanceUnit     String   @default("nautical") @db.NVarChar(20)
+  temperatureUnit  String   @default("fahrenheit") @db.NVarChar(20)
+  timeFormat       String   @default("24h") @db.NVarChar(10)
+  dateFormat       String   @default("MM/DD/YYYY") @db.NVarChar(20)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("UserPreferences")
+}
+
+model UserNotificationSettings {
+  id                 String   @id @default(uuid()) @db.NVarChar(36)
+  userId             String   @unique @db.NVarChar(36)
+  maintenanceAlerts  Boolean  @default(true)
+  currencyReminders  Boolean  @default(true)
+  weatherAlerts      Boolean  @default(false)
+  emailNotifications Boolean  @default(true)
+  smsNotifications   Boolean  @default(false)
+  pushNotifications  Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("UserNotificationSettings")
 }
 
 model FriendRequest {

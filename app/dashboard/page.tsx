@@ -144,6 +144,9 @@ export default function PilotDashboard() {
   const [scheduledError, setScheduledError] = useState<string | null>(null)
   const [showScheduler, setShowScheduler] = useState(false)
   const [scheduledRefreshKey, setScheduledRefreshKey] = useState(0)
+  const [showNextFlightModal, setShowNextFlightModal] = useState(false)
+  const [showMaintenanceModal, setShowMaintenanceModal] = useState(false)
+  const [showLogbookModal, setShowLogbookModal] = useState(false)
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -567,9 +570,14 @@ export default function PilotDashboard() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Oil Change Due Soon</p>
                   <p className="text-xs text-muted-foreground">N12345 - Due in 2.3 hours</p>
-                  <Button size="sm" variant="destructive" className="w-full" onClick={() => router.push('/modules/flying-club?tab=maintenance')}>
-                    Schedule Now
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="destructive" className="flex-1" onClick={() => setShowMaintenanceModal(true)}>
+                      View
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => router.push('/modules/flying-club?tab=maintenance')}>
+                      Full Page
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -585,9 +593,14 @@ export default function PilotDashboard() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">IFR Training</p>
                   <p className="text-xs text-muted-foreground">Tomorrow at 14:00 with John Smith</p>
-                  <Button size="sm" variant="outline" className="w-full" onClick={() => router.push('/modules/flying-club?tab=bookings')}>
-                    View Details
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setShowNextFlightModal(true)}>
+                      View
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => router.push('/modules/flying-club?tab=scheduled')}>
+                      Full Page
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -626,9 +639,14 @@ export default function PilotDashboard() {
                 <div className="space-y-2">
                   <p className="text-2xl font-bold">16.2 hrs</p>
                   <p className="text-xs text-muted-foreground">Logged this month</p>
-                  <Button size="sm" variant="outline" className="w-full" onClick={() => router.push('/modules/logbook')}>
-                    View Logbook
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" variant="outline" className="flex-1" onClick={() => setShowLogbookModal(true)}>
+                      View
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => router.push('/modules/logbook')}>
+                      Full Page
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -784,6 +802,42 @@ export default function PilotDashboard() {
                 setShowScheduler(false)
                 setScheduledRefreshKey((prev) => prev + 1)
               }} />
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showMaintenanceModal} onOpenChange={setShowMaintenanceModal}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Urgent Maintenance</DialogTitle>
+                <DialogDescription>Review urgent maintenance items.</DialogDescription>
+              </DialogHeader>
+              <div className="text-sm text-muted-foreground">
+                Maintenance details will appear here.
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showNextFlightModal} onOpenChange={setShowNextFlightModal}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Next Flight</DialogTitle>
+                <DialogDescription>Review your upcoming flight details.</DialogDescription>
+              </DialogHeader>
+              <div className="text-sm text-muted-foreground">
+                Upcoming flight details will appear here.
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showLogbookModal} onOpenChange={setShowLogbookModal}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Logbook</DialogTitle>
+                <DialogDescription>Recent logbook entries.</DialogDescription>
+              </DialogHeader>
+              <div className="text-sm text-muted-foreground">
+                Logbook entries will appear here.
+              </div>
             </DialogContent>
           </Dialog>
 

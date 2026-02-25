@@ -51,20 +51,22 @@ export default function ProfilePage() {
     lastName: "",
     email: "",
     phone: "",
-    address: ""
+    address1: "",
+    address2: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: ""
   })
 
-  const [licenses, setLicenses] = useState([
-    { id: 1, type: "Private Pilot", number: "PPL-123456", issueDate: "2020-03-15", ratings: ["Single-Engine Land", "Instrument Rating"] },
-    { id: 2, type: "Commercial Pilot", number: "CPL-789012", issueDate: "2022-06-20", ratings: ["Multi-Engine Land"] },
-  ])
+  const [licenses, setLicenses] = useState<any[]>([])
 
   const [medical, setMedical] = useState({
-    class: "Class 2",
-    certificateNumber: "MED-456789",
-    examinerName: "Dr. Sarah Johnson",
-    issueDate: "2023-06-15",
-    expirationDate: "2024-12-15"
+    class: "",
+    certificateNumber: "",
+    examinerName: "",
+    issueDate: "",
+    expirationDate: ""
   })
 
   const [homeAirport, setHomeAirport] = useState({
@@ -102,33 +104,74 @@ export default function ProfilePage() {
 
     async function loadProfile() {
       try {
-        const [userRes, profileRes, aircraftRes] = await Promise.all([
-          fetch('/api/users/me'),
-          fetch('/api/pilots/me'),
+        const [profileRes, aircraftRes] = await Promise.all([
+          fetch('/api/profile'),
           fetch('/api/user-aircraft'),
         ])
 
-        if (userRes.ok) {
-          const user = await userRes.json()
+        if (profileRes.ok) {
+          const data = await profileRes.json()
+          const user = data.user
+          const contact = data.contact || {}
+          const profile = data.profile || {}
+          const medicalData = data.medical || {}
+          const prefs = data.preferences || {}
+          const notif = data.notifications || {}
+          const lic = Array.isArray(data.licenses) ? data.licenses : []
+
           const nameParts = (user?.name || '').split(' ')
           if (!cancelled) {
-            setPersonalInfo((prev) => ({
-              ...prev,
+            setPersonalInfo({
               firstName: nameParts[0] || '',
               lastName: nameParts.slice(1).join(' ') || '',
               email: user?.email || '',
-            }))
-          }
-        }
+              phone: contact?.phone || '',
+              address1: contact?.address1 || '',
+              address2: contact?.address2 || '',
+              city: contact?.city || '',
+              state: contact?.state || '',
+              postalCode: contact?.postalCode || '',
+              country: contact?.country || '',
+            })
 
-        if (profileRes.ok) {
-          const profileData = await profileRes.json()
-          const profile = profileData?.profile
-          if (!cancelled) {
-            setHomeAirport((prev) => ({
-              ...prev,
+            setHomeAirport({
               icao: profile?.homeAirport || '',
-            }))
+              name: profile?.homeAirportName || '',
+              fbo: profile?.homeAirportFbo || '',
+              fuelType: profile?.homeAirportFuelType || '',
+            })
+
+            setMedical({
+              class: medicalData?.medicalClass || '',
+              certificateNumber: medicalData?.certificateNumber || '',
+              examinerName: medicalData?.examinerName || '',
+              issueDate: medicalData?.issueDate ? medicalData.issueDate.split('T')[0] : '',
+              expirationDate: medicalData?.expirationDate ? medicalData.expirationDate.split('T')[0] : '',
+            })
+
+            setUnits({
+              distance: prefs?.distanceUnit || 'nautical',
+              temperature: prefs?.temperatureUnit || 'fahrenheit',
+              timeFormat: prefs?.timeFormat || '24h',
+              dateFormat: prefs?.dateFormat || 'MM/DD/YYYY',
+            })
+
+            setNotifications({
+              maintenanceAlerts: !!notif?.maintenanceAlerts,
+              currencyReminders: !!notif?.currencyReminders,
+              weatherAlerts: !!notif?.weatherAlerts,
+              emailNotifications: !!notif?.emailNotifications,
+              smsNotifications: !!notif?.smsNotifications,
+              pushNotifications: !!notif?.pushNotifications,
+            })
+
+            setLicenses(lic.map((l: any, idx: number) => ({
+              id: idx + 1,
+              type: l.type || 'License',
+              number: l.number || '',
+              issueDate: l.issueDate ? l.issueDate.split('T')[0] : '',
+              ratings: l.ratings ? JSON.parse(l.ratings) : [],
+            })))
           }
         }
 
@@ -150,51 +193,35 @@ export default function ProfilePage() {
   // Handler functions
   const handleSavePersonalInfo = async () => {
     try {
-      const fullName = `${personalInfo.firstName} ${personalInfo.lastName}`.trim()
-      const res = await fetch('/api/users/me', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: fullName }),
-      })
-      if (!res.ok) {
-        const error = await res.json()
-        throw new Error(error.error || 'Failed to save personal info')
-      }
-      setUnsavedChanges(false)
-      alert('Personal information saved successfully!')
-    } catch (error: any) {
-      alert(error.message || 'Failed to save personal info')
-    }
-  }
-  
-  const handleSaveMedical = async () => {
-    setUnsavedChanges(false)
-    alert('Medical certificate saved successfully!')
-  }
-  
-  const handleSaveAirport = async () => {
-    try {
-      const res = await fetch('/api/pilots/me', {
+      const res = await fetch('/api/profile', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          homeAirport: homeAirport.icao || null,
-          availability: null,
-          aircraft: null,
-          hours: null,
-          bio: null,
-          ratings: [],
+          personalInfo,
+          homeAirport,
+          medical,
+          licenses,
+          notifications,
+          units,
         }),
       })
       if (!res.ok) {
         const error = await res.json()
-        throw new Error(error.error || 'Failed to save home airport')
+        throw new Error(error.error || 'Failed to save profile')
       }
       setUnsavedChanges(false)
-      alert('Home airport saved successfully!')
+      alert('Profile saved successfully!')
     } catch (error: any) {
-      alert(error.message || 'Failed to save home airport')
+      alert(error.message || 'Failed to save profile')
     }
+  }
+  
+  const handleSaveMedical = async () => {
+    return handleSavePersonalInfo()
+  }
+  
+  const handleSaveAirport = async () => {
+    return handleSavePersonalInfo()
   }
   
   const handleAddLicense = () => {
@@ -403,12 +430,72 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="address">Address</Label>
+                    <Label htmlFor="address1">Address Line 1</Label>
                     <Input 
-                      id="address" 
-                      value={personalInfo.address}
+                      id="address1" 
+                      value={personalInfo.address1}
                       onChange={(e) => {
-                        setPersonalInfo({...personalInfo, address: e.target.value})
+                        setPersonalInfo({...personalInfo, address1: e.target.value})
+                        setUnsavedChanges(true)
+                      }}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="address2">Address Line 2</Label>
+                    <Input 
+                      id="address2" 
+                      value={personalInfo.address2}
+                      onChange={(e) => {
+                        setPersonalInfo({...personalInfo, address2: e.target.value})
+                        setUnsavedChanges(true)
+                      }}
+                    />
+                  </div>
+
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="city">City</Label>
+                      <Input 
+                        id="city" 
+                        value={personalInfo.city}
+                        onChange={(e) => {
+                          setPersonalInfo({...personalInfo, city: e.target.value})
+                          setUnsavedChanges(true)
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="state">State</Label>
+                      <Input 
+                        id="state" 
+                        value={personalInfo.state}
+                        onChange={(e) => {
+                          setPersonalInfo({...personalInfo, state: e.target.value})
+                          setUnsavedChanges(true)
+                        }}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="postalCode">Postal Code</Label>
+                      <Input 
+                        id="postalCode" 
+                        value={personalInfo.postalCode}
+                        onChange={(e) => {
+                          setPersonalInfo({...personalInfo, postalCode: e.target.value})
+                          setUnsavedChanges(true)
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="country">Country</Label>
+                    <Input 
+                      id="country" 
+                      value={personalInfo.country}
+                      onChange={(e) => {
+                        setPersonalInfo({...personalInfo, country: e.target.value})
                         setUnsavedChanges(true)
                       }}
                     />
@@ -416,10 +503,10 @@ export default function ProfilePage() {
 
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
-                    <Button className="gap-2" onClick={handleSavePersonalInfo}>
-                      <Save className="h-4 w-4" />
-                      Save Changes
-                    </Button>
+                      <Button className="gap-2" onClick={handleSavePersonalInfo}>
+                        <Save className="h-4 w-4" />
+                        Save Changes
+                      </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -464,7 +551,7 @@ export default function ProfilePage() {
                       <div>
                         <p className="text-sm font-medium mb-2">Ratings & Endorsements:</p>
                         <div className="flex flex-wrap gap-2">
-                          {license.ratings.map((rating, idx) => (
+                          {license.ratings.map((rating: string, idx: number) => (
                             <Badge key={idx} variant="outline">{rating}</Badge>
                           ))}
                         </div>
@@ -697,13 +784,14 @@ export default function ProfilePage() {
                       <Label htmlFor="maintenance">Maintenance Alerts</Label>
                       <p className="text-xs text-muted-foreground">Get notified about upcoming maintenance items</p>
                     </div>
-                    <Switch 
-                      id="maintenance"
-                      checked={notifications.maintenanceAlerts}
-                      onCheckedChange={(checked) => 
+                      <Switch 
+                       id="maintenance"
+                       checked={notifications.maintenanceAlerts}
+                       onCheckedChange={(checked) => {
                         setNotifications({...notifications, maintenanceAlerts: checked})
-                      }
-                    />
+                        setUnsavedChanges(true)
+                       }}
+                     />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -711,13 +799,14 @@ export default function ProfilePage() {
                       <Label htmlFor="currency">Currency Reminders</Label>
                       <p className="text-xs text-muted-foreground">Reminders for expiring licenses and currency</p>
                     </div>
-                    <Switch 
-                      id="currency"
-                      checked={notifications.currencyReminders}
-                      onCheckedChange={(checked) => 
+                      <Switch 
+                       id="currency"
+                       checked={notifications.currencyReminders}
+                       onCheckedChange={(checked) => {
                         setNotifications({...notifications, currencyReminders: checked})
-                      }
-                    />
+                        setUnsavedChanges(true)
+                       }}
+                     />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -725,13 +814,14 @@ export default function ProfilePage() {
                       <Label htmlFor="weather">Weather Alerts</Label>
                       <p className="text-xs text-muted-foreground">Get notified about weather changes at your home airport</p>
                     </div>
-                    <Switch 
-                      id="weather"
-                      checked={notifications.weatherAlerts}
-                      onCheckedChange={(checked) => 
+                      <Switch 
+                       id="weather"
+                       checked={notifications.weatherAlerts}
+                       onCheckedChange={(checked) => {
                         setNotifications({...notifications, weatherAlerts: checked})
-                      }
-                    />
+                        setUnsavedChanges(true)
+                       }}
+                     />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -739,13 +829,14 @@ export default function ProfilePage() {
                       <Label htmlFor="email">Email Notifications</Label>
                       <p className="text-xs text-muted-foreground">Receive notifications via email</p>
                     </div>
-                    <Switch 
-                      id="email"
-                      checked={notifications.emailNotifications}
-                      onCheckedChange={(checked) => 
+                      <Switch 
+                       id="email"
+                       checked={notifications.emailNotifications}
+                       onCheckedChange={(checked) => {
                         setNotifications({...notifications, emailNotifications: checked})
-                      }
-                    />
+                        setUnsavedChanges(true)
+                       }}
+                     />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -753,13 +844,14 @@ export default function ProfilePage() {
                       <Label htmlFor="sms">SMS Notifications</Label>
                       <p className="text-xs text-muted-foreground">Receive notifications via text message</p>
                     </div>
-                    <Switch 
-                      id="sms"
-                      checked={notifications.smsNotifications}
-                      onCheckedChange={(checked) => 
+                      <Switch 
+                       id="sms"
+                       checked={notifications.smsNotifications}
+                       onCheckedChange={(checked) => {
                         setNotifications({...notifications, smsNotifications: checked})
-                      }
-                    />
+                        setUnsavedChanges(true)
+                       }}
+                     />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -767,13 +859,14 @@ export default function ProfilePage() {
                       <Label htmlFor="push">Push Notifications</Label>
                       <p className="text-xs text-muted-foreground">Receive browser push notifications</p>
                     </div>
-                    <Switch 
-                      id="push"
-                      checked={notifications.pushNotifications}
-                      onCheckedChange={(checked) => 
+                      <Switch 
+                       id="push"
+                       checked={notifications.pushNotifications}
+                       onCheckedChange={(checked) => {
                         setNotifications({...notifications, pushNotifications: checked})
-                      }
-                    />
+                        setUnsavedChanges(true)
+                       }}
+                     />
                   </div>
                 </CardContent>
               </Card>
@@ -790,7 +883,10 @@ export default function ProfilePage() {
                       id="distance"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={units.distance}
-                      onChange={(e) => setUnits({...units, distance: e.target.value})}
+                      onChange={(e) => {
+                        setUnits({...units, distance: e.target.value})
+                        setUnsavedChanges(true)
+                      }}
                     >
                       <option value="nautical">Nautical Miles</option>
                       <option value="statute">Statute Miles</option>
@@ -804,7 +900,10 @@ export default function ProfilePage() {
                       id="temperature"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={units.temperature}
-                      onChange={(e) => setUnits({...units, temperature: e.target.value})}
+                      onChange={(e) => {
+                        setUnits({...units, temperature: e.target.value})
+                        setUnsavedChanges(true)
+                      }}
                     >
                       <option value="fahrenheit">Fahrenheit (°F)</option>
                       <option value="celsius">Celsius (°C)</option>
@@ -817,7 +916,10 @@ export default function ProfilePage() {
                       id="timeFormat"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={units.timeFormat}
-                      onChange={(e) => setUnits({...units, timeFormat: e.target.value})}
+                      onChange={(e) => {
+                        setUnits({...units, timeFormat: e.target.value})
+                        setUnsavedChanges(true)
+                      }}
                     >
                       <option value="12h">12-hour (3:45 PM)</option>
                       <option value="24h">24-hour (15:45)</option>
@@ -830,7 +932,10 @@ export default function ProfilePage() {
                       id="dateFormat"
                       className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       value={units.dateFormat}
-                      onChange={(e) => setUnits({...units, dateFormat: e.target.value})}
+                      onChange={(e) => {
+                        setUnits({...units, dateFormat: e.target.value})
+                        setUnsavedChanges(true)
+                      }}
                     >
                       <option value="MM/DD/YYYY">MM/DD/YYYY</option>
                       <option value="DD/MM/YYYY">DD/MM/YYYY</option>
@@ -863,6 +968,14 @@ export default function ProfilePage() {
                   </p>
                 </CardContent>
               </Card>
+
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => window.location.reload()}>Cancel</Button>
+                <Button className="gap-2" onClick={handleSavePersonalInfo}>
+                  <Save className="h-4 w-4" />
+                  Save Changes
+                </Button>
+              </div>
             </TabsContent>
 
             {/* Security & Privacy */}
