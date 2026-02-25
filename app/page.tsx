@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -127,6 +129,7 @@ const savedFlightPlans = [
 ]
 
 export default function PilotDashboard() {
+  const router = useRouter()
   const [customizeMode, setCustomizeMode] = useState(false)
   const [visibleWidgets, setVisibleWidgets] = useState<WidgetType[]>([
     'airport-weather',
@@ -341,7 +344,12 @@ export default function PilotDashboard() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">Oil Change Due Soon</p>
                   <p className="text-xs text-muted-foreground">N12345 - Due in 2.3 hours</p>
-                  <Button size="sm" variant="destructive" className="w-full">
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    className="w-full"
+                    onClick={() => router.push('/flying-club?tab=maintenance')}
+                  >
                     Schedule Now
                   </Button>
                 </div>
@@ -359,7 +367,12 @@ export default function PilotDashboard() {
                 <div className="space-y-2">
                   <p className="text-sm font-medium">IFR Training</p>
                   <p className="text-xs text-muted-foreground">Tomorrow at 14:00 with John Smith</p>
-                  <Button size="sm" variant="outline" className="w-full">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => router.push('/trips')}
+                  >
                     View Details
                   </Button>
                 </div>
@@ -377,7 +390,12 @@ export default function PilotDashboard() {
                 <div className="space-y-2">
                   <p className="text-2xl font-bold">16.2 hrs</p>
                   <p className="text-xs text-muted-foreground">Logged this month</p>
-                  <Button size="sm" variant="outline" className="w-full">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => router.push('/modules/logbook')}
+                  >
                     View Logbook
                   </Button>
                 </div>
@@ -523,7 +541,11 @@ export default function PilotDashboard() {
                     <CardTitle>Upcoming Flights</CardTitle>
                     <CardDescription>Your schedule</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => router.push('/flying-club?tab=calendar')}
+                  >
                     <Plus className="mr-1 h-4 w-4" />
                     Add
                   </Button>
@@ -577,7 +599,11 @@ export default function PilotDashboard() {
                     <CardTitle>Aircraft Maintenance</CardTitle>
                     <CardDescription>Due items for N12345</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => router.push('/flying-club?tab=maintenance')}
+                  >
                     <Wrench className="mr-1 h-4 w-4" />
                     Manage
                   </Button>
@@ -604,7 +630,12 @@ export default function PilotDashboard() {
                         </div>
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-muted-foreground">{item.hoursRemaining.toFixed(1)} hours remaining</p>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-7 text-xs"
+                            onClick={() => router.push('/flying-club?tab=maintenance')}
+                          >
                             Details
                             <ArrowRight className="ml-1 h-3 w-3" />
                           </Button>
@@ -626,7 +657,11 @@ export default function PilotDashboard() {
                     <CardTitle>Currency & Licenses</CardTitle>
                     <CardDescription>Keep your credentials current</CardDescription>
                   </div>
-                  <Button size="sm" variant="outline">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => router.push('/profile')}
+                  >
                     <FileText className="mr-1 h-4 w-4" />
                     View All
                   </Button>
@@ -654,7 +689,12 @@ export default function PilotDashboard() {
                         </div>
                         <div className="flex items-center justify-between">
                           <p className="text-xs text-muted-foreground">Expires: {item.expiryDate} ({item.daysRemaining} days)</p>
-                          <Button size="sm" variant="ghost" className="h-7 text-xs">
+                          <Button 
+                            size="sm" 
+                            variant="ghost" 
+                            className="h-7 text-xs"
+                            onClick={() => alert('Renew certification - Link to FAA or aviation authority')}
+                          >
                             Renew
                             <ArrowRight className="ml-1 h-3 w-3" />
                           </Button>
@@ -678,7 +718,11 @@ export default function PilotDashboard() {
                   <CardTitle>Saved Flight Plans</CardTitle>
                   <CardDescription>Quick access to your routes</CardDescription>
                 </div>
-                <Button size="sm" variant="default">
+                <Button 
+                  size="sm" 
+                  variant="default"
+                  onClick={() => router.push('/fuel-saver')}
+                >
                   <Plus className="mr-1 h-4 w-4" />
                   New Plan
                 </Button>
@@ -703,10 +747,20 @@ export default function PilotDashboard() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Button size="sm" variant="ghost">
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => router.push(`/fuel-saver/view/${plan.id}`)}
+                        title="View flight plan"
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button size="sm" variant="ghost">
+                      <Button 
+                        size="sm" 
+                        variant="ghost"
+                        onClick={() => router.push(`/fuel-saver?plan=${plan.id}`)}
+                        title="Edit flight plan"
+                      >
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>
