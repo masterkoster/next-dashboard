@@ -142,7 +142,10 @@ export default function FlyingClubPage() {
               <Settings className="mr-2 h-4 w-4" />
               Club Admin
             </Button>
-            <Button size="sm">
+            <Button 
+              size="sm"
+              onClick={() => alert('Create new group functionality - Coming soon!')}
+            >
               <Plus className="mr-2 h-4 w-4" />
               New Group
             </Button>
@@ -268,7 +271,11 @@ export default function FlyingClubPage() {
                       ))}
                     </div>
 
-                    <Button variant="outline" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => setSelectedGroup(group.id)}
+                    >
                       View Group Details
                     </Button>
                   </CardContent>
@@ -282,7 +289,13 @@ export default function FlyingClubPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Upcoming Bookings</CardTitle>
-                    <Button variant="ghost" size="sm">View All</Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setActiveTab('bookings')}
+                    >
+                      View All
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -311,7 +324,13 @@ export default function FlyingClubPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle>Maintenance Status</CardTitle>
-                    <Button variant="ghost" size="sm">View All</Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setActiveTab('maintenance')}
+                    >
+                      View All
+                    </Button>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -456,7 +475,14 @@ export default function FlyingClubPage() {
                   </div>
 
                   <div className="flex gap-2">
-                    <Button variant="outline" className="flex-1">
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => {
+                        setActiveTab('calendar')
+                        alert(`Booking ${aircraft.nNumber} - Calendar view opened`)
+                      }}
+                    >
                       <Calendar className="mr-2 h-4 w-4" />
                       Book
                     </Button>
@@ -480,7 +506,10 @@ export default function FlyingClubPage() {
                     <Filter className="mr-2 h-4 w-4" />
                     Filter
                   </Button>
-                  <Button size="sm">
+                  <Button 
+                    size="sm"
+                    onClick={() => alert('New booking form - Coming soon!')}
+                  >
                     <Plus className="mr-2 h-4 w-4" />
                     New Booking
                   </Button>
@@ -521,7 +550,10 @@ export default function FlyingClubPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Maintenance Tracking</CardTitle>
-                <Button size="sm">
+                <Button 
+                  size="sm"
+                  onClick={() => alert('Report maintenance issue - Coming soon!')}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Report Issue
                 </Button>
@@ -583,7 +615,9 @@ export default function FlyingClubPage() {
                 </div>
                 <h3 className="text-lg font-semibold mb-2">No {activeTab} yet</h3>
                 <p className="text-sm text-muted-foreground mb-4">Get started by adding your first {activeTab.slice(0, -1)}</p>
-                <Button>
+                <Button
+                  onClick={() => alert(`Add ${activeTab.slice(0, -1)} - Coming soon!`)}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Add {activeTab.charAt(0).toUpperCase() + activeTab.slice(1, -1)}
                 </Button>
