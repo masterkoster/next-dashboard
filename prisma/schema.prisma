@@ -947,3 +947,101 @@ model OutreachEmail {
   @@index([responseStatus])
   @@map("OutreachEmail")
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// QuickBooks Integration Models
+// ────────────────────────────────────────────────────────────────────────────
+
+model Integration {
+  id               String    @id @default(uuid()) @db.NVarChar(36)
+  groupId          String    @db.NVarChar(36) // Flying club this integration belongs to
+  provider         String    @db.NVarChar(50) // "quickbooks", "google-calendar", "zapier"
+  status           String    @default("disconnected") @db.NVarChar(20) // "connected", "disconnected", "error"
+  
+  // OAuth tokens (encrypted in production)
+  accessToken      String?   @db.NVarChar(Max)
+  refreshToken     String?   @db.NVarChar(Max)
+  tokenExpiry      DateTime?
+  realmId          String?   @db.NVarChar(100) // QuickBooks Company ID
+  
+  // Configuration
+  config           String    @default("{}") @db.NVarChar(Max) // JSON config
+  
+  // Metadata
+  lastSyncAt       DateTime?
+  lastSyncStatus   String?   @db.NVarChar(20) // "success", "error", "partial"
+  lastSyncError    String?   @db.NVarChar(Max)
+  syncFrequency    Int       @default(10) // minutes
+  
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  
+  group            Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  mappings         QuickBooksMapping[]
+  syncLogs         SyncLog[]
+
+  @@unique([groupId, provider])
+  @@index([groupId])
+  @@index([provider])
+  @@index([status])
+  @@map("Integration")
+}
+
+model QuickBooksMapping {
+  id                String   @id @default(uuid()) @db.NVarChar(36)
+  integrationId     String   @db.NVarChar(36)
+  
+  // Local entity (what we're mapping FROM)
+  entityType        String   @db.NVarChar(50) // "aircraft", "rate", "member", "charge_type"
+  entityId          String   @db.NVarChar(36)
+  entityName        String   @db.NVarChar(255) // Human-readable name
+  
+  // QuickBooks entity (what we're mapping TO)
+  qbType            String   @db.NVarChar(50) // "Item", "Customer", "Account", "Class"
+  qbId              String   @db.NVarChar(100) // QuickBooks ID
+  qbName            String   @db.NVarChar(255) // QuickBooks name
+  
+  // Mapping config
+  config            String   @default("{}") @db.NVarChar(Max) // JSON for special rules
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  integration       Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@unique([integrationId, entityType, entityId])
+  @@index([integrationId])
+  @@index([entityType, entityId])
+  @@map("QuickBooksMapping")
+}
+
+model SyncLog {
+  id              String   @id @default(uuid()) @db.NVarChar(36)
+  integrationId   String   @db.NVarChar(36)
+  
+  // What was synced
+  syncType        String   @db.NVarChar(50) // "invoice", "payment", "customer", "manual", "scheduled"
+  direction       String   @db.NVarChar(20) // "to_qb", "from_qb", "bidirectional"
+  
+  // Results
+  status          String   @db.NVarChar(20) // "success", "error", "partial"
+  recordsTotal    Int      @default(0)
+  recordsSuccess  Int      @default(0)
+  recordsFailed   Int      @default(0)
+  
+  // Details
+  details         String?  @db.NVarChar(Max) // JSON with specifics
+  errorMessage    String?  @db.NVarChar(Max)
+  
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  durationMs      Int?     // Duration in milliseconds
+  
+  integration     Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+
+  @@index([integrationId])
+  @@index([syncType])
+  @@index([status])
+  @@index([startedAt])
+  @@map("SyncLog")
+}

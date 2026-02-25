@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useParams } from 'next/navigation'
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { CalendarCheck, Landmark, ShieldCheck, Zap } from 'lucide-react'
+import { CalendarCheck, Landmark, ShieldCheck, Zap, Loader2 } from 'lucide-react'
 
 type IntegrationStatus = 'connected' | 'disconnected' | 'coming-soon'
 
@@ -63,9 +64,139 @@ const INITIAL_INTEGRATIONS: Integration[] = [
 ]
 
 export default function AddOnsSection() {
+  const params = useParams()
+  const groupId = params?.groupId as string || 'demo-group-id' // Get from URL or context
+  
   const [integrations, setIntegrations] = useState(INITIAL_INTEGRATIONS)
+  const [loading, setLoading] = useState<string | null>(null)
+  const [qbStatus, setQbStatus] = useState<any>(null)
+
+  // Load QuickBooks status on mount
+  useEffect(() => {
+    loadQuickBooksStatus()
+  }, [groupId])
+
+  const loadQuickBooksStatus = async () => {
+    try {
+      const response = await fetch(`/api/integrations/quickbooks/status?groupId=${groupId}`)
+      if (response.ok) {
+        const data = await response.json()
+        setQbStatus(data)
+        
+        // Update QuickBooks integration status in UI
+        setIntegrations((current) =>
+          current.map((integration) => {
+            if (integration.id === 'quickbooks') {
+              return {
+                ...integration,
+                status: data.connected ? 'connected' : 'disconnected',
+              }
+            }
+            return integration
+          }),
+        )
+      }
+    } catch (error) {
+      console.error('Failed to load QuickBooks status:', error)
+    }
+  }
+
+  const handleQuickBooksConnect = async () => {
+    setLoading('quickbooks')
+    try {
+      // Get OAuth URL from API
+      const response = await fetch(`/api/integrations/quickbooks/connect?groupId=${groupId}`)
+      const data = await response.json()
+      
+      if (data.success && data.authUrl) {
+        // Redirect to QuickBooks OAuth page
+        window.location.href = data.authUrl
+      } else {
+        alert('Failed to connect to QuickBooks. Please try again.')
+        setLoading(null)
+      }
+    } catch (error) {
+      console.error('QuickBooks connect error:', error)
+      alert('Failed to connect to QuickBooks. Please try again.')
+      setLoading(null)
+    }
+  }
+
+  const handleQuickBooksDisconnect = async () => {
+    if (!confirm('Are you sure you want to disconnect QuickBooks? This will stop all syncing.')) {
+      return
+    }
+
+    setLoading('quickbooks')
+    try {
+      const response = await fetch('/api/integrations/quickbooks/disconnect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        // Update UI
+        setIntegrations((current) =>
+          current.map((integration) => {
+            if (integration.id === 'quickbooks') {
+              return { ...integration, status: 'disconnected' }
+            }
+            return integration
+          }),
+        )
+        setQbStatus(null)
+        alert('QuickBooks disconnected successfully')
+      } else {
+        alert('Failed to disconnect QuickBooks. Please try again.')
+      }
+    } catch (error) {
+      console.error('QuickBooks disconnect error:', error)
+      alert('Failed to disconnect QuickBooks. Please try again.')
+    } finally {
+      setLoading(null)
+    }
+  }
+
+  const handleQuickBooksSync = async () => {
+    setLoading('quickbooks-sync')
+    try {
+      const response = await fetch('/api/integrations/quickbooks/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId, syncType: 'all' }),
+      })
+
+      const data = await response.json()
+      
+      if (data.success) {
+        alert(`Sync completed!\n\nTotal: ${data.syncLog.recordsTotal}\nSuccess: ${data.syncLog.recordsSuccess}\nFailed: ${data.syncLog.recordsFailed}`)
+        await loadQuickBooksStatus() // Reload status
+      } else {
+        alert('Sync failed. Please try again.')
+      }
+    } catch (error) {
+      console.error('QuickBooks sync error:', error)
+      alert('Sync failed. Please try again.')
+    } finally {
+      setLoading(null)
+    }
+  }
 
   const toggleIntegration = (id: string) => {
+    if (id === 'quickbooks') {
+      const qbIntegration = integrations.find(i => i.id === 'quickbooks')
+      if (qbIntegration?.status === 'connected') {
+        handleQuickBooksDisconnect()
+      } else {
+        handleQuickBooksConnect()
+      }
+      return
+    }
+
+    // For other integrations, keep the mock behavior
     setIntegrations((current) =>
       current.map((integration) => {
         if (integration.id !== id || integration.status === 'coming-soon') {
@@ -142,11 +273,26 @@ export default function AddOnsSection() {
                 <Button
                   size="sm"
                   onClick={() => toggleIntegration(integration.id)}
-                  disabled={integration.status === 'coming-soon'}
+                  disabled={integration.status === 'coming-soon' || loading === integration.id}
                   variant={integration.status === 'connected' ? 'destructive' : 'default'}
                 >
+                  {loading === integration.id && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
                   {integration.status === 'connected' ? 'Disconnect' : 'Connect'}
                 </Button>
+                
+                {/* QuickBooks-specific: Sync button */}
+                {integration.id === 'quickbooks' && integration.status === 'connected' && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleQuickBooksSync}
+                    disabled={loading === 'quickbooks-sync'}
+                  >
+                    {loading === 'quickbooks-sync' && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                    Sync Now
+                  </Button>
+                )}
+                
                 {integration.helpUrl && (
                   <Link
                     href={integration.helpUrl}
@@ -159,7 +305,10 @@ export default function AddOnsSection() {
                 )}
                 {integration.status === 'connected' && (
                   <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary">
-                    Syncs every 10 minutes
+                    {integration.id === 'quickbooks' && qbStatus?.lastSync 
+                      ? `Last synced: ${new Date(qbStatus.lastSync).toLocaleTimeString()}`
+                      : 'Syncs every 10 minutes'
+                    }
                   </span>
                 )}
               </div>
