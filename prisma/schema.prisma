@@ -454,8 +454,9 @@ model FlyingGroup {
   createdAt   DateTime? @default(now(), map: "DF__FlyingGro__creat__17036CC0")
   updatedAt   DateTime? @default(now(), map: "DF__FlyingGro__updat__17F790F9") @updatedAt
 
-  members GroupMember[]
-  invites Invite[]
+  members     GroupMember[]
+  invites     Invite[]
+  integrations Integration[]
 
   @@map("FlyingGroup")
 }
@@ -976,7 +977,7 @@ model Integration {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
   
-  group            Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  group            FlyingGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
   mappings         QuickBooksMapping[]
   syncLogs         SyncLog[]
 

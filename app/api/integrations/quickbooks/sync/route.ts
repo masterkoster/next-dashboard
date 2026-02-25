@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
+import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { QuickBooksClient } from '@/lib/integrations/quickbooks-client'
 
@@ -12,7 +11,7 @@ import { QuickBooksClient } from '@/lib/integrations/quickbooks-client'
  */
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await auth()
     
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -125,7 +124,7 @@ export async function POST(request: NextRequest) {
       // Sync Aircraft Rates → Items
       // ────────────────────────────────────────────────────────────────────
       if (!syncType || syncType === 'items' || syncType === 'all') {
-        const aircraft = await prisma.groupAircraft.findMany({
+        const aircraft = await prisma.clubAircraft.findMany({
           where: { groupId: groupId },
         })
 
@@ -147,7 +146,7 @@ export async function POST(request: NextRequest) {
             if (!mapping) {
               // Create service item in QuickBooks
               const item = await client.createItem({
-                Name: `${ac.registration} - Aircraft Rental`,
+                Name: `${ac.nNumber || ac.nickname || ac.customName || 'Aircraft'} - Aircraft Rental`,
                 Type: 'Service',
                 IncomeAccountRef: {
                   value: '1', // Default income account - should be configurable
@@ -160,7 +159,7 @@ export async function POST(request: NextRequest) {
                   integrationId: integration.id,
                   entityType: 'aircraft',
                   entityId: ac.id,
-                  entityName: ac.registration,
+                  entityName: ac.nNumber || ac.nickname || ac.customName || 'Aircraft',
                   qbType: 'Item',
                   qbId: item.Id,
                   qbName: item.Name,
