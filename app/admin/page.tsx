@@ -10,6 +10,16 @@ import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import {
   Users,
   Plane,
   DollarSign,
@@ -270,11 +280,179 @@ function PlaceholderPanel({ title, description }: { title: string; description: 
 export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("awaiting-dispatch")
   const [userSearch, setUserSearch] = useState("")
+  
+  // Modal states
+  const [viewUserModal, setViewUserModal] = useState<typeof users[0] | null>(null)
+  const [editUserModal, setEditUserModal] = useState<typeof users[0] | null>(null)
+  const [viewAircraftModal, setViewAircraftModal] = useState<typeof aircraft[0] | null>(null)
+  const [editAircraftModal, setEditAircraftModal] = useState<typeof aircraft[0] | null>(null)
+  const [viewClubModal, setViewClubModal] = useState<typeof clubs[0] | null>(null)
+  const [editClubModal, setEditClubModal] = useState<typeof clubs[0] | null>(null)
+  const [viewListingModal, setViewListingModal] = useState<typeof listings[0] | null>(null)
+  const [viewTransactionModal, setViewTransactionModal] = useState<typeof billingTransactions[0] | null>(null)
+  const [inviteUserModal, setInviteUserModal] = useState(false)
+  const [addClubModal, setAddClubModal] = useState(false)
+  
+  // Settings state
+  const [generalSettings, setGeneralSettings] = useState({
+    siteName: "AviationHub",
+    supportEmail: "support@aviationhub.com",
+    maintenanceMode: false,
+  })
+  
+  const [userSettings, setUserSettings] = useState({
+    allowSelfSignup: true,
+    requireEmailVerification: true,
+    defaultPlan: "Free",
+  })
+  
+  const [scheduleSettings, setScheduleSettings] = useState({
+    advanceBookingDays: 30,
+    minBookingNotice: 2,
+    maxBookingDuration: 8,
+  })
 
   const filteredUsers = users.filter(u =>
     u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
     u.email.toLowerCase().includes(userSearch.toLowerCase())
   )
+  
+  // Handler functions
+  const handleExport = () => {
+    const dataMap: Record<Tab, any[]> = {
+      overview: [],
+      users: users,
+      aircraft: aircraft,
+      clubs: clubs,
+      marketplace: listings,
+      billing: billingTransactions,
+      "general-settings": [],
+      "awaiting-dispatch": [],
+      "currently-dispatched": [],
+      "past-flights": [],
+      administrators: [],
+      instructors: [],
+      groups: [],
+      items: [],
+      adjustments: [],
+      forms: [],
+      "general-settings2": [],
+      "users-settings": [],
+      "schedule-settings": [],
+      "notification-settings": [],
+      "add-ons": [],
+      system: systemServices,
+    }
+    
+    const data = dataMap[activeTab] || []
+    const csv = JSON.stringify(data, null, 2)
+    const blob = new Blob([csv], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${activeTab}-export-${Date.now()}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+    alert('Data exported successfully!')
+  }
+  
+  const handleRefresh = () => {
+    // In production, this would refetch data from API
+    window.location.reload()
+  }
+  
+  // User actions
+  const handleViewUser = (user: typeof users[0]) => {
+    setViewUserModal(user)
+  }
+  
+  const handleEditUser = (user: typeof users[0]) => {
+    setEditUserModal(user)
+  }
+  
+  const handleBanUser = (userId: number) => {
+    if (confirm('Are you sure you want to suspend this user?')) {
+      alert(`User ${userId} suspended. In production, this would call API.`)
+    }
+  }
+  
+  const handleInviteUser = () => {
+    setInviteUserModal(true)
+  }
+  
+  // Aircraft actions
+  const handleViewAircraft = (ac: typeof aircraft[0]) => {
+    setViewAircraftModal(ac)
+  }
+  
+  const handleEditAircraft = (ac: typeof aircraft[0]) => {
+    setEditAircraftModal(ac)
+  }
+  
+  const handleDeleteAircraft = (id: number) => {
+    if (confirm('Are you sure you want to delete this aircraft?')) {
+      alert(`Aircraft ${id} deleted. In production, this would call API.`)
+    }
+  }
+  
+  // Club actions
+  const handleViewClub = (club: typeof clubs[0]) => {
+    setViewClubModal(club)
+  }
+  
+  const handleEditClub = (club: typeof clubs[0]) => {
+    setEditClubModal(club)
+  }
+  
+  const handleDeleteClub = (id: number) => {
+    if (confirm('Are you sure you want to delete this club?')) {
+      alert(`Club ${id} deleted. In production, this would call API.`)
+    }
+  }
+  
+  const handleAddClub = () => {
+    setAddClubModal(true)
+  }
+  
+  // Marketplace actions
+  const handleViewListing = (listing: typeof listings[0]) => {
+    setViewListingModal(listing)
+  }
+  
+  const handleApproveListing = (id: number) => {
+    alert(`Listing ${id} approved. In production, this would call API.`)
+  }
+  
+  const handleDeleteListing = (id: number) => {
+    if (confirm('Are you sure you want to delete this listing?')) {
+      alert(`Listing ${id} deleted. In production, this would call API.`)
+    }
+  }
+  
+  // Billing actions
+  const handleViewTransaction = (txn: typeof billingTransactions[0]) => {
+    setViewTransactionModal(txn)
+  }
+  
+  const handleDownloadInvoice = (txnId: string) => {
+    alert(`Downloading invoice ${txnId}. In production, this would generate PDF.`)
+  }
+  
+  // Settings actions
+  const handleSaveGeneralSettings = () => {
+    console.log('Saving general settings:', generalSettings)
+    alert('General settings saved successfully!')
+  }
+  
+  const handleSaveUserSettings = () => {
+    console.log('Saving user settings:', userSettings)
+    alert('User settings saved successfully!')
+  }
+  
+  const handleSaveScheduleSettings = () => {
+    console.log('Saving schedule settings:', scheduleSettings)
+    alert('Schedule settings saved successfully!')
+  }
 
   return (
     <div className="flex min-h-screen bg-background pt-[44px]">
@@ -343,10 +521,10 @@ export default function AdminDashboard() {
             {NAV_GROUPS.flatMap(g => g.items).find(i => i.id === activeTab)?.label ?? "Overview"}
           </h1>
           <div className="flex items-center gap-2">
-            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
+            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={handleExport}>
               <Download className="h-3 w-3" /> Export
             </Button>
-            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs">
+            <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={handleRefresh}>
               <RefreshCw className="h-3 w-3" /> Refresh
             </Button>
           </div>
@@ -570,10 +748,10 @@ export default function AdminDashboard() {
                 <p className="text-xs text-muted-foreground">Manage all registered pilots and administrators</p>
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+                <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleExport}>
                   <Download className="h-3 w-3" /> Export
                 </Button>
-                <Button size="sm" className="h-8 gap-1.5 text-xs">
+                <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={handleInviteUser}>
                   <UserPlus className="h-3 w-3" /> Invite User
                 </Button>
               </div>
@@ -640,9 +818,9 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3 text-muted-foreground">{user.joined}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0"><Eye className="h-3 w-3" /></Button>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0"><Edit className="h-3 w-3" /></Button>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive"><Ban className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleViewUser(user)}><Eye className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleEditUser(user)}><Edit className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={() => handleBanUser(user.id)}><Ban className="h-3 w-3" /></Button>
                           </div>
                         </td>
                       </tr>
@@ -662,7 +840,7 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-semibold">Aircraft Registry</h2>
                 <p className="text-xs text-muted-foreground">All aircraft registered across the platform</p>
               </div>
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleExport}>
                 <Download className="h-3 w-3" /> Export
               </Button>
             </div>
@@ -708,9 +886,9 @@ export default function AdminDashboard() {
                         </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0"><Eye className="h-3 w-3" /></Button>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0"><Edit className="h-3 w-3" /></Button>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive"><Trash2 className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleViewAircraft(a)}><Eye className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleEditAircraft(a)}><Edit className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteAircraft(a.id)}><Trash2 className="h-3 w-3" /></Button>
                           </div>
                         </td>
                       </tr>
@@ -730,7 +908,7 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-semibold">Flying Clubs</h2>
                 <p className="text-xs text-muted-foreground">Manage all registered clubs and organisations</p>
               </div>
-              <Button size="sm" className="h-8 gap-1.5 text-xs">
+              <Button size="sm" className="h-8 gap-1.5 text-xs" onClick={handleAddClub}>
                 <Building2 className="h-3 w-3" /> Add Club
               </Button>
             </div>
@@ -776,9 +954,9 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                     <div className="mt-3 flex gap-2">
-                      <Button size="sm" variant="outline" className="flex-1 h-7 text-xs">View</Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0"><Edit className="h-3 w-3" /></Button>
-                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive"><Trash2 className="h-3 w-3" /></Button>
+                      <Button size="sm" variant="outline" className="flex-1 h-7 text-xs" onClick={() => handleViewClub(club)}>View</Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => handleEditClub(club)}><Edit className="h-3 w-3" /></Button>
+                      <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteClub(club.id)}><Trash2 className="h-3 w-3" /></Button>
                     </div>
                   </CardContent>
                 </Card>
@@ -795,7 +973,7 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-semibold">Marketplace</h2>
                 <p className="text-xs text-muted-foreground">Review, approve, and moderate aircraft listings</p>
               </div>
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleExport}>
                 <Download className="h-3 w-3" /> Export
               </Button>
             </div>
@@ -839,9 +1017,9 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3 text-muted-foreground">{l.listed}</td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0"><Eye className="h-3 w-3" /></Button>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-chart-2 hover:text-chart-2"><CheckCircle2 className="h-3 w-3" /></Button>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive"><Trash2 className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleViewListing(l)}><Eye className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-chart-2 hover:text-chart-2" onClick={() => handleApproveListing(l.id)}><CheckCircle2 className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-destructive hover:text-destructive" onClick={() => handleDeleteListing(l.id)}><Trash2 className="h-3 w-3" /></Button>
                           </div>
                         </td>
                       </tr>
@@ -861,7 +1039,7 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-semibold">Billing & Revenue</h2>
                 <p className="text-xs text-muted-foreground">Transaction history, subscriptions, and revenue tracking</p>
               </div>
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleExport}>
                 <Download className="h-3 w-3" /> Export CSV
               </Button>
             </div>
@@ -901,8 +1079,8 @@ export default function AdminDashboard() {
                         <td className="px-4 py-3"><TxnStatusBadge status={txn.status} /></td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-1">
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0"><Eye className="h-3 w-3" /></Button>
-                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0"><FileText className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleViewTransaction(txn)}><Eye className="h-3 w-3" /></Button>
+                            <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => handleDownloadInvoice(txn.id)}><FileText className="h-3 w-3" /></Button>
                           </div>
                         </td>
                       </tr>
@@ -922,7 +1100,7 @@ export default function AdminDashboard() {
                 <h2 className="text-lg font-semibold">System Status</h2>
                 <p className="text-xs text-muted-foreground">Monitor all platform services and infrastructure</p>
               </div>
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs">
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={handleRefresh}>
                 <RefreshCw className="h-3 w-3" /> Refresh
               </Button>
             </div>
@@ -1039,7 +1217,7 @@ export default function AdminDashboard() {
                       <Input defaultValue={f.value} className="h-8 text-xs" />
                     </div>
                   ))}
-                  <Button size="sm" className="h-8 text-xs gap-1.5 w-full">Save Changes</Button>
+                  <Button size="sm" className="h-8 text-xs gap-1.5 w-full" onClick={handleSaveGeneralSettings}>Save Changes</Button>
                 </CardContent>
               </Card>
 
@@ -1085,7 +1263,7 @@ export default function AdminDashboard() {
                     <label className="text-xs font-medium text-muted-foreground">Session Timeout (minutes)</label>
                     <Input defaultValue="60" className="h-8 text-xs" />
                   </div>
-                  <Button size="sm" className="h-8 text-xs gap-1.5 w-full">Save Changes</Button>
+                  <Button size="sm" className="h-8 text-xs gap-1.5 w-full" onClick={handleSaveUserSettings}>Save Changes</Button>
                 </CardContent>
               </Card>
 
@@ -1106,14 +1284,332 @@ export default function AdminDashboard() {
                       <Input defaultValue={f.value} className="h-8 text-xs" />
                     </div>
                   ))}
-                  <Button size="sm" className="h-8 text-xs gap-1.5 w-full">Save Changes</Button>
+                  <Button size="sm" className="h-8 text-xs gap-1.5 w-full" onClick={handleSaveScheduleSettings}>Save Changes</Button>
                 </CardContent>
               </Card>
             </div>
           </>
         )}
-
       </div>
+
+      {/* ── MODALS ───────────────────────────────────────────────────────────── */}
+      
+      {/* View User Modal */}
+      <Dialog open={!!viewUserModal} onOpenChange={() => setViewUserModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>View complete user information</DialogDescription>
+          </DialogHeader>
+          {viewUserModal && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-muted-foreground">Name:</span> <span className="font-medium">{viewUserModal.name}</span></div>
+                <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{viewUserModal.email}</span></div>
+                <div><span className="text-muted-foreground">Role:</span> <span className="font-medium capitalize">{viewUserModal.role}</span></div>
+                <div><span className="text-muted-foreground">Plan:</span> <Badge variant="outline">{viewUserModal.plan}</Badge></div>
+                <div><span className="text-muted-foreground">Status:</span> <UserStatusBadge status={viewUserModal.status} /></div>
+                <div><span className="text-muted-foreground">Hours:</span> <span className="font-medium">{viewUserModal.hours.toFixed(1)}</span></div>
+                <div><span className="text-muted-foreground">Club:</span> <span className="font-medium">{viewUserModal.club || "—"}</span></div>
+                <div><span className="text-muted-foreground">Joined:</span> <span className="font-medium">{viewUserModal.joined}</span></div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewUserModal(null)}>Close</Button>
+            <Button onClick={() => { setEditUserModal(viewUserModal); setViewUserModal(null); }}>Edit User</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Modal */}
+      <Dialog open={!!editUserModal} onOpenChange={() => setEditUserModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update user information and settings</DialogDescription>
+          </DialogHeader>
+          {editUserModal && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input defaultValue={editUserModal.name} />
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <Input type="email" defaultValue={editUserModal.email} />
+              </div>
+              <div className="space-y-2">
+                <Label>Plan</Label>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editUserModal.plan}>
+                  <option value="Free">Free</option>
+                  <option value="Pro">Pro</option>
+                  <option value="Enterprise">Enterprise</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editUserModal.status}>
+                  <option value="active">Active</option>
+                  <option value="suspended">Suspended</option>
+                  <option value="pending">Pending</option>
+                </select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditUserModal(null)}>Cancel</Button>
+            <Button onClick={() => { alert('User updated!'); setEditUserModal(null); }}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Aircraft Modal */}
+      <Dialog open={!!viewAircraftModal} onOpenChange={() => setViewAircraftModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Aircraft Details</DialogTitle>
+          </DialogHeader>
+          {viewAircraftModal && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-muted-foreground">Registration:</span> <span className="font-mono font-bold">{viewAircraftModal.reg}</span></div>
+                <div><span className="text-muted-foreground">Type:</span> <span className="font-medium">{viewAircraftModal.type}</span></div>
+                <div><span className="text-muted-foreground">Owner:</span> <span className="font-medium">{viewAircraftModal.owner}</span></div>
+                <div><span className="text-muted-foreground">Status:</span> <UserStatusBadge status={viewAircraftModal.status === "active" ? "active" : "suspended"} /></div>
+                <div><span className="text-muted-foreground">Hobbs:</span> <span className="font-medium">{viewAircraftModal.hobbs.toFixed(1)} hrs</span></div>
+                <div><span className="text-muted-foreground">Next MX:</span> <span className={viewAircraftModal.nextMx === "Overdue" ? "text-destructive font-medium" : "font-medium"}>{viewAircraftModal.nextMx}</span></div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewAircraftModal(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Aircraft Modal */}
+      <Dialog open={!!editAircraftModal} onOpenChange={() => setEditAircraftModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Aircraft</DialogTitle>
+          </DialogHeader>
+          {editAircraftModal && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Registration</Label>
+                <Input defaultValue={editAircraftModal.reg} />
+              </div>
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Input defaultValue={editAircraftModal.type} />
+              </div>
+              <div className="space-y-2">
+                <Label>Owner</Label>
+                <Input defaultValue={editAircraftModal.owner} />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editAircraftModal.status}>
+                  <option value="active">Active</option>
+                  <option value="maintenance">Maintenance</option>
+                  <option value="grounded">Grounded</option>
+                </select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditAircraftModal(null)}>Cancel</Button>
+            <Button onClick={() => { alert('Aircraft updated!'); setEditAircraftModal(null); }}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Club Modal */}
+      <Dialog open={!!viewClubModal} onOpenChange={() => setViewClubModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Club Details</DialogTitle>
+          </DialogHeader>
+          {viewClubModal && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div><span className="text-muted-foreground">Name:</span> <span className="font-medium">{viewClubModal.name}</span></div>
+                <div><span className="text-muted-foreground">Plan:</span> <Badge variant="outline">{viewClubModal.plan}</Badge></div>
+                <div><span className="text-muted-foreground">Members:</span> <span className="font-medium">{viewClubModal.members}</span></div>
+                <div><span className="text-muted-foreground">Aircraft:</span> <span className="font-medium">{viewClubModal.aircraft}</span></div>
+                <div><span className="text-muted-foreground">Revenue:</span> <span className="font-medium">${viewClubModal.revenue}/mo</span></div>
+                <div><span className="text-muted-foreground">Joined:</span> <span className="font-medium">{viewClubModal.joined}</span></div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewClubModal(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Club Modal */}
+      <Dialog open={!!editClubModal} onOpenChange={() => setEditClubModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Club</DialogTitle>
+          </DialogHeader>
+          {editClubModal && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Club Name</Label>
+                <Input defaultValue={editClubModal.name} />
+              </div>
+              <div className="space-y-2">
+                <Label>Plan</Label>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editClubModal.plan}>
+                  <option value="Free">Free</option>
+                  <option value="Pro">Pro</option>
+                  <option value="Enterprise">Enterprise</option>
+                </select>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditClubModal(null)}>Cancel</Button>
+            <Button onClick={() => { alert('Club updated!'); setEditClubModal(null); }}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Listing Modal */}
+      <Dialog open={!!viewListingModal} onOpenChange={() => setViewListingModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Listing Details</DialogTitle>
+          </DialogHeader>
+          {viewListingModal && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="col-span-2"><span className="text-muted-foreground">Title:</span> <span className="font-medium">{viewListingModal.title}</span></div>
+                <div><span className="text-muted-foreground">Price:</span> <span className="font-bold">${viewListingModal.price.toLocaleString()}</span></div>
+                <div><span className="text-muted-foreground">Seller:</span> <span className="font-medium">{viewListingModal.seller}</span></div>
+                <div><span className="text-muted-foreground">Status:</span> <UserStatusBadge status={viewListingModal.status === "active" ? "active" : "pending"} /></div>
+                <div><span className="text-muted-foreground">Views:</span> <span className="font-medium">{viewListingModal.views}</span></div>
+                <div className="col-span-2"><span className="text-muted-foreground">Listed:</span> <span className="font-medium">{viewListingModal.listed}</span></div>
+              </div>
+              {viewListingModal.flagged && (
+                <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
+                  ⚠️ This listing has been flagged and requires review.
+                </div>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewListingModal(null)}>Close</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Transaction Modal */}
+      <Dialog open={!!viewTransactionModal} onOpenChange={() => setViewTransactionModal(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Transaction Details</DialogTitle>
+          </DialogHeader>
+          {viewTransactionModal && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="col-span-2"><span className="text-muted-foreground">ID:</span> <span className="font-mono">{viewTransactionModal.id}</span></div>
+                <div><span className="text-muted-foreground">User:</span> <span className="font-medium">{viewTransactionModal.user}</span></div>
+                <div><span className="text-muted-foreground">Plan:</span> <Badge variant="outline">{viewTransactionModal.plan}</Badge></div>
+                <div><span className="text-muted-foreground">Amount:</span> <span className="font-bold">${viewTransactionModal.amount}</span></div>
+                <div><span className="text-muted-foreground">Status:</span> <TxnStatusBadge status={viewTransactionModal.status} /></div>
+                <div className="col-span-2"><span className="text-muted-foreground">Date:</span> <span className="font-medium">{viewTransactionModal.date}</span></div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewTransactionModal(null)}>Close</Button>
+            <Button onClick={() => { handleDownloadInvoice(viewTransactionModal!.id); setViewTransactionModal(null); }}>
+              <Download className="h-3 w-3 mr-2" /> Download Invoice
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invite User Modal */}
+      <Dialog open={inviteUserModal} onOpenChange={setInviteUserModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Invite New User</DialogTitle>
+            <DialogDescription>Send an invitation to join the platform</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Email Address</Label>
+              <Input type="email" placeholder="pilot@example.com" />
+            </div>
+            <div className="space-y-2">
+              <Label>Name (optional)</Label>
+              <Input placeholder="John Doe" />
+            </div>
+            <div className="space-y-2">
+              <Label>Default Plan</Label>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="Free">Free</option>
+                <option value="Pro">Pro</option>
+                <option value="Enterprise">Enterprise</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Personal Message (optional)</Label>
+              <Textarea placeholder="Welcome to AviationHub..." rows={3} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setInviteUserModal(false)}>Cancel</Button>
+            <Button onClick={() => { alert('Invitation sent!'); setInviteUserModal(false); }}>
+              <Mail className="h-3 w-3 mr-2" /> Send Invitation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Club Modal */}
+      <Dialog open={addClubModal} onOpenChange={setAddClubModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Club</DialogTitle>
+            <DialogDescription>Register a new flying club or organization</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Club Name</Label>
+              <Input placeholder="Boston Flying Club" />
+            </div>
+            <div className="space-y-2">
+              <Label>Admin Email</Label>
+              <Input type="email" placeholder="admin@flyingclub.com" />
+            </div>
+            <div className="space-y-2">
+              <Label>Initial Plan</Label>
+              <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                <option value="Free">Free (Trial)</option>
+                <option value="Pro">Pro</option>
+                <option value="Enterprise">Enterprise</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label>Notes (optional)</Label>
+              <Textarea placeholder="Any special requirements..." rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddClubModal(false)}>Cancel</Button>
+            <Button onClick={() => { alert('Club created!'); setAddClubModal(false); }}>
+              <Building2 className="h-3 w-3 mr-2" /> Create Club
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       </div>
     </div>
   )
