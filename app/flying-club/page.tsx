@@ -97,6 +97,7 @@ export default function FlyingClubPage() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedGroup, setSelectedGroup] = useState('all')
+  const [viewingGroupDetails, setViewingGroupDetails] = useState<string | null>(null)
 
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -222,7 +223,7 @@ export default function FlyingClubPage() {
             {/* Groups Overview */}
             <div className="grid gap-6 lg:grid-cols-2">
               {mockGroups.map((group) => (
-                <Card key={group.id}>
+                <Card key={group.id} className="flex flex-col">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div>
@@ -234,7 +235,7 @@ export default function FlyingClubPage() {
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-4">
+                  <CardContent className="flex-1 flex flex-col space-y-4">
                     <div className="flex items-center gap-4 text-sm">
                       <div className="flex items-center gap-1.5 text-muted-foreground">
                         <Plane className="h-4 w-4" />
@@ -248,7 +249,7 @@ export default function FlyingClubPage() {
 
                     <Separator />
 
-                    <div className="space-y-3">
+                    <div className="flex-1 space-y-3">
                       <p className="text-sm font-medium">Aircraft</p>
                       {group.aircraft.map((aircraft) => (
                         <div key={aircraft.id} className="flex items-center justify-between rounded-lg border border-border p-3">
@@ -271,13 +272,15 @@ export default function FlyingClubPage() {
                       ))}
                     </div>
 
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => setSelectedGroup(group.id)}
-                    >
-                      View Group Details
-                    </Button>
+                    <div className="mt-auto pt-4">
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => setViewingGroupDetails(group.id)}
+                      >
+                        View Group Details
+                      </Button>
+                    </div>
                   </CardContent>
                 </Card>
               ))}
