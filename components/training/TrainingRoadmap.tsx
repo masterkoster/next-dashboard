@@ -178,7 +178,13 @@ export default function TrainingRoadmap({
                     </TooltipTrigger>
                     
                     {/* Tooltip with full details */}
-                    <TooltipContent side="right" className="w-80">
+                    <TooltipContent
+                      side="right"
+                      align="start"
+                      sideOffset={12}
+                      collisionPadding={16}
+                      className="w-80 max-w-[calc(100vw-2rem)]"
+                    >
                       <div className="space-y-2">
                         <h4 className="font-semibold">{milestone.title}</h4>
                         <p className="text-sm text-muted-foreground">{milestone.description}</p>
