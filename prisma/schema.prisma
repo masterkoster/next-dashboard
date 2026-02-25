@@ -611,12 +611,18 @@ model Invite {
 }
 
 model Maintenance {
-  id             String    @id(map: "PK__Maintena__3213E83FBBF3C62C") @default("newid()", map: "DF__Maintenance__id__3493CFA7") @db.NVarChar(36)
-  aircraftId     String    @db.NVarChar(36)
-  userId         String    @db.NVarChar(36)
-  description    String    @db.NVarChar(Max)
-  status         String?   @default("NEEDED", map: "DF__Maintenan__statu__3587F3E0") @db.NVarChar(20)
-  maintenanceType String? @default("CLUB") @db.NVarChar(20) // "PERSONAL" or "CLUB"
+  id              String    @id(map: "PK__Maintena__3213E83FBBF3C62C") @default("newid()", map: "DF__Maintenance__id__3493CFA7") @db.NVarChar(36)
+  aircraftId      String    @db.NVarChar(36)
+  userId          String    @db.NVarChar(36)
+  description     String    @db.NVarChar(Max)
+  status          String?   @default("NEEDED", map: "DF__Maintenan__statu__3587F3E0") @db.NVarChar(20)
+  maintenanceType String?   @default("CLUB") @db.NVarChar(20) // "PERSONAL" or "CLUB"
+  category        String?   @db.NVarChar(50) // Oil, Engine, Avionics, Airframe, Prop, Electrical, Interior, OTHER
+  isGeneric       Boolean   @default(false) // True if auto-created squawk
+  isPlaneSpecific Boolean  @default(false) // True if goes to admin queue
+  severity        String?   @default("LOW") @db.NVarChar(20) // LOW, MEDIUM, HIGH
+  flightLogId     String?   @db.NVarChar(36) // Link to flight that caused issue
+  reportedByUserId String?  @db.NVarChar(36)
   isGrounded     Boolean   @default(false)
   reportedDate   DateTime? @default(now(), map: "DF__Maintenan__repor__367C1819")
   resolvedDate   DateTime?
@@ -626,6 +632,25 @@ model Maintenance {
   updatedAt      DateTime? @default(now(), map: "DF__Maintenan__updat__3864608B") @updatedAt
 
   @@map("Maintenance")
+}
+
+model FuelExpense {
+  id           String    @id @default("newid()") @db.NVarChar(36)
+  aircraftId   String    @db.NVarChar(36)
+  userId       String    @db.NVarChar(36)
+  flightLogId  String?   @db.NVarChar(36)
+  gallons      Decimal   @db.Decimal(10, 2)
+  pricePerGallon Decimal @db.Decimal(10, 2)
+  totalCost    Decimal   @db.Decimal(10, 2)
+  status       String    @default("PENDING") @db.NVarChar(20) // PENDING, APPROVED, DENIED
+  receiptUrl   String?   @db.NVarChar(500)
+  notes        String?   @db.NVarChar(Max)
+  approvedBy   String?   @db.NVarChar(36)
+  approvedAt   DateTime?
+  createdAt    DateTime? @default(now())
+  updatedAt    DateTime? @default(now()) @updatedAt
+
+  @@map("FuelExpense")
 }
 
 model ClubAircraft {

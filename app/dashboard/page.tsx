@@ -37,6 +37,7 @@ import {
   User
 } from "lucide-react"
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from "recharts"
+import { FlightCompleteWizard } from "@/components/flight-complete/FlightCompleteWizard"
 
 // Demo data markers - TODO: Connect to real database tables
 // - LogbookEntry table for flight hours
@@ -124,6 +125,8 @@ export default function PilotDashboard() {
   const [selectedFlightPlan, setSelectedFlightPlan] = useState<typeof savedFlightPlans[0] | null>(null)
   const [selectedMaintenanceItem, setSelectedMaintenanceItem] = useState<typeof maintenanceItems[0] | null>(null)
   const [selectedCurrencyItem, setSelectedCurrencyItem] = useState<typeof currencyItems[0] | null>(null)
+  const [showFlightComplete, setShowFlightComplete] = useState(false)
+  const [activeFlight, setActiveFlight] = useState<{id: string; aircraftId: string; aircraftName: string; userId: string; userName: string; hobbsStart?: number} | null>(null)
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -418,6 +421,40 @@ export default function PilotDashboard() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Complete Flight Button */}
+            <Card className="border-emerald-500/50 bg-emerald-500/10">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-2">
+                  <Plane className="h-5 w-5 text-emerald-500" />
+                  <CardTitle className="text-base">Complete Flight</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="text-sm">Just finished flying?</p>
+                  <p className="text-xs text-muted-foreground">Log your flight, add fuel expenses, and report any issues</p>
+                  <Button 
+                    size="sm" 
+                    className="w-full bg-emerald-500 hover:bg-emerald-600" 
+                    onClick={() => {
+                      // Demo: Set active flight and open wizard
+                      setActiveFlight({
+                        id: 'demo-flight-1',
+                        aircraftId: 'aircraft-1',
+                        aircraftName: 'N123AB (C172)',
+                        userId: 'user-1',
+                        userName: 'John Doe',
+                        hobbsStart: 1250.5
+                      });
+                      setShowFlightComplete(true);
+                    }}
+                  >
+                    Complete Flight
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
             
             <Card className="border-chart-2/50 bg-chart-2/5">
               <CardHeader className="pb-3">
@@ -704,6 +741,20 @@ export default function PilotDashboard() {
           </Card>
           )}
         </div>
+
+        {/* Flight Completion Wizard */}
+        {activeFlight && (
+          <FlightCompleteWizard
+            open={showFlightComplete}
+            onOpenChange={setShowFlightComplete}
+            flight={activeFlight}
+            onComplete={async (data) => {
+              console.log('Flight completed:', data);
+              // TODO: Submit to API
+              alert('Flight logged! (Demo - API not connected yet)');
+            }}
+          />
+        )}
       </main>
     </div>
   )
