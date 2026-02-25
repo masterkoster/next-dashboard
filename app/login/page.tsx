@@ -43,7 +43,8 @@ export default function LoginPage() {
     if (result?.error) {
       setError("Invalid username or password");
     } else if (result?.ok) {
-      window.location.href = "/dashboard";
+      // User can choose - landing page or dashboard
+      window.location.href = "/";
     } else {
       setError("Something went wrong");
     }

@@ -37,11 +37,19 @@ const NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    label: "Training",
+    children: [
+      { label: "Training Tracker", href: "/modules/training", description: "Track your progress toward certification" },
+      { label: "Engine Health", href: "/modules/engine-health", description: "Monitor engine data and detect anomalies" },
+    ],
+  },
+  {
     label: "Club",
     children: [
       { label: "Flying Club", href: "/flying-club", description: "Manage your aviation group" },
       { label: "Members", href: "/flying-club", description: "View and manage club members" },
       { label: "Aircraft", href: "/flying-club", description: "Club fleet management" },
+      { label: "Currency Dashboard", href: "/flying-club/currency", description: "Member currency status at a glance" },
     ],
   },
   {
@@ -74,6 +82,22 @@ const SUB_NAV: SubNavConfig = {
     { label: "Saved Plans", href: "/fuel-saver" },
     { label: "Trip Finder", href: "/fuel-saver" },
     { label: "Weather", href: "/fuel-saver" },
+  ],
+  "/modules/training": [
+    { label: "Goals", href: "/modules/training" },
+    { label: "Roadmap", href: "/modules/training" },
+    { label: "Progress", href: "/modules/training" },
+    { label: "Costs", href: "/modules/training" },
+  ],
+  "/modules/engine-health": [
+    { label: "Upload Data", href: "/modules/engine-health" },
+    { label: "Anomalies", href: "/modules/engine-health" },
+    { label: "Trends", href: "/modules/engine-health" },
+  ],
+  "/flying-club/currency": [
+    { label: "All Members", href: "/flying-club/currency" },
+    { label: "Expiring Soon", href: "/flying-club/currency" },
+    { label: "Not Current", href: "/flying-club/currency" },
   ],
   "/profile": [
     { label: "Personal Info", href: "/profile" },
