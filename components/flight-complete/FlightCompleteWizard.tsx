@@ -477,9 +477,9 @@ export function FlightCompleteWizard({ open, onOpenChange, flight, onComplete }:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[85vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader className="shrink-0 pb-2">
-          <DialogTitle className="text-base">Complete Flight</DialogTitle>
+          <DialogTitle className="text-lg">Complete Flight</DialogTitle>
           <DialogDescription className="text-xs">
             Step {showSummaryStep ? '5 (Summary)' : step} of {totalSteps}
           </DialogDescription>

@@ -27,7 +27,7 @@ type NavItem = {
 const NAV_ITEMS: NavItem[] = [
   {
     label: "Dashboard",
-    href: "/",
+    href: "/dashboard",
   },
   {
     label: "Plan & Fly",
