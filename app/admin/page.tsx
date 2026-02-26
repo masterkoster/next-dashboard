@@ -89,6 +89,7 @@ type AdminStats = {
   totalUsers?: number
   totalAircraft?: number
   estimatedMRR?: number
+  estimatedAnnualRevenue?: number
   listingFlagged?: number
   listingActive?: number
   listingPending?: number
