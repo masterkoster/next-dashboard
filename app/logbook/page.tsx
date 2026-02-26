@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { useSession, signIn } from 'next-auth/react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plane, Download, Plus, FileText, ShieldCheck, Upload } from 'lucide-react'
 
@@ -64,7 +63,7 @@ const TAB_KEYS = [
 
 type TabKey = typeof TAB_KEYS[number]
 
-export default function LogbookPage() {
+function LogbookContent() {
   const { data: session, status } = useSession()
   const searchParams = useSearchParams()
   const initialTab = (searchParams.get('tab') as TabKey) || 'add'
@@ -116,7 +115,7 @@ export default function LogbookPage() {
       if (!res.ok) throw new Error('Failed to load logbook')
       const data = await res.json()
       setEntries(Array.isArray(data.entries) ? data.entries : [])
-    } catch (err) {
+    } catch {
       setError('Failed to load logbook')
     } finally {
       setLoading(false)
@@ -208,7 +207,7 @@ export default function LogbookPage() {
       if (!res.ok) throw new Error('Failed to save entry')
       await loadEntries()
       setActiveTab('search')
-    } catch (err) {
+    } catch {
       setError('Failed to save entry')
     } finally {
       setLoading(false)
@@ -544,5 +543,13 @@ export default function LogbookPage() {
         </Tabs>
       </div>
     </div>
+  )
+}
+
+export default function LogbookPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background p-6">Loading…</div>}>
+      <LogbookContent />
+    </Suspense>
   )
 }
