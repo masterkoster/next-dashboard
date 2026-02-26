@@ -337,6 +337,7 @@ function StackedStage({
 
 type Tab =
   | "overview"
+  | "logbook"
   | "awaiting-dispatch" | "currently-dispatched" | "past-flights"
   | "users" | "administrators" | "instructors" | "groups"
   | "aircraft" | "items" | "adjustments" | "forms"
@@ -360,6 +361,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Flights",
     items: [
+      { id: "logbook", label: "Logbook", href: "/logbook" },
       { id: "awaiting-dispatch", label: "Awaiting Dispatch" },
       { id: "currently-dispatched", label: "Currently Dispatched" },
       { id: "past-flights", label: "Past Flights" },
@@ -748,6 +750,7 @@ export default function AdminDashboard() {
       system: systemServices,
       pipeline: [],
       "data-warehouse": [],
+      logbook: [],
     }
     
     const data = dataMap[activeTab] || []
