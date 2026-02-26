@@ -489,7 +489,7 @@ export default function FlyingClubPage() {
                         <option value="" disabled>Complete flight...</option>
                           {todaysFlights.map(flight => (
                           <option key={flight.id} value={flight.id}>
-                            {flight.aircraftName || 'Aircraft'} - {flight.userName || 'Pilot'} ({flight.startTime || flight.time})
+                            {flight.aircraftName || 'Aircraft'} - {flight.userName || 'Pilot'} ({flight.startTime})
                           </option>
                         ))}
                       </select>
