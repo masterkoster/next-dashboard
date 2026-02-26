@@ -13,7 +13,7 @@ export async function GET() {
     }
 
     const listings = await prisma.maintenanceRequest.findMany({
-      where: { status: 'OPEN' },
+      where: { status: { in: ['OPEN', 'QUOTED', 'ACCEPTED', 'IN_PROGRESS'] }, visibility: 'MECHANIC' },
       orderBy: { createdAt: 'desc' },
       take: 200,
     })
@@ -38,6 +38,8 @@ export async function POST(request: Request) {
       description,
       category,
       urgency,
+      neededBy,
+      jobSize,
       aircraftType,
       airportIcao,
       airportName,
@@ -61,6 +63,8 @@ export async function POST(request: Request) {
         description,
         category,
         urgency: urgency || 'NORMAL',
+        neededBy: neededBy ? new Date(neededBy) : null,
+        jobSize: jobSize || 'MEDIUM',
         aircraftType: aircraftType ?? null,
         airportIcao: airportIcao ?? null,
         airportName: airportName ?? null,
@@ -70,6 +74,7 @@ export async function POST(request: Request) {
         locationLng: typeof locationLng === 'number' ? locationLng : null,
         locationPrivacy: locationPrivacy ?? 'CITY',
         source: source || 'manual',
+        visibility: 'MECHANIC',
         requestedWork: requestedWork ?? null,
         anonymous: typeof anonymous === 'boolean' ? anonymous : true,
         postedByUserId: session.user.id,

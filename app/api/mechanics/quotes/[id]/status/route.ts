@@ -35,6 +35,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       data: { status },
     })
 
+    if (status === 'ACCEPTED') {
+      await prisma.maintenanceRequest.update({
+        where: { id: quote.maintenanceRequestId },
+        data: { status: 'ACCEPTED' },
+      })
+    }
+
     if (quote.mechanic?.email) {
       await sendQuoteStatusEmail(quote.mechanic.email, quote.maintenanceRequest.title, status)
     }

@@ -15,7 +15,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const body = await request.json()
-    const { message, quoteAmount, estimatedDays, availableDate } = body || {}
+    const { message, quoteAmount, estimatedDays, availableDate, laborRate, laborHours, partsEstimate, requiresApproval } = body || {}
 
     if (!message && !quoteAmount) {
       return NextResponse.json({ error: 'Message or quote required' }, { status: 400 })
@@ -44,6 +44,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         mechanicId: mechanic.id,
         amount: typeof quoteAmount === 'number' ? quoteAmount : null,
         description: message ?? '',
+        laborRate: typeof laborRate === 'number' ? laborRate : null,
+        laborHours: typeof laborHours === 'number' ? laborHours : null,
+        partsEstimate: typeof partsEstimate === 'number' ? partsEstimate : null,
+        requiresApproval: !!requiresApproval,
         estimatedDays: typeof estimatedDays === 'number' ? estimatedDays : null,
         availableDate: availableDate ? new Date(availableDate) : null,
         contactMethod: 'both',
@@ -52,6 +56,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       include: {
         maintenanceRequest: true,
       },
+    })
+
+    await prisma.maintenanceRequest.update({
+      where: { id: listing.id },
+      data: { status: 'QUOTED' },
     })
 
     if (listing.postedByEmail) {

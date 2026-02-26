@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -8,6 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Wrench } from 'lucide-react'
 
 type Listing = {
   id: string
@@ -15,6 +17,8 @@ type Listing = {
   description: string
   category: string
   urgency: string
+  neededBy?: string | null
+  jobSize?: string | null
   aircraftType?: string | null
   airportIcao?: string | null
   city?: string | null
@@ -31,7 +35,21 @@ export default function MechanicMarketplacePage() {
   const [respondingId, setRespondingId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [quoteAmount, setQuoteAmount] = useState('')
+  const [laborRate, setLaborRate] = useState('')
+  const [laborHours, setLaborHours] = useState('')
+  const [partsEstimate, setPartsEstimate] = useState('')
+  const [requiresApproval, setRequiresApproval] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [filterSize, setFilterSize] = useState<string>('ALL')
+  const [filterCategory, setFilterCategory] = useState<string>('ALL')
+
+  const filteredListings = useMemo(() => {
+    return listings.filter((listing) => {
+      if (filterSize !== 'ALL' && listing.jobSize !== filterSize) return false
+      if (filterCategory !== 'ALL' && listing.category !== filterCategory) return false
+      return true
+    })
+  }, [listings, filterSize, filterCategory])
 
   useEffect(() => {
     let active = true
@@ -77,12 +95,20 @@ export default function MechanicMarketplacePage() {
       body: JSON.stringify({
         message,
         quoteAmount: quoteAmount ? Number(quoteAmount) : undefined,
+        laborRate: laborRate ? Number(laborRate) : undefined,
+        laborHours: laborHours ? Number(laborHours) : undefined,
+        partsEstimate: partsEstimate ? Number(partsEstimate) : undefined,
+        requiresApproval,
       }),
     })
     if (res.ok) {
       setRespondingId(null)
       setMessage('')
       setQuoteAmount('')
+      setLaborRate('')
+      setLaborHours('')
+      setPartsEstimate('')
+      setRequiresApproval(false)
       setError(null)
     } else {
       setError('Failed to send response')
@@ -103,36 +129,80 @@ export default function MechanicMarketplacePage() {
 
   return (
     <div className="min-h-screen bg-background p-6 pt-12">
-      <div className="mx-auto max-w-5xl space-y-6">
+      <div className="mx-auto max-w-6xl space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Mechanic Marketplace</h1>
-          <p className="text-sm text-muted-foreground">Browse open maintenance requests.</p>
+          <h1 className="text-2xl font-bold">Service Bay</h1>
+          <p className="text-sm text-muted-foreground">Work orders available to mechanics.</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm">Open Requests</CardTitle>
+            <CardTitle className="text-sm">Filters</CardTitle>
+          </CardHeader>
+          <CardContent className="grid gap-4 md:grid-cols-2">
+            <div>
+              <Label className="text-xs text-muted-foreground">Job size</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {['ALL', 'SMALL', 'MEDIUM', 'LARGE'].map((size) => (
+                  <Button
+                    key={size}
+                    size="sm"
+                    variant={filterSize === size ? 'default' : 'outline'}
+                    onClick={() => setFilterSize(size)}
+                  >
+                    {size === 'ALL' ? 'All' : size}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Category</Label>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {['ALL', 'ENGINE', 'AVIONICS', 'AIRFRAME', 'ELECTRICAL', 'OTHER'].map((category) => (
+                  <Button
+                    key={category}
+                    size="sm"
+                    variant={filterCategory === category ? 'default' : 'outline'}
+                    onClick={() => setFilterCategory(category)}
+                  >
+                    {category === 'ALL' ? 'All' : category}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Open Work Orders</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {loading && <p className="text-sm text-muted-foreground">Loading listings…</p>}
             {error && <p className="text-sm text-destructive">{error}</p>}
-            {!loading && listings.length === 0 && (
+            {!loading && filteredListings.length === 0 && (
               <p className="text-sm text-muted-foreground">No open requests yet.</p>
             )}
-            {listings.map((listing) => (
+            {filteredListings.map((listing) => (
               <div key={listing.id} className="rounded-lg border border-border p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium">{listing.title}</p>
+                <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Wrench className="h-4 w-4 text-primary" />
+                      <p className="font-medium">{listing.title}</p>
+                    </div>
                     <p className="text-xs text-muted-foreground">
                       {[listing.city, listing.state, listing.airportIcao].filter(Boolean).join(' • ') || 'Location hidden'}
                     </p>
-                    <p className="mt-2 text-sm text-muted-foreground">{listing.description}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <p className="text-sm text-muted-foreground">{listing.description}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {listing.jobSize && <Badge variant="secondary" className="text-[10px]">{listing.jobSize} job</Badge>}
                       <Badge variant="outline" className="text-[10px]">{listing.category}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{listing.urgency}</Badge>
                       {listing.aircraftType && (
                         <Badge variant="outline" className="text-[10px]">{listing.aircraftType}</Badge>
+                      )}
+                      {listing.neededBy && (
+                        <Badge variant="outline" className="text-[10px]">Needed by {new Date(listing.neededBy).toLocaleDateString()}</Badge>
                       )}
                     </div>
                   </div>
@@ -148,12 +218,41 @@ export default function MechanicMarketplacePage() {
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                     />
-                    <Input
-                      type="number"
-                      placeholder="Quote amount (optional)"
-                      value={quoteAmount}
-                      onChange={(e) => setQuoteAmount(e.target.value)}
-                    />
+                    <div className="grid gap-3 md:grid-cols-2">
+                      <Input
+                        type="number"
+                        placeholder="Labor rate (per hour)"
+                        value={laborRate}
+                        onChange={(e) => setLaborRate(e.target.value)}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Estimated labor hours"
+                        value={laborHours}
+                        onChange={(e) => setLaborHours(e.target.value)}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Parts estimate"
+                        value={partsEstimate}
+                        onChange={(e) => setPartsEstimate(e.target.value)}
+                      />
+                      <Input
+                        type="number"
+                        placeholder="Flat total (optional)"
+                        value={quoteAmount}
+                        onChange={(e) => setQuoteAmount(e.target.value)}
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <input
+                        type="checkbox"
+                        checked={requiresApproval}
+                        onChange={(e) => setRequiresApproval(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      Require approval if parts exceed estimate
+                    </label>
                     <div className="flex gap-2">
                       <Button onClick={() => handleRespond(listing.id)}>Send</Button>
                       <Button variant="outline" onClick={() => setRespondingId(null)}>Cancel</Button>

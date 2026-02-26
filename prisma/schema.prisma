@@ -1473,16 +1473,19 @@ model MaintenanceRequest {
   // Category
   category        String   @db.NVarChar(50) // Engine, Avionics, Airframe, Oil, Prop, Electrical, OTHER
   urgency         String   @default("NORMAL") @db.NVarChar(20) // LOW, NORMAL, HIGH, URGENT
+  neededBy        DateTime?
+  jobSize         String   @default("MEDIUM") @db.NVarChar(20) // SMALL, MEDIUM, LARGE
   
   // Budget
   budgetMin       Decimal? @db.Decimal(10, 2)
   budgetMax       Decimal? @db.Decimal(10, 2)
   
   // Status
-  status          String   @default("OPEN") @db.NVarChar(20) // OPEN, IN_PROGRESS, COMPLETED, CANCELLED
+  status          String   @default("OPEN") @db.NVarChar(20) // OPEN, QUOTED, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELLED, REVOKED
   source          String   @default("manual") @db.NVarChar(20) // squawk, manual, scheduled
   anonymous       Boolean  @default(true)
   requestedWork   String?  @db.NVarChar(Max)
+  visibility      String   @default("MECHANIC") @db.NVarChar(20) // MECHANIC, PUBLIC
   
   // User info (who posted)
   postedByName    String?  @db.NVarChar(255)
@@ -1498,6 +1501,7 @@ model MaintenanceRequest {
   
   @@index([category])
   @@index([status])
+  @@index([jobSize])
   @@index([city, state])
   @@index([airportIcao])
   @@map("MaintenanceRequest")
@@ -1514,6 +1518,10 @@ model MechanicQuote {
   // Quote details
   amount          Decimal? @db.Decimal(10, 2)
   description     String   @db.NVarChar(Max)
+  laborRate       Decimal? @db.Decimal(10, 2)
+  laborHours      Decimal? @db.Decimal(10, 2)
+  partsEstimate   Decimal? @db.Decimal(10, 2)
+  requiresApproval Boolean @default(false)
   
   // Timeline
   estimatedDays   Int?     // Days to complete
@@ -1538,4 +1546,42 @@ model MechanicQuote {
   @@index([mechanicId])
   @@index([status])
   @@map("MechanicQuote")
+}
+
+model MechanicJobSchedule {
+  id              String   @id @default(uuid()) @db.NVarChar(36)
+  maintenanceRequestId String @db.NVarChar(36)
+  mechanicQuoteId String @db.NVarChar(36)
+  scheduledFor    DateTime
+  estimatedHours  Decimal? @db.Decimal(6, 2)
+  location        String?  @db.NVarChar(255)
+  notes           String?  @db.NVarChar(Max)
+  status          String   @default("SCHEDULED") @db.NVarChar(20) // SCHEDULED, COMPLETED, CANCELLED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
+  mechanicQuote       MechanicQuote      @relation(fields: [mechanicQuoteId], references: [id], onDelete: Cascade)
+
+  @@index([maintenanceRequestId])
+  @@index([mechanicQuoteId])
+  @@index([status])
+  @@map("MechanicJobSchedule")
+}
+
+model MechanicReview {
+  id           String   @id @default(uuid()) @db.NVarChar(36)
+  mechanicId   String   @db.NVarChar(36)
+  reviewerId   String   @db.NVarChar(36)
+  maintenanceRequestId String @db.NVarChar(36)
+  rating       Int      @db.Int
+  comment      String?  @db.NVarChar(Max)
+  createdAt    DateTime @default(now())
+
+  mechanic     Mechanic            @relation(fields: [mechanicId], references: [id], onDelete: Cascade)
+  maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
+
+  @@index([mechanicId])
+  @@index([maintenanceRequestId])
+  @@map("MechanicReview")
 }
