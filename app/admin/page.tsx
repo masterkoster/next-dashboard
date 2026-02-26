@@ -104,6 +104,7 @@ type AdminUser = {
   email?: string | null
   role?: string | null
   tier?: string | null
+  plan?: string | null
   status?: string | null
   hours?: number | null
   club?: string | null
