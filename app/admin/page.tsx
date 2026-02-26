@@ -114,12 +114,15 @@ type AdminUser = {
 type AdminAircraft = {
   id: string
   nNumber?: string | null
+  reg?: string | null
   make?: string | null
   model?: string | null
+  type?: string | null
   groupName?: string | null
   status?: string | null
   hobbs?: number | null
   nextMx?: string | null
+  owner?: string | null
 }
 
 type AdminClub = {
@@ -2039,12 +2042,12 @@ export default function AdminDashboard() {
           {viewAircraftModal && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div><span className="text-muted-foreground">Registration:</span> <span className="font-mono font-bold">{viewAircraftModal.reg}</span></div>
-                <div><span className="text-muted-foreground">Type:</span> <span className="font-medium">{viewAircraftModal.type}</span></div>
-                <div><span className="text-muted-foreground">Owner:</span> <span className="font-medium">{viewAircraftModal.owner}</span></div>
+                <div><span className="text-muted-foreground">Registration:</span> <span className="font-mono font-bold">{viewAircraftModal.reg || viewAircraftModal.nNumber || '—'}</span></div>
+                <div><span className="text-muted-foreground">Type:</span> <span className="font-medium">{viewAircraftModal.type || viewAircraftModal.model || '—'}</span></div>
+                <div><span className="text-muted-foreground">Owner:</span> <span className="font-medium">{viewAircraftModal.owner || '—'}</span></div>
                 <div><span className="text-muted-foreground">Status:</span> <UserStatusBadge status={viewAircraftModal.status === "active" ? "active" : "suspended"} /></div>
-                <div><span className="text-muted-foreground">Hobbs:</span> <span className="font-medium">{viewAircraftModal.hobbs.toFixed(1)} hrs</span></div>
-                <div><span className="text-muted-foreground">Next MX:</span> <span className={viewAircraftModal.nextMx === "Overdue" ? "text-destructive font-medium" : "font-medium"}>{viewAircraftModal.nextMx}</span></div>
+                <div><span className="text-muted-foreground">Hobbs:</span> <span className="font-medium">{(viewAircraftModal.hobbs || 0).toFixed(1)} hrs</span></div>
+                <div><span className="text-muted-foreground">Next MX:</span> <span className={viewAircraftModal.nextMx === "Overdue" ? "text-destructive font-medium" : "font-medium"}>{viewAircraftModal.nextMx || '—'}</span></div>
               </div>
             </div>
           )}
