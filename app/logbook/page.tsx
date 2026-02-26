@@ -285,24 +285,76 @@ function LogbookContent() {
 
   const uniqueAircraft = [...new Set(entries.map((e) => e.aircraft))]
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i)
+  const currencyCounts = currencyProgress.reduce(
+    (acc, rule: any) => {
+      acc[rule.status] = (acc[rule.status] || 0) + 1
+      return acc
+    },
+    { current: 0, expiring: 0, expired: 0 } as Record<string, number>
+  )
 
   return (
     <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold flex items-center gap-2"><Plane className="h-6 w-6" /> Logbook</h1>
-            <p className="text-sm text-muted-foreground">FAA + EASA logbook with endorsements, currency, and reports.</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant={authority === 'FAA' ? 'default' : 'outline'} size="sm" onClick={() => setAuthority('FAA')}>FAA</Button>
-            <Button variant={authority === 'EASA' ? 'default' : 'outline'} size="sm" onClick={() => setAuthority('EASA')}>EASA</Button>
-            <Button variant={authority === 'BOTH' ? 'default' : 'outline'} size="sm" onClick={() => setAuthority('BOTH')}>Both</Button>
-          </div>
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2"><Plane className="h-6 w-6" /> Logbook</h1>
+          <p className="text-sm text-muted-foreground">FAA + EASA logbook with endorsements, currency, and reports.</p>
         </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button onClick={() => setActiveTab('add')}>Add Flight</Button>
+          <Button variant="outline" onClick={() => setActiveTab('import')}>Import</Button>
+          <Button variant="outline" onClick={() => setActiveTab('print-view')}>Print</Button>
+          <Button variant="outline" onClick={async () => {
+            await fetch('/api/logbook/currency/calc', { method: 'POST' })
+            await loadCurrencyProgress()
+            setActiveTab('currency')
+          }}>Refresh Currency</Button>
+          <Button variant={authority === 'FAA' ? 'default' : 'outline'} size="sm" onClick={() => setAuthority('FAA')}>FAA</Button>
+          <Button variant={authority === 'EASA' ? 'default' : 'outline'} size="sm" onClick={() => setAuthority('EASA')}>EASA</Button>
+          <Button variant={authority === 'BOTH' ? 'default' : 'outline'} size="sm" onClick={() => setAuthority('BOTH')}>Both</Button>
+        </div>
+      </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-xs text-muted-foreground">Total Hours</p>
+            <p className="text-2xl font-semibold">{totals.totalTime.toFixed(1)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-xs text-muted-foreground">Night</p>
+            <p className="text-2xl font-semibold">{totals.nightTime.toFixed(1)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-xs text-muted-foreground">Instrument</p>
+            <p className="text-2xl font-semibold">{totals.instrumentTime.toFixed(1)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-xs text-muted-foreground">Cross Country</p>
+            <p className="text-2xl font-semibold">{totals.crossCountryTime.toFixed(1)}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-xs text-muted-foreground">Currency</p>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="secondary">Current {currencyCounts.current}</Badge>
+              <Badge variant="outline">Expiring {currencyCounts.expiring}</Badge>
+              <Badge variant="outline">Expired {currencyCounts.expired}</Badge>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
-        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
+      {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
           <TabsList className="flex flex-wrap">
             <TabsTrigger value="add">Add Flights</TabsTrigger>
             <TabsTrigger value="search">Search</TabsTrigger>
@@ -374,23 +426,31 @@ function LogbookContent() {
               <CardHeader>
                 <CardTitle>Entries</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
+              <CardContent className="space-y-4">
                 {loading && <p className="text-sm text-muted-foreground">Loading…</p>}
                 {!loading && filteredEntries.length === 0 && <p className="text-sm text-muted-foreground">No entries.</p>}
                 {filteredEntries.map((entry) => (
-                  <div key={entry.id} className="rounded-md border border-border p-3">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{entry.aircraft} · {entry.routeFrom} → {entry.routeTo}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(entry.date).toLocaleDateString()} · {entry.totalTime.toFixed(1)} hrs</p>
+                  <Card key={entry.id}>
+                    <CardContent className="pt-6">
+                      <div className="flex items-start justify-between gap-4">
+                        <div>
+                          <p className="text-lg font-semibold">{entry.aircraft}</p>
+                          <p className="text-sm text-muted-foreground">{entry.routeFrom} → {entry.routeTo}</p>
+                          <p className="text-xs text-muted-foreground mt-1">{new Date(entry.date).toLocaleDateString()}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-2xl font-semibold">{entry.totalTime.toFixed(1)} hrs</p>
+                          <div className="mt-2 flex flex-wrap justify-end gap-2">
+                            {entry.authority && <Badge variant="secondary">{entry.authority}</Badge>}
+                            {entry.isPending && <Badge variant="outline">Pending</Badge>}
+                            {entry.nightTime > 0 && <Badge variant="outline">Night</Badge>}
+                            {entry.instrumentTime > 0 && <Badge variant="outline">Instrument</Badge>}
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {entry.authority && <Badge variant="secondary">{entry.authority}</Badge>}
-                        {entry.isPending && <Badge variant="outline">Pending</Badge>}
-                      </div>
-                    </div>
-                    {entry.remarks && <p className="text-xs text-muted-foreground mt-2">{entry.remarks}</p>}
-                  </div>
+                      {entry.remarks && <p className="text-sm text-muted-foreground mt-3">{entry.remarks}</p>}
+                    </CardContent>
+                  </Card>
                 ))}
               </CardContent>
             </Card>
@@ -439,13 +499,21 @@ function LogbookContent() {
                         </div>
                         <Badge variant={rule.status === 'current' ? 'secondary' : 'outline'}>{rule.status}</Badge>
                       </div>
-                      <div className="mt-2 space-y-1 text-xs">
-                        {rule.progress.map((p: any, idx: number) => (
-                          <div key={idx} className="flex justify-between">
-                            <span>{p.unit}</span>
-                            <span>{p.completed} / {p.required}</span>
-                          </div>
-                        ))}
+                      <div className="mt-3 space-y-2 text-xs">
+                        {rule.progress.map((p: any, idx: number) => {
+                          const percent = Math.min(100, Math.round((p.completed / Math.max(1, p.required)) * 100))
+                          return (
+                            <div key={idx}>
+                              <div className="flex justify-between">
+                                <span>{p.unit}</span>
+                                <span>{p.completed} / {p.required}</span>
+                              </div>
+                              <div className="h-2 rounded-full bg-muted mt-1">
+                                <div className="h-2 rounded-full bg-primary" style={{ width: `${percent}%` }} />
+                              </div>
+                            </div>
+                          )
+                        })}
                       </div>
                       {rule.nextDueAt && (
                         <p className="mt-2 text-xs text-muted-foreground">Next due: {new Date(rule.nextDueAt).toLocaleDateString()}</p>
