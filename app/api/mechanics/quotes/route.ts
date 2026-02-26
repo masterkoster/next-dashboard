@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { NextResponse } from 'next/server'
 import { auth, prisma } from '@/lib/auth'
 
 export async function GET() {

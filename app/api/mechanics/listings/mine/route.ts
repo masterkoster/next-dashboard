@@ -11,6 +11,16 @@ export async function GET() {
     const listings = await prisma.maintenanceRequest.findMany({
       where: { postedByUserId: session.user.id },
       orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        category: true,
+        jobSize: true,
+        neededBy: true,
+        aircraftSnapshot: true,
+        logbookSnapshot: true,
+      },
     })
 
     return NextResponse.json({ listings })

@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { NextResponse } from 'next/server'
 import { auth, prisma } from '@/lib/auth'
 
 async function hasMaintenanceAccess(userId: string, groupId: string) {
