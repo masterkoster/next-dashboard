@@ -67,7 +67,7 @@ export async function POST(request: Request) {
           category: 'OTHER',
           urgency: isGrounded ? 'URGENT' : 'NORMAL',
           aircraftType: [aircraft?.make, aircraft?.model].filter(Boolean).join(' ') || null,
-          airportIcao: aircraft?.homeBase || null,
+          airportIcao: null,
           city: null,
           state: null,
           locationPrivacy: 'CITY',
