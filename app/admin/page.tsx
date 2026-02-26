@@ -732,6 +732,8 @@ export default function AdminDashboard() {
       "notification-settings": [],
       "add-ons": [],
       system: systemServices,
+      pipeline: [],
+      "data-warehouse": [],
     }
     
     const data = dataMap[activeTab] || []
