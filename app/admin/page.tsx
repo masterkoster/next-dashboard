@@ -90,6 +90,9 @@ type AdminStats = {
   totalAircraft?: number
   estimatedMRR?: number
   listingFlagged?: number
+  listingActive?: number
+  listingPending?: number
+  listingSold?: number
   proUsers?: number
   freeUsers?: number
 }
