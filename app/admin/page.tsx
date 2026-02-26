@@ -55,6 +55,7 @@ import {
   Wrench,
   BarChart3,
 } from "lucide-react"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   AreaChart,
   Area,
@@ -151,6 +152,76 @@ function TxnStatusBadge({ status }: { status: string }) {
   )
 }
 
+function PipelineStageCard({
+  label,
+  value,
+  usedBy,
+}: {
+  label: string
+  value: number
+  usedBy?: string[]
+}) {
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+        <Badge variant="secondary">{value}</Badge>
+      </div>
+      {usedBy && (
+        <p className="mt-2 text-[11px] text-muted-foreground">Used by: {usedBy.join(', ')}</p>
+      )}
+      <div className="mt-3">
+        <Progress value={Math.min(100, value % 100)} className="h-1.5" />
+      </div>
+    </div>
+  )
+}
+
+const pipelineModuleColors: Record<string, string> = {
+  logbook: "bg-sky-500",
+  training: "bg-emerald-500",
+  currency: "bg-amber-500",
+  plan: "bg-violet-500",
+  marketplace: "bg-blue-500",
+  mechanic: "bg-orange-500",
+  club: "bg-teal-500",
+}
+
+function StackedStage({
+  label,
+  breakdown,
+}: {
+  label: string
+  breakdown: Record<string, number>
+}) {
+  const total = Object.values(breakdown).reduce((sum, v) => sum + v, 0) || 1
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center justify-between">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+        <Badge variant="secondary">{total}</Badge>
+      </div>
+      <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-muted">
+        {Object.entries(breakdown).map(([key, value]) => (
+          <div
+            key={key}
+            className={`h-full ${pipelineModuleColors[key] ?? "bg-muted-foreground/40"}`}
+            style={{ width: `${(value / total) * 100}%` }}
+          />
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
+        {Object.entries(breakdown).map(([key, value]) => (
+          <span key={key} className="inline-flex items-center gap-1">
+            <span className={`h-2 w-2 rounded-full ${pipelineModuleColors[key] ?? "bg-muted-foreground/40"}`} />
+            {key}: {value}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 // ── Sidebar nav data ───────────────────────────────────────────────────────────
 
 type Tab =
@@ -226,6 +297,8 @@ export default function AdminDashboard() {
   const [billingTransactions, setBillingTransactions] = useState<any[]>([])
   const [flightSummary, setFlightSummary] = useState<any | null>(null)
   const [systemServices, setSystemServices] = useState<any[]>([])
+  const [pipelineModule, setPipelineModule] = useState<string>('totals')
+  const [pipelineData, setPipelineData] = useState<any | null>(null)
 
   const [isOverviewLoading, setIsOverviewLoading] = useState(false)
   const [overviewError, setOverviewError] = useState<string | null>(null)
@@ -334,6 +407,28 @@ export default function AdminDashboard() {
       cancelled = true
     }
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadPipeline() {
+      try {
+        const res = await fetch(`/api/admin/pipeline?module=${pipelineModule}`)
+        if (!res.ok) throw new Error('Failed to load pipeline')
+        const data = await res.json()
+        if (!cancelled) setPipelineData(data)
+      } catch (error) {
+        console.error('Failed to load pipeline', error)
+      }
+    }
+
+    loadPipeline()
+    const interval = setInterval(loadPipeline, 10000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [pipelineModule])
 
   useEffect(() => {
     let cancelled = false
@@ -969,6 +1064,51 @@ export default function AdminDashboard() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Data pipeline visualization */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Data Pipeline</CardTitle>
+                  <Tabs value={pipelineModule} onValueChange={setPipelineModule}>
+                    <TabsList className="h-7">
+                      {['totals','logbook','training','currency','plan','marketplace','mechanic','club'].map((key) => (
+                        <TabsTrigger key={key} value={key} className="text-[10px] px-2">
+                          {key.charAt(0).toUpperCase() + key.slice(1)}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                </div>
+                <CardDescription className="text-xs">Ingestion → Validation → Storage → Analytics → Outputs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!pipelineData && (
+                  <div className="text-xs text-muted-foreground">Loading pipeline…</div>
+                )}
+
+                {pipelineData?.module === 'totals' && (
+                  <div className="grid gap-4 lg:grid-cols-5">
+                    {pipelineData.stages?.map((stage: any) => (
+                      <StackedStage key={stage.stage} label={stage.stage} breakdown={stage.breakdown} />
+                    ))}
+                  </div>
+                )}
+
+                {pipelineData?.module !== 'totals' && pipelineData?.stages && (
+                  <div className="grid gap-4 lg:grid-cols-5">
+                    {pipelineData.stages.map((stage: any) => (
+                      <PipelineStageCard
+                        key={stage.stage}
+                        label={stage.stage}
+                        value={stage.value}
+                        usedBy={pipelineData.usedBy}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
             {/* System health quick view */}
             <Card>
