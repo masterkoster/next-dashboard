@@ -30,16 +30,34 @@ const NAV_ITEMS: NavItem[] = [
     href: "/dashboard",
   },
   {
+    label: "Logbook",
+    children: [
+      { label: "Add Flights", href: "/logbook?tab=add", description: "Create a new logbook entry" },
+      { label: "Search", href: "/logbook?tab=search", description: "Find flights quickly" },
+      { label: "Totals", href: "/logbook?tab=totals", description: "View totals and summaries" },
+      { label: "Currency", href: "/logbook?tab=currency", description: "FAA/EASA currency status" },
+      { label: "Analysis", href: "/logbook?tab=analysis", description: "Charts and trends" },
+      { label: "Download", href: "/logbook?tab=download", description: "Export your logbook" },
+      { label: "Import", href: "/logbook?tab=import", description: "Import other logbooks" },
+      { label: "Starting Totals", href: "/logbook?tab=starting-totals", description: "Set baseline totals" },
+      { label: "Check Flights", href: "/logbook?tab=check-flights", description: "Validate entries" },
+      { label: "Print View", href: "/logbook?tab=print-view", description: "FAA/EASA print formats" },
+      { label: "Pending Flights", href: "/logbook?tab=pending", description: "Awaiting instructor approval" },
+    ],
+  },
+  {
     label: "Plan & Fly",
     children: [
       { label: "Fuel Saver", href: "/fuel-saver", description: "Optimise routes and reduce fuel costs" },
       { label: "Flight Planner", href: "/fuel-saver", description: "Plan cross-country routes" },
+      { label: "Airports", href: "/airports", description: "Find airports and routes" },
     ],
   },
   {
     label: "Training",
     children: [
       { label: "Training Tracker", href: "/modules/training", description: "Track your progress toward certification" },
+      { label: "Endorsements", href: "/training/endorsements", description: "FAA/EASA endorsements" },
       { label: "Engine Health", href: "/modules/engine-health", description: "Monitor engine data and detect anomalies" },
     ],
   },
@@ -49,6 +67,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Flying Club", href: "/flying-club", description: "Manage your aviation group" },
       { label: "Members", href: "/flying-club", description: "View and manage club members" },
       { label: "Aircraft", href: "/flying-club", description: "Club fleet management" },
+      { label: "Maintenance", href: "/flying-club/maintenance-requests", description: "Club maintenance queue" },
       { label: "Currency Dashboard", href: "/flying-club/currency", description: "Member currency status at a glance" },
       { label: "Hobbs Billing", href: "/flying-club/billing", description: "Automated hourly billing" },
       { label: "Squawk Log", href: "/flying-club/squawks", description: "Report aircraft issues" },
@@ -72,10 +91,6 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Mechanic Onboarding", href: "/mechanics/onboarding", description: "Set up your mechanic account" },
       { label: "Demo Marketplace", href: "/mechanics/demo", description: "Preview with demo data" },
     ],
-  },
-  {
-    label: "Club Maintenance",
-    href: "/flying-club/maintenance-requests",
   },
 ]
 

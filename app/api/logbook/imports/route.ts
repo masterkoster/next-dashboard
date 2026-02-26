@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server'
-import { NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
@@ -7,12 +6,12 @@ export async function GET() {
   const session = await auth()
   if (!session?.user?.id) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
-  const aircraft = await prisma.aircraftProfile.findMany({
+  const imports = await prisma.logbookImport.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: 'desc' },
   })
 
-  return NextResponse.json({ aircraft })
+  return NextResponse.json({ imports })
 }
 
 export async function POST(request: Request) {
@@ -20,18 +19,14 @@ export async function POST(request: Request) {
   if (!session?.user?.id) return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
 
   const body = await request.json()
-  if (!body.nNumber) return NextResponse.json({ error: 'N-Number required' }, { status: 400 })
-
-  const created = await prisma.aircraftProfile.create({
+  const created = await prisma.logbookImport.create({
     data: {
       userId: session.user.id,
-      nNumber: body.nNumber,
-      nickname: body.nickname || null,
-      categoryClass: body.categoryClass || null,
-      engineType: body.engineType || null,
-      notes: body.notes || null,
+      source: body.source || 'CSV',
+      fileUrl: body.fileUrl || null,
+      summaryJson: body.summaryJson || null,
     },
   })
 
-  return NextResponse.json({ aircraft: created })
+  return NextResponse.json({ import: created })
 }
