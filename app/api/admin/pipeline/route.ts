@@ -16,7 +16,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url)
-  const module = (searchParams.get('module') as ModuleKey) || 'totals'
+  const moduleKey = (searchParams.get('module') as ModuleKey) || 'totals'
 
   const [
     logbookEntries,
@@ -111,7 +111,7 @@ export async function GET(request: Request) {
     },
   }
 
-  if (module === 'totals') {
+  if (moduleKey === 'totals') {
     const totals = stageOrder.map((stage) => {
       const breakdown = Object.entries(modules).reduce((acc, [key, value]) => {
         acc[key] = (value as any)[stage]
@@ -122,14 +122,14 @@ export async function GET(request: Request) {
       return { stage, total, breakdown }
     })
 
-    return NextResponse.json({ module, stages: totals })
+    return NextResponse.json({ module: moduleKey, stages: totals })
   }
 
-  const selected = modules[module]
+  const selected = modules[moduleKey]
   const stages = stageOrder.map((stage) => ({
     stage,
     value: (selected as any)[stage],
   }))
 
-  return NextResponse.json({ module, stages, usedBy: selected.usedBy })
+  return NextResponse.json({ module: moduleKey, stages, usedBy: selected.usedBy })
 }
