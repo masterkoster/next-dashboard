@@ -12,6 +12,7 @@ import ChatWidget from "./chat-widget";
 import OfflineBanner from "./offline-banner";
 import ConflictModal from "./conflicts-modal";
 import { getModuleByPath } from "@/lib/modules";
+import { ThemeProvider } from "@/components/theme-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -29,25 +30,27 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
   return (
     <SessionProvider>
-      <AuthModalProvider>
-        <>
-          <GlobalNav />
-          {!isHomePage && currentModule && currentModule.menu && currentModule.menu.length > 0 && (
-            <ModuleNav module={currentModule} />
-          )}
-          <div className={isHomePage ? "" : "pt-16"}>
-            {children}
-          </div>
-          <OfflineBanner onSyncNow={() => setShowConflicts(true)} />
-          <ConflictModal
-            isOpen={showConflicts}
-            onClose={() => setShowConflicts(false)}
-            onResolved={() => {}}
-          />
-          <LoginModal />
-          <ChatWidget />
-        </>
-      </AuthModalProvider>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <AuthModalProvider>
+          <>
+            <GlobalNav />
+            {!isHomePage && currentModule && currentModule.menu && currentModule.menu.length > 0 && (
+              <ModuleNav module={currentModule} />
+            )}
+            <div className={isHomePage ? "" : "pt-16"}>
+              {children}
+            </div>
+            <OfflineBanner onSyncNow={() => setShowConflicts(true)} />
+            <ConflictModal
+              isOpen={showConflicts}
+              onClose={() => setShowConflicts(false)}
+              onResolved={() => {}}
+            />
+            <LoginModal />
+            <ChatWidget />
+          </>
+        </AuthModalProvider>
+      </ThemeProvider>
     </SessionProvider>
   );
 }

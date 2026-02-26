@@ -3,6 +3,7 @@
 import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { useAuthModal } from '../components/AuthModalContext';
 
@@ -11,6 +12,7 @@ export default function SettingsPage() {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const { openLoginModal } = useAuthModal();
+  const { theme, setTheme } = useTheme();
 
   const handleDeleteAccount = async () => {
     if (!confirm('Are you sure you want to delete your account? This will permanently delete all your data including flight plans, aircraft, and group memberships. This action cannot be undone.')) {
@@ -100,7 +102,10 @@ export default function SettingsPage() {
                   <div className="font-medium">Dark Mode</div>
                   <div className="text-sm text-slate-400">Use dark theme</div>
                 </div>
-                <button className="bg-emerald-500 w-12 h-6 rounded-full relative transition-colors">
+                <button
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="bg-emerald-500 w-12 h-6 rounded-full relative transition-colors"
+                >
                   <span className="absolute right-1 top-1 bg-white w-4 h-4 rounded-full transition-transform"></span>
                 </button>
               </div>

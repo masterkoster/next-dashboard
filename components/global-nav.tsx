@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 type NavItem = {
   label: string
@@ -224,6 +225,9 @@ export function GlobalNav() {
 
         {/* Right controls */}
         <div className="ml-auto flex items-center gap-1">
+          {/* Theme toggle */}
+          <ThemeToggle />
+
           {/* Search */}
           {searchOpen ? (
             <div className="flex items-center gap-2">
