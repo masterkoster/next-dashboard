@@ -12,6 +12,7 @@ const LOGBOOK_LINKS = [
   { label: 'Check Flights', href: '/logbook?tab=check-flights' },
   { label: 'Print View', href: '/logbook?tab=print-view' },
   { label: 'Pending Flights', href: '/logbook?tab=pending' },
+  { label: 'Preferences', href: '/logbook?tab=preferences' },
 ]
 
 export default function LogbookLayout({ children }: { children: React.ReactNode }) {

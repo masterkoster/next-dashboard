@@ -60,6 +60,7 @@ const TAB_KEYS = [
   'check-flights',
   'print-view',
   'pending',
+  'preferences',
 ] as const
 
 type TabKey = typeof TAB_KEYS[number]
@@ -99,12 +100,44 @@ function LogbookContent() {
   const [filters, setFilters] = useState({ year: 'all', aircraft: 'all', search: '' })
   const [currencyProgress, setCurrencyProgress] = useState<any[]>([])
   const [openDialog, setOpenDialog] = useState<null | 'add' | 'import' | 'starting-totals' | 'print'>(null)
+  const [preferences, setPreferences] = useState<any>({
+    timeDisplayFormat: 'decimal-1-2',
+    sumTimeMode: 'whole-minutes',
+    preferredTimeZone: 'UTC',
+    dateInterpretation: 'local',
+    showInstructorTime: true,
+    showSicTime: true,
+    showHobbsTach: false,
+    autoFillTimes: true,
+    autoFillLandings: true,
+    includeHeliports: false,
+    estimateNight: false,
+    roundNearestTenth: false,
+    nightStartRule: 'civil-twilight',
+    nightLandingRule: 'sunset-plus-60',
+    totalsByCategoryClass: true,
+    totalsByModel: false,
+    totalsByModelFamily: false,
+    totalsByFeatures: true,
+    currencyAuthorities: 'FAA,EASA',
+    currencyByCategory: true,
+    currencyByModel: false,
+    allowNightTouchAndGo: true,
+    requireDayLandings: false,
+    expiredCurrencyDisplay: 'forever',
+    maintenanceDueWindowDays: 90,
+    notifyCurrencyWeekly: false,
+    notifyCurrencyOnExpiry: true,
+    notifyTotalsWeekly: false,
+    notifyTotalsMonthly: false,
+  })
 
   useEffect(() => {
     if (status !== 'authenticated') return
     loadEntries()
     loadStartingTotals()
     loadCurrencyProgress()
+    loadPreferences()
   }, [status])
 
   useEffect(() => {
@@ -146,6 +179,26 @@ function LogbookContent() {
     } catch {
       setCurrencyProgress([])
     }
+  }
+
+  const loadPreferences = async () => {
+    try {
+      const res = await fetch('/api/logbook/preferences')
+      if (!res.ok) return
+      const data = await res.json()
+      if (data.preferences) setPreferences({ ...preferences, ...data.preferences })
+    } catch {
+      // noop
+    }
+  }
+
+  const savePreferences = async (next: any) => {
+    setPreferences(next)
+    await fetch('/api/logbook/preferences', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(next),
+    })
   }
 
   const filteredEntries = useMemo(() => {
@@ -238,6 +291,19 @@ function LogbookContent() {
     await loadStartingTotals()
   }
 
+  const formatHours = (value: number) => {
+    if (preferences.timeDisplayFormat === 'hhmm') {
+      const totalMinutes = Math.round(value * 60)
+      const hours = Math.floor(totalMinutes / 60)
+      const minutes = totalMinutes % 60
+      return `${hours}:${minutes.toString().padStart(2, '0')}`
+    }
+
+    if (preferences.timeDisplayFormat === 'decimal-1') return value.toFixed(1)
+    if (preferences.timeDisplayFormat === 'decimal-2') return value.toFixed(2)
+    return value.toFixed(value % 1 === 0 ? 1 : 2)
+  }
+
   const exportCsv = () => {
     const headers = ['Date', 'Aircraft', 'From', 'To', 'Total', 'PIC', 'SIC', 'Solo', 'Dual Given', 'Dual Received', 'Night', 'Instrument', 'XC', 'Day Landings', 'Night Landings', 'Remarks']
     const rows = filteredEntries.map((entry) => [
@@ -245,15 +311,15 @@ function LogbookContent() {
       entry.aircraft,
       entry.routeFrom,
       entry.routeTo,
-      entry.totalTime,
-      entry.picTime,
-      entry.sicTime,
-      entry.soloTime,
-      entry.dualGiven,
-      entry.dualReceived,
-      entry.nightTime,
-      entry.instrumentTime,
-      entry.crossCountryTime,
+      formatHours(entry.totalTime),
+      formatHours(entry.picTime),
+      formatHours(entry.sicTime),
+      formatHours(entry.soloTime),
+      formatHours(entry.dualGiven),
+      formatHours(entry.dualReceived),
+      formatHours(entry.nightTime),
+      formatHours(entry.instrumentTime),
+      formatHours(entry.crossCountryTime),
       entry.dayLandings,
       entry.nightLandings,
       `"${entry.remarks || ''}"`,
@@ -321,25 +387,25 @@ function LogbookContent() {
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">Total Hours</p>
-            <p className="text-2xl font-semibold">{totals.totalTime.toFixed(1)}</p>
+            <p className="text-2xl font-semibold">{formatHours(totals.totalTime)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">Night</p>
-            <p className="text-2xl font-semibold">{totals.nightTime.toFixed(1)}</p>
+            <p className="text-2xl font-semibold">{formatHours(totals.nightTime)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">Instrument</p>
-            <p className="text-2xl font-semibold">{totals.instrumentTime.toFixed(1)}</p>
+            <p className="text-2xl font-semibold">{formatHours(totals.instrumentTime)}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="pt-6">
             <p className="text-xs text-muted-foreground">Cross Country</p>
-            <p className="text-2xl font-semibold">{totals.crossCountryTime.toFixed(1)}</p>
+            <p className="text-2xl font-semibold">{formatHours(totals.crossCountryTime)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -367,9 +433,10 @@ function LogbookContent() {
             <TabsTrigger value="import">Import</TabsTrigger>
             <TabsTrigger value="starting-totals">Starting Totals</TabsTrigger>
             <TabsTrigger value="check-flights">Check Flights</TabsTrigger>
-            <TabsTrigger value="print-view">Print View</TabsTrigger>
-            <TabsTrigger value="pending">Pending Flights</TabsTrigger>
-          </TabsList>
+          <TabsTrigger value="print-view">Print View</TabsTrigger>
+          <TabsTrigger value="pending">Pending Flights</TabsTrigger>
+          <TabsTrigger value="preferences">Preferences</TabsTrigger>
+        </TabsList>
 
           <TabsContent value="add" className="space-y-4">
             <Card>
@@ -432,7 +499,7 @@ function LogbookContent() {
                           <p className="text-xs text-muted-foreground mt-1">{new Date(entry.date).toLocaleDateString()}</p>
                         </div>
                         <div className="text-right">
-                          <p className="text-2xl font-semibold">{entry.totalTime.toFixed(1)} hrs</p>
+                          <p className="text-2xl font-semibold">{formatHours(entry.totalTime)} hrs</p>
                           <div className="mt-2 flex flex-wrap justify-end gap-2">
                             {entry.authority && <Badge variant="secondary">{entry.authority}</Badge>}
                             {entry.isPending && <Badge variant="outline">Pending</Badge>}
@@ -459,7 +526,7 @@ function LogbookContent() {
                 {Object.entries(totals).map(([key, value]) => (
                   <div key={key} className="rounded-md border border-border p-3">
                     <p className="text-xs text-muted-foreground capitalize">{key.replace(/([A-Z])/g, ' $1')}</p>
-                    <p className="text-lg font-semibold">{typeof value === 'number' ? value.toFixed(1) : value}</p>
+                    <p className="text-lg font-semibold">{typeof value === 'number' ? formatHours(value) : value}</p>
                   </div>
                 ))}
               </CardContent>
@@ -613,6 +680,217 @@ function LogbookContent() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          <TabsContent value="preferences" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Flight Entry & Display</CardTitle>
+                <CardDescription>Time formats, timezone, and table visibility.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <label className="text-xs text-muted-foreground">Time display format</label>
+                  <select
+                    className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={preferences.timeDisplayFormat}
+                    onChange={(e) => savePreferences({ ...preferences, timeDisplayFormat: e.target.value })}
+                  >
+                    <option value="decimal-1-2">Decimal (1 or 2 digits)</option>
+                    <option value="decimal-1">Decimal (1 digit)</option>
+                    <option value="decimal-2">Decimal (2 digits)</option>
+                    <option value="hhmm">HH:MM</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Summation mode</label>
+                  <select
+                    className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={preferences.sumTimeMode}
+                    onChange={(e) => savePreferences({ ...preferences, sumTimeMode: e.target.value })}
+                  >
+                    <option value="whole-minutes">Whole minutes</option>
+                    <option value="hundredths">Hundredths of an hour</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Preferred timezone</label>
+                  <select
+                    className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={preferences.preferredTimeZone}
+                    onChange={(e) => savePreferences({ ...preferences, preferredTimeZone: e.target.value })}
+                  >
+                    <option value="UTC">UTC</option>
+                    <option value="local">Local</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Date interpretation</label>
+                  <select
+                    className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={preferences.dateInterpretation}
+                    onChange={(e) => savePreferences({ ...preferences, dateInterpretation: e.target.value })}
+                  >
+                    <option value="local">Local date at departure</option>
+                    <option value="utc">UTC date at departure</option>
+                  </select>
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={preferences.showInstructorTime}
+                    onChange={(e) => savePreferences({ ...preferences, showInstructorTime: e.target.checked })}
+                  />
+                  Show Instructor time in tables
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={preferences.showSicTime}
+                    onChange={(e) => savePreferences({ ...preferences, showSicTime: e.target.checked })}
+                  />
+                  Show SIC time in tables
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={preferences.showHobbsTach}
+                    onChange={(e) => savePreferences({ ...preferences, showHobbsTach: e.target.checked })}
+                  />
+                  Show Hobbs/Tach fields
+                </label>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Autofill & Night Rules</CardTitle>
+                <CardDescription>Automatic entry rules and night calculations.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={preferences.autoFillTimes}
+                    onChange={(e) => savePreferences({ ...preferences, autoFillTimes: e.target.checked })}
+                  />
+                  Auto-fill time fields
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={preferences.autoFillLandings}
+                    onChange={(e) => savePreferences({ ...preferences, autoFillLandings: e.target.checked })}
+                  />
+                  Auto-fill landings
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={preferences.includeHeliports}
+                    onChange={(e) => savePreferences({ ...preferences, includeHeliports: e.target.checked })}
+                  />
+                  Include heliports
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={preferences.estimateNight}
+                    onChange={(e) => savePreferences({ ...preferences, estimateNight: e.target.checked })}
+                  />
+                  Estimate night time
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={preferences.roundNearestTenth}
+                    onChange={(e) => savePreferences({ ...preferences, roundNearestTenth: e.target.checked })}
+                  />
+                  Round to nearest tenth
+                </label>
+                <div>
+                  <label className="text-xs text-muted-foreground">Night starts</label>
+                  <select
+                    className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={preferences.nightStartRule}
+                    onChange={(e) => savePreferences({ ...preferences, nightStartRule: e.target.value })}
+                  >
+                    <option value="civil-twilight">End of civil twilight</option>
+                    <option value="sunset-plus-30">30 min after sunset</option>
+                    <option value="sunset-plus-60">1 hour after sunset</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Night landings occur</label>
+                  <select
+                    className="mt-1 h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
+                    value={preferences.nightLandingRule}
+                    onChange={(e) => savePreferences({ ...preferences, nightLandingRule: e.target.value })}
+                  >
+                    <option value="sunset-plus-60">1 hour after sunset</option>
+                    <option value="civil-twilight">End of civil twilight</option>
+                  </select>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Totals & Currency</CardTitle>
+                <CardDescription>Grouping and currency rule sets.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={preferences.totalsByCategoryClass} onChange={(e) => savePreferences({ ...preferences, totalsByCategoryClass: e.target.checked })} />
+                  Totals by category/class
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={preferences.totalsByModel} onChange={(e) => savePreferences({ ...preferences, totalsByModel: e.target.checked })} />
+                  Totals by model
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={preferences.totalsByModelFamily} onChange={(e) => savePreferences({ ...preferences, totalsByModelFamily: e.target.checked })} />
+                  Totals by model family
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={preferences.totalsByFeatures} onChange={(e) => savePreferences({ ...preferences, totalsByFeatures: e.target.checked })} />
+                  Include feature subtotals
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={preferences.currencyByCategory} onChange={(e) => savePreferences({ ...preferences, currencyByCategory: e.target.checked })} />
+                  Currency by category/class
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={preferences.currencyByModel} onChange={(e) => savePreferences({ ...preferences, currencyByModel: e.target.checked })} />
+                  Currency by model
+                </label>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Notifications</CardTitle>
+                <CardDescription>Currency and totals summaries.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4 md:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={preferences.notifyCurrencyWeekly} onChange={(e) => savePreferences({ ...preferences, notifyCurrencyWeekly: e.target.checked })} />
+                  Weekly currency summary
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={preferences.notifyCurrencyOnExpiry} onChange={(e) => savePreferences({ ...preferences, notifyCurrencyOnExpiry: e.target.checked })} />
+                  Notify when currency expires
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={preferences.notifyTotalsWeekly} onChange={(e) => savePreferences({ ...preferences, notifyTotalsWeekly: e.target.checked })} />
+                  Weekly totals
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={preferences.notifyTotalsMonthly} onChange={(e) => savePreferences({ ...preferences, notifyTotalsMonthly: e.target.checked })} />
+                  Monthly totals
+                </label>
+              </CardContent>
+            </Card>
+          </TabsContent>
       </Tabs>
 
       <Dialog open={openDialog === 'add'} onOpenChange={(open) => setOpenDialog(open ? 'add' : null)}>
@@ -712,7 +990,7 @@ function LogbookContent() {
           <div className="space-y-2">
             {filteredEntries.slice(0, 20).map((entry) => (
               <div key={entry.id} className="border-b border-border py-2 text-sm">
-                {entry.date} · {entry.aircraft} · {entry.routeFrom} → {entry.routeTo} · {entry.totalTime.toFixed(1)} hrs
+                    {entry.date} · {entry.aircraft} · {entry.routeFrom} → {entry.routeTo} · {formatHours(entry.totalTime)} hrs
               </div>
             ))}
             <Button variant="outline" onClick={() => window.print()}><FileText className="mr-2 h-4 w-4" />Print</Button>

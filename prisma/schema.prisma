@@ -79,6 +79,11 @@ model User {
   endorsementRequestsReceived EndorsementRequest[] @relation("EndorsementRequestInstructor")
   signatures          Signature[]
   logbookStartingTotals LogbookStartingTotal?
+  logbookPreferences   LogbookPreferences?
+  logbookTemplates     LogbookTemplate[]
+  logbookSharingLinks  LogbookSharingLink[]
+  logbookCustomRules   LogbookCustomRule[]
+  logbookDeadlines     LogbookDeadline[]
   logbookImports      LogbookImport[]
   currencyStatuses    CurrencyStatus[]
   currencyEvents      CurrencyEvent[]
@@ -276,6 +281,119 @@ model UserPreferences {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("UserPreferences")
+}
+
+model LogbookPreferences {
+  id                    String   @id @default(uuid()) @db.NVarChar(36)
+  userId                String   @unique @db.NVarChar(36)
+  timeDisplayFormat     String   @default("decimal-1-2") @db.NVarChar(50) // decimal-1-2, decimal-1, decimal-2, hhmm
+  sumTimeMode           String   @default("whole-minutes") @db.NVarChar(50) // whole-minutes, hundredths
+  preferredTimeZone     String   @default("UTC") @db.NVarChar(50)
+  dateInterpretation    String   @default("local") @db.NVarChar(20) // local, utc
+  showInstructorTime    Boolean  @default(true)
+  showSicTime           Boolean  @default(true)
+  showHobbsTach         Boolean  @default(false)
+  commonTimeOrder       String?  @db.NVarChar(Max)
+  telemetryFields       String?  @db.NVarChar(Max)
+  autoFillTimes         Boolean  @default(true)
+  autoFillLandings      Boolean  @default(true)
+  takeoffSpeedKts       Int?     @default(70)
+  includeHeliports      Boolean  @default(false)
+  estimateNight         Boolean  @default(false)
+  roundNearestTenth     Boolean  @default(false)
+  nightStartRule        String   @default("civil-twilight") @db.NVarChar(50)
+  nightLandingRule      String   @default("sunset-plus-60") @db.NVarChar(50)
+  colorizeSavedSearches Boolean  @default(false)
+  mapRouteColor         String?  @db.NVarChar(20)
+  mapPathColor          String?  @db.NVarChar(20)
+  defaultTemplateId     String?  @db.NVarChar(36)
+  totalsByCategoryClass Boolean  @default(true)
+  totalsByModel         Boolean  @default(false)
+  totalsByModelFamily   Boolean  @default(false)
+  totalsByFeatures      Boolean  @default(true)
+  currencyAuthorities   String?  @db.NVarChar(Max) // FAA,EASA,CAA,AU
+  currencyByCategory    Boolean  @default(true)
+  currencyByModel       Boolean  @default(false)
+  allowNightTouchAndGo  Boolean  @default(true)
+  requireDayLandings    Boolean  @default(false)
+  showAr951             Boolean  @default(false)
+  showFar117            Boolean  @default(false)
+  showFar125            Boolean  @default(false)
+  showFar135            Boolean  @default(false)
+  showFar135Duty        Boolean  @default(false)
+  showGroundInstructor  Boolean  @default(false)
+  expiredCurrencyDisplay String @default("forever") @db.NVarChar(50)
+  maintenanceDueWindowDays Int @default(90)
+  notifyCurrencyWeekly  Boolean  @default(false)
+  notifyCurrencyOnExpiry Boolean @default(true)
+  notifyTotalsWeekly    Boolean  @default(false)
+  notifyTotalsMonthly   Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("LogbookPreferences")
+}
+
+model LogbookTemplate {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  userId      String   @db.NVarChar(36)
+  name        String   @db.NVarChar(100)
+  description String?  @db.NVarChar(255)
+  fieldsJson  String?  @db.NVarChar(Max)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("LogbookTemplate")
+}
+
+model LogbookSharingLink {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  userId      String   @db.NVarChar(36)
+  token       String   @unique @db.NVarChar(64)
+  label       String?  @db.NVarChar(100)
+  scope       String   @default("public") @db.NVarChar(50) // public, totals, endorsements
+  createdAt   DateTime @default(now())
+  revokedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("LogbookSharingLink")
+}
+
+model LogbookCustomRule {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  userId      String   @db.NVarChar(36)
+  name        String   @db.NVarChar(100)
+  ruleJson    String   @db.NVarChar(Max)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("LogbookCustomRule")
+}
+
+model LogbookDeadline {
+  id          String   @id @default(uuid()) @db.NVarChar(36)
+  userId      String   @db.NVarChar(36)
+  aircraftId  String?  @db.NVarChar(36)
+  name        String   @db.NVarChar(100)
+  dueDate     DateTime?
+  dueHours    Float?
+  hourType    String?  @db.NVarChar(20) // hobbs, tach
+  notes       String?  @db.NVarChar(Max)
+  createdAt   DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  aircraft AircraftProfile? @relation(fields: [aircraftId], references: [id])
+
+  @@index([userId])
+  @@map("LogbookDeadline")
 }
 
 model UserNotificationSettings {
