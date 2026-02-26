@@ -1221,7 +1221,7 @@ export default function AdminDashboard() {
                       <PipelineStageCard
                         key={stage.stage}
                         label={stage.stage}
-                        value={stage.value}
+                        value={stage.value || 0}
                         usedBy={pipelineData.usedBy}
                       />
                     ))}
