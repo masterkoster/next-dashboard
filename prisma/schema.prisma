@@ -1439,7 +1439,7 @@ model Mechanic {
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([city, state])
-  @@index([locationIcao])
+  @@index([airportIcao])
   @@index([isActive])
   @@map("Mechanic")
 }
