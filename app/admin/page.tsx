@@ -2157,12 +2157,12 @@ export default function AdminDashboard() {
           {viewListingModal && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <div className="col-span-2"><span className="text-muted-foreground">Title:</span> <span className="font-medium">{viewListingModal.title}</span></div>
-                <div><span className="text-muted-foreground">Price:</span> <span className="font-bold">${viewListingModal.price.toLocaleString()}</span></div>
-                <div><span className="text-muted-foreground">Seller:</span> <span className="font-medium">{viewListingModal.seller}</span></div>
+                <div className="col-span-2"><span className="text-muted-foreground">Title:</span> <span className="font-medium">{viewListingModal.title || '—'}</span></div>
+                <div><span className="text-muted-foreground">Price:</span> <span className="font-bold">${(viewListingModal.price || 0).toLocaleString()}</span></div>
+                <div><span className="text-muted-foreground">Seller:</span> <span className="font-medium">{viewListingModal.seller || '—'}</span></div>
                 <div><span className="text-muted-foreground">Status:</span> <UserStatusBadge status={viewListingModal.status === "active" ? "active" : "pending"} /></div>
-                <div><span className="text-muted-foreground">Views:</span> <span className="font-medium">{viewListingModal.views}</span></div>
-                <div className="col-span-2"><span className="text-muted-foreground">Listed:</span> <span className="font-medium">{viewListingModal.listed}</span></div>
+                <div><span className="text-muted-foreground">Views:</span> <span className="font-medium">{viewListingModal.views || 0}</span></div>
+                <div className="col-span-2"><span className="text-muted-foreground">Listed:</span> <span className="font-medium">{viewListingModal.listed ? new Date(viewListingModal.listed).toLocaleDateString() : '—'}</span></div>
               </div>
               {viewListingModal.flagged && (
                 <div className="rounded-lg bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
