@@ -389,8 +389,8 @@ model LogbookDeadline {
   notes       String?  @db.NVarChar(Max)
   createdAt   DateTime @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  aircraft AircraftProfile? @relation(fields: [aircraftId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  aircraft AircraftProfile? @relation(fields: [aircraftId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([userId])
   @@map("LogbookDeadline")
