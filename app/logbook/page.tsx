@@ -105,6 +105,7 @@ function LogbookContent() {
     nightLandings: '0',
     isDay: true,
     isNight: false,
+    conditions: '',
     remarks: '',
     isPending: false,
   })
@@ -546,10 +547,49 @@ function LogbookContent() {
           </TabsContent>
 
           <TabsContent value="totals" className="space-y-4">
+            {/* Starting Totals - Baseline */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-base">Starting Totals</CardTitle>
+                    <CardDescription>Your baseline totals before logged flights.</CardDescription>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setOpenDialog('starting-totals')}>
+                    Edit Baseline
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <div className="rounded-md border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Total Time</p>
+                    <p className="text-lg font-semibold">{startingTotals?.totalTime ? formatHours(startingTotals.totalTime) : '0.0'}</p>
+                  </div>
+                  <div className="rounded-md border border-border p-3">
+                    <p className="text-xs text-muted-foreground">PIC Time</p>
+                    <p className="text-lg font-semibold">{startingTotals?.picTime ? formatHours(startingTotals.picTime) : '0.0'}</p>
+                  </div>
+                  <div className="rounded-md border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Night Time</p>
+                    <p className="text-lg font-semibold">{startingTotals?.nightTime ? formatHours(startingTotals.nightTime) : '0.0'}</p>
+                  </div>
+                  <div className="rounded-md border border-border p-3">
+                    <p className="text-xs text-muted-foreground">Instrument</p>
+                    <p className="text-lg font-semibold">{startingTotals?.instrumentTime ? formatHours(startingTotals.instrumentTime) : '0.0'}</p>
+                  </div>
+                </div>
+                {startingTotals?.asOfDate && (
+                  <p className="text-xs text-muted-foreground mt-2">As of: {new Date(startingTotals.asOfDate).toLocaleDateString()}</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Flight Totals */}
             <Card>
               <CardHeader>
-                <CardTitle>Totals</CardTitle>
-                <CardDescription>Filtered totals for FAA/EASA.</CardDescription>
+                <CardTitle>Flight Totals</CardTitle>
+                <CardDescription>Totals from your logged flights.</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4 md:grid-cols-3">
                 {Object.entries(totals).map(([key, value]) => (
@@ -971,6 +1011,38 @@ function LogbookContent() {
             <div>
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Conditions & Landings</p>
               <div className="mt-3 grid gap-4 md:grid-cols-2">
+                {/* Day/Night condition dropdown */}
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={formData.isDay && formData.isNight ? 'both' : formData.isNight ? 'night' : formData.isDay ? 'day' : ''}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    setFormData({ 
+                      ...formData, 
+                      isDay: val === 'day' || val === 'both',
+                      isNight: val === 'night' || val === 'both'
+                    })
+                  }}
+                >
+                  <option value="">Select Day/Night</option>
+                  <option value="day">Day</option>
+                  <option value="night">Night</option>
+                  <option value="both">Day & Night</option>
+                </select>
+                
+                {/* Weather conditions dropdown */}
+                <select 
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  value={formData.conditions || ''}
+                  onChange={(e) => setFormData({ ...formData, conditions: e.target.value })}
+                >
+                  <option value="">Select Conditions</option>
+                  <option value="VMC">VMC - Visual Meteorological</option>
+                  <option value="IMC">IMC - Instrument Meteorological</option>
+                  <option value="MVFR">MVFR - Marginal VFR</option>
+                  <option value="IFR">IFR - Instrument Flight Rules</option>
+                </select>
+                
                 <Input placeholder="Night" value={formData.nightTime} onChange={(e) => setFormData({ ...formData, nightTime: e.target.value })} />
                 <Input placeholder="Instrument" value={formData.instrumentTime} onChange={(e) => setFormData({ ...formData, instrumentTime: e.target.value })} />
                 <Input placeholder="Actual Instrument" value={formData.actualInstrumentTime} className={fieldErrors.instrumentBreakdown ? 'border-destructive' : ''} onChange={(e) => setFormData({ ...formData, actualInstrumentTime: e.target.value })} />
@@ -978,14 +1050,6 @@ function LogbookContent() {
                 <Input placeholder="Cross Country" value={formData.crossCountryTime} onChange={(e) => setFormData({ ...formData, crossCountryTime: e.target.value })} />
                 <Input placeholder="Day Landings" value={formData.dayLandings} onChange={(e) => setFormData({ ...formData, dayLandings: e.target.value })} />
                 <Input placeholder="Night Landings" value={formData.nightLandings} onChange={(e) => setFormData({ ...formData, nightLandings: e.target.value })} />
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={formData.isDay} onChange={(e) => setFormData({ ...formData, isDay: e.target.checked })} />
-                  Day
-                </label>
-                <label className="flex items-center gap-2 text-sm">
-                  <input type="checkbox" checked={formData.isNight} onChange={(e) => setFormData({ ...formData, isNight: e.target.checked })} />
-                  Night
-                </label>
               </div>
             </div>
 

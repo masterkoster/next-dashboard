@@ -554,6 +554,34 @@ export default function PilotDashboard() {
     }
   }, [session?.user?.id])
 
+  // Save home airport to localStorage when it changes (for persistence)
+  useEffect(() => {
+    if (homeAirportIcao) {
+      localStorage.setItem('homeAirport', JSON.stringify({
+        icao: homeAirportIcao,
+        name: homeAirportName,
+        savedAt: new Date().toISOString()
+      }))
+    }
+  }, [homeAirportIcao, homeAirportName])
+
+  // Load home airport from localStorage on mount for instant display
+  useEffect(() => {
+    if (!homeAirportIcao && session?.user?.id) {
+      const saved = localStorage.getItem('homeAirport')
+      if (saved) {
+        try {
+          const data = JSON.parse(saved)
+          // Show saved airport while profile loads
+          if (data.icao) {
+            setHomeAirportIcao(data.icao)
+            setHomeAirportName(data.name)
+          }
+        } catch (e) {}
+      }
+    }
+  }, [homeAirportIcao, session?.user?.id])
+
   useEffect(() => {
     if (!session?.user?.id) return
     let cancelled = false
