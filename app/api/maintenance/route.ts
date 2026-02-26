@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth } from '@/lib/auth';
-import { prisma } from '@/lib/prisma';
+import { auth, prisma } from '@/lib/auth';
 
 export async function GET(request: Request) {
   try {
@@ -43,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { aircraftId, description, notes, groupId, isGrounded, postToMarketplace, postAnonymously } = body;
+    const { aircraftId, description, notes, groupId, isGrounded, postToMarketplace, postAnonymously, neededBy, jobSize, allowTailNumber } = body;
 
     if (!aircraftId || !description) {
       return NextResponse.json({ error: 'Aircraft and description required' }, { status: 400 });
@@ -60,12 +59,26 @@ export async function POST(request: Request) {
       })
 
       const isAnonymous = typeof postAnonymously === 'boolean' ? postAnonymously : true
+      const aircraftSnapshot = aircraft ? {
+        make: aircraft.make,
+        model: aircraft.model,
+        year: aircraft.year,
+        registrationType: aircraft.registrationType,
+        nNumber: allowTailNumber ? aircraft.nNumber : null,
+      } : null
+
+      const logbookEntries = await prisma.logbookEntry.findMany({
+        where: { userId: user.id },
+        orderBy: { date: 'desc' },
+      })
       await prisma.maintenanceRequest.create({
         data: {
           title: description.slice(0, 120),
           description,
           category: 'OTHER',
           urgency: isGrounded ? 'URGENT' : 'NORMAL',
+          neededBy: neededBy ? new Date(neededBy) : null,
+          jobSize: jobSize || 'MEDIUM',
           aircraftType: [aircraft?.make, aircraft?.model].filter(Boolean).join(' ') || null,
           airportIcao: null,
           city: null,
@@ -73,6 +86,9 @@ export async function POST(request: Request) {
           locationPrivacy: 'CITY',
           source: 'scheduled',
           anonymous: isAnonymous,
+          allowTailNumber: !!allowTailNumber,
+          aircraftSnapshot: aircraftSnapshot ? JSON.stringify(aircraftSnapshot) : null,
+          logbookSnapshot: JSON.stringify({ entries: logbookEntries, totalEntries: logbookEntries.length }),
           postedByUserId: user.id,
           postedByName: isAnonymous ? null : user.name,
           postedByEmail: isAnonymous ? null : user.email,

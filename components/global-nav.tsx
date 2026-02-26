@@ -67,9 +67,14 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Mechanic Marketplace", href: "/mechanics/marketplace", description: "Browse maintenance requests" },
       { label: "Mechanic Profile", href: "/mechanics/profile", description: "Manage your mechanic profile" },
       { label: "Mechanic Inbox", href: "/mechanics/inbox", description: "Quotes from mechanics" },
+      { label: "My Requests", href: "/mechanics/requests", description: "Your Service Bay postings" },
       { label: "Mechanic Onboarding", href: "/mechanics/onboarding", description: "Set up your mechanic account" },
       { label: "Demo Marketplace", href: "/mechanics/demo", description: "Preview with demo data" },
     ],
+  },
+  {
+    label: "Club Maintenance",
+    href: "/flying-club/maintenance-requests",
   },
 ]
 

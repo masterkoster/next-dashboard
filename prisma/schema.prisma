@@ -698,6 +698,7 @@ model GroupMemberSettings {
   notifyMaintenance Boolean  @default(true)
   notifyBookings    Boolean  @default(true)
   notifyBilling     Boolean  @default(false)
+  maintenanceRole   String?  @db.NVarChar(30) // MAINTENANCE_MANAGER, etc.
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -1486,6 +1487,9 @@ model MaintenanceRequest {
   anonymous       Boolean  @default(true)
   requestedWork   String?  @db.NVarChar(Max)
   visibility      String   @default("MECHANIC") @db.NVarChar(20) // MECHANIC, PUBLIC
+  allowTailNumber Boolean  @default(false)
+  aircraftSnapshot String? @db.NVarChar(Max)
+  logbookSnapshot String?  @db.NVarChar(Max)
   
   // User info (who posted)
   postedByName    String?  @db.NVarChar(255)
@@ -1498,6 +1502,7 @@ model MaintenanceRequest {
   // Relations
   quotes          MechanicQuote[]
   postedBy        User?             @relation("UserMaintenanceRequests", fields: [postedByUserId], references: [id], onDelete: SetNull)
+  fileRequests    MechanicFileRequest[]
   
   @@index([category])
   @@index([status])
@@ -1584,4 +1589,22 @@ model MechanicReview {
   @@index([mechanicId])
   @@index([maintenanceRequestId])
   @@map("MechanicReview")
+}
+
+model MechanicFileRequest {
+  id              String   @id @default(uuid()) @db.NVarChar(36)
+  maintenanceRequestId String @db.NVarChar(36)
+  mechanicId      String   @db.NVarChar(36)
+  requestedFiles  String   @db.NVarChar(Max) // JSON list
+  status          String   @default("PENDING") @db.NVarChar(20) // PENDING, SENT, DECLINED
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
+  mechanic         Mechanic            @relation(fields: [mechanicId], references: [id], onDelete: Cascade)
+
+  @@index([maintenanceRequestId])
+  @@index([mechanicId])
+  @@index([status])
+  @@map("MechanicFileRequest")
 }

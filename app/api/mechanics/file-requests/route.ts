@@ -1,0 +1,43 @@
+import { NextResponse } from 'next/server'
+import { auth, prisma } from '@/lib/auth'
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (session.user.role !== 'mechanic' && session.user.role !== 'admin') {
+      return NextResponse.json({ error: 'Mechanic access only' }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const { maintenanceRequestId, requestedFiles } = body || {}
+
+    if (!maintenanceRequestId || !Array.isArray(requestedFiles)) {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    }
+
+    const mechanic = await prisma.mechanic.findUnique({
+      where: { userId: session.user.id },
+    })
+
+    if (!mechanic) {
+      return NextResponse.json({ error: 'Mechanic profile not found' }, { status: 404 })
+    }
+
+    const requestRecord = await prisma.mechanicFileRequest.create({
+      data: {
+        maintenanceRequestId,
+        mechanicId: mechanic.id,
+        requestedFiles: JSON.stringify(requestedFiles),
+      },
+    })
+
+    return NextResponse.json({ request: requestRecord })
+  } catch (error) {
+    console.error('Failed to create file request', error)
+    return NextResponse.json({ error: 'Failed to create file request' }, { status: 500 })
+  }
+}

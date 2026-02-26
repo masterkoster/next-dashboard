@@ -19,6 +19,9 @@ type Listing = {
   urgency: string
   neededBy?: string | null
   jobSize?: string | null
+  allowTailNumber?: boolean
+  aircraftSnapshot?: string | null
+  logbookSnapshot?: string | null
   aircraftType?: string | null
   airportIcao?: string | null
   city?: string | null
@@ -42,6 +45,8 @@ export default function MechanicMarketplacePage() {
   const [error, setError] = useState<string | null>(null)
   const [filterSize, setFilterSize] = useState<string>('ALL')
   const [filterCategory, setFilterCategory] = useState<string>('ALL')
+  const [fileRequestId, setFileRequestId] = useState<string | null>(null)
+  const [requestedFiles, setRequestedFiles] = useState<string[]>([])
 
   const filteredListings = useMemo(() => {
     return listings.filter((listing) => {
@@ -112,6 +117,19 @@ export default function MechanicMarketplacePage() {
       setError(null)
     } else {
       setError('Failed to send response')
+    }
+  }
+
+  const handleFileRequest = async (listingId: string) => {
+    const res = await fetch('/api/mechanics/file-requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ maintenanceRequestId: listingId, requestedFiles }),
+    })
+
+    if (res.ok) {
+      setFileRequestId(null)
+      setRequestedFiles([])
     }
   }
 
@@ -206,9 +224,14 @@ export default function MechanicMarketplacePage() {
                       )}
                     </div>
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => setRespondingId(listing.id)}>
-                    Respond
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setRespondingId(listing.id)}>
+                      Respond
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setFileRequestId(listing.id)}>
+                      Request files
+                    </Button>
+                  </div>
                 </div>
 
                 {respondingId === listing.id && (
@@ -256,6 +279,37 @@ export default function MechanicMarketplacePage() {
                     <div className="flex gap-2">
                       <Button onClick={() => handleRespond(listing.id)}>Send</Button>
                       <Button variant="outline" onClick={() => setRespondingId(null)}>Cancel</Button>
+                    </div>
+                  </div>
+                )}
+
+                {fileRequestId === listing.id && (
+                  <div className="mt-4 space-y-3 border-t border-border pt-4">
+                    <p className="text-xs text-muted-foreground">Request missing files from the pilot.</p>
+                    <div className="flex flex-wrap gap-2">
+                      {["Logbook PDF", "Annual inspection", "Engine history", "Maintenance summary"].map((file) => (
+                        <label key={file} className="flex items-center gap-2 text-xs">
+                          <input
+                            type="checkbox"
+                            checked={requestedFiles.includes(file)}
+                            onChange={(e) => {
+                              setRequestedFiles((prev) =>
+                                e.target.checked ? [...prev, file] : prev.filter((f) => f !== file)
+                              )
+                            }}
+                            className="h-4 w-4"
+                          />
+                          {file}
+                        </label>
+                      ))}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => handleFileRequest(listing.id)}>
+                        Send Request
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => setFileRequestId(null)}>
+                        Cancel
+                      </Button>
                     </div>
                   </div>
                 )}

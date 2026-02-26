@@ -46,9 +46,26 @@ export default function SquawkLogPage() {
     maintenanceType: 'CLUB' as 'PERSONAL' | 'CLUB',
     postToMarketplace: false,
     postAnonymously: true,
+    neededBy: '',
+    jobSize: 'MEDIUM',
+    allowTailNumber: false,
+    groupId: '',
   })
 
+  const [groups, setGroups] = useState<any[]>([])
+
   useEffect(() => { setSquawks(demoSquawks); setLoading(false) }, [session])
+
+  useEffect(() => {
+    async function loadGroups() {
+      const res = await fetch('/api/groups')
+      if (res.ok) {
+        const data = await res.json()
+        setGroups(Array.isArray(data) ? data : [])
+      }
+    }
+    if (session) loadGroups()
+  }, [session])
 
   const handleAddSquawk = async () => {
     const squawk: Squawk = { 
@@ -65,9 +82,9 @@ export default function SquawkLogPage() {
     }
     setSquawks([squawk, ...squawks])
     setIsDialogOpen(false)
-    setNewSquawk({ aircraft: '', description: '', isGrounded: false, maintenanceType: 'CLUB', postToMarketplace: false, postAnonymously: true })
+    setNewSquawk({ aircraft: '', description: '', isGrounded: false, maintenanceType: 'CLUB', postToMarketplace: false, postAnonymously: true, neededBy: '', jobSize: 'MEDIUM', allowTailNumber: false, groupId: '' })
 
-    if (newSquawk.postToMarketplace) {
+    if (newSquawk.postToMarketplace && newSquawk.maintenanceType === 'PERSONAL') {
       const aircraftTypeMatch = newSquawk.aircraft.match(/\(([^)]+)\)/)
       const aircraftType = aircraftTypeMatch ? aircraftTypeMatch[1] : null
       try {
@@ -82,10 +99,33 @@ export default function SquawkLogPage() {
             aircraftType,
             source: 'squawk',
             anonymous: newSquawk.postAnonymously,
+            neededBy: newSquawk.neededBy || null,
+            jobSize: newSquawk.jobSize,
+            allowTailNumber: newSquawk.allowTailNumber,
           }),
         })
       } catch (error) {
         console.error('Failed to post squawk to marketplace', error)
+      }
+    }
+
+    if (newSquawk.postToMarketplace && newSquawk.maintenanceType === 'CLUB') {
+      try {
+        await fetch('/api/flying-club/maintenance/queue', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            description: newSquawk.description,
+            aircraftLabel: newSquawk.aircraft,
+            isGrounded: newSquawk.isGrounded,
+            neededBy: newSquawk.neededBy || null,
+            jobSize: newSquawk.jobSize,
+            allowTailNumber: newSquawk.allowTailNumber,
+            groupId: newSquawk.groupId || null,
+          }),
+        })
+      } catch (error) {
+        console.error('Failed to send squawk to club queue', error)
       }
     }
   }
@@ -121,14 +161,48 @@ export default function SquawkLogPage() {
                     <option value="PERSONAL">Personal Aircraft</option>
                   </select>
                 </div>
+                {newSquawk.maintenanceType === 'CLUB' && (
+                  <div>
+                    <Label>Club</Label>
+                    <select className="w-full mt-1 p-2 border rounded-md" value={newSquawk.groupId} onChange={(e) => setNewSquawk({ ...newSquawk, groupId: e.target.value })}>
+                      <option value="">Select club...</option>
+                      {groups.map((group) => (
+                        <option key={group.id} value={group.id}>{group.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div><Label>Aircraft</Label><select className="w-full mt-1 p-2 border rounded-md" value={newSquawk.aircraft} onChange={(e) => setNewSquawk({ ...newSquawk, aircraft: e.target.value })}><option value="">Select...</option><option>N123AB (C172)</option><option>N456CD (C182)</option><option>N789EF (PA28)</option></select></div>
                 <div><Label>Description</Label><Textarea placeholder="Describe..." value={newSquawk.description} onChange={(e) => setNewSquawk({ ...newSquawk, description: e.target.value })} /></div>
                 <div className="flex items-center gap-2"><input type="checkbox" checked={newSquawk.isGrounded} onChange={(e) => setNewSquawk({ ...newSquawk, isGrounded: e.target.checked })} /><Label>Ground aircraft</Label></div>
-                <div className="flex items-center gap-2"><input type="checkbox" checked={newSquawk.postToMarketplace} onChange={(e) => setNewSquawk({ ...newSquawk, postToMarketplace: e.target.checked })} /><Label>Post to mechanic marketplace</Label></div>
+                <div className="flex items-center gap-2"><input type="checkbox" checked={newSquawk.postToMarketplace} onChange={(e) => setNewSquawk({ ...newSquawk, postToMarketplace: e.target.checked })} /><Label>Post to Service Bay</Label></div>
                 {newSquawk.postToMarketplace && (
                   <div className="flex items-center gap-2 pl-6">
                     <input type="checkbox" checked={newSquawk.postAnonymously} onChange={(e) => setNewSquawk({ ...newSquawk, postAnonymously: e.target.checked })} />
                     <Label>Hide my identity</Label>
+                  </div>
+                )}
+                {newSquawk.postToMarketplace && (
+                  <div className="space-y-3 pl-6">
+                    <div>
+                      <Label className="text-xs">Needed by</Label>
+                      <Input type="date" value={newSquawk.neededBy} onChange={(e) => setNewSquawk({ ...newSquawk, neededBy: e.target.value })} />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Job size</Label>
+                      <select className="w-full mt-1 p-2 border rounded-md" value={newSquawk.jobSize} onChange={(e) => setNewSquawk({ ...newSquawk, jobSize: e.target.value })}>
+                        <option value="SMALL">Small</option>
+                        <option value="MEDIUM">Medium</option>
+                        <option value="LARGE">Large</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input type="checkbox" checked={newSquawk.allowTailNumber} onChange={(e) => setNewSquawk({ ...newSquawk, allowTailNumber: e.target.checked })} />
+                      <Label>Share tail number with mechanics</Label>
+                    </div>
+                    {newSquawk.maintenanceType === 'CLUB' && (
+                      <p className="text-xs text-muted-foreground">Club squawks are sent to the admin queue for approval.</p>
+                    )}
                   </div>
                 )}
                 <Button onClick={handleAddSquawk} className="w-full">Submit</Button>
