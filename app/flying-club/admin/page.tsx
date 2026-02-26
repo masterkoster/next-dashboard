@@ -365,7 +365,8 @@ export default function ClubAdminPage() {
         const res = await fetch(`/api/admin/members?groupId=${groupId}`)
         if (!res.ok) throw new Error(`Failed to fetch members: ${res.status}`)
         const data = await res.json()
-        if (!cancelled) setMembers(data)
+        const nextMembers = Array.isArray(data) ? data : data.members ?? []
+        if (!cancelled) setMembers(nextMembers)
       } catch (err) {
         console.error("Failed to load members", err)
         if (!cancelled) {
