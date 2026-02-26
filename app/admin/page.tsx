@@ -1973,9 +1973,9 @@ export default function AdminDashboard() {
                 <div><span className="text-muted-foreground">Name:</span> <span className="font-medium">{viewUserModal.name}</span></div>
                 <div><span className="text-muted-foreground">Email:</span> <span className="font-medium">{viewUserModal.email}</span></div>
                 <div><span className="text-muted-foreground">Role:</span> <span className="font-medium capitalize">{viewUserModal.role}</span></div>
-                <div><span className="text-muted-foreground">Plan:</span> <Badge variant="outline">{viewUserModal.plan}</Badge></div>
-                <div><span className="text-muted-foreground">Status:</span> <UserStatusBadge status={viewUserModal.status} /></div>
-                <div><span className="text-muted-foreground">Hours:</span> <span className="font-medium">{viewUserModal.hours.toFixed(1)}</span></div>
+                <div><span className="text-muted-foreground">Plan:</span> <Badge variant="outline">{viewUserModal.plan || 'free'}</Badge></div>
+                <div><span className="text-muted-foreground">Status:</span> <UserStatusBadge status={viewUserModal.status || 'pending'} /></div>
+                <div><span className="text-muted-foreground">Hours:</span> <span className="font-medium">{(viewUserModal.hours || 0).toFixed(1)}</span></div>
                 <div><span className="text-muted-foreground">Club:</span> <span className="font-medium">{viewUserModal.club || "—"}</span></div>
                 <div><span className="text-muted-foreground">Joined:</span> <span className="font-medium">{viewUserModal.joined}</span></div>
               </div>
