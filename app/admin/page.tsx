@@ -1082,7 +1082,7 @@ export default function AdminDashboard() {
                         <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
                         <Tooltip
                           contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }}
-                          formatter={(v: number) => [`$${v.toLocaleString()}`, "Revenue"]}
+                          formatter={(v) => [`$${(v as number)?.toLocaleString() ?? 0}`, "Revenue"]}
                         />
                         <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={{ fill: "#10b981", r: 3 }} />
                       </LineChart>
