@@ -2067,19 +2067,19 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Registration</Label>
-                <Input defaultValue={editAircraftModal.reg} />
+                <Input defaultValue={editAircraftModal.reg || ''} />
               </div>
               <div className="space-y-2">
                 <Label>Type</Label>
-                <Input defaultValue={editAircraftModal.type} />
+                <Input defaultValue={editAircraftModal.type || ''} />
               </div>
               <div className="space-y-2">
                 <Label>Owner</Label>
-                <Input defaultValue={editAircraftModal.owner} />
+                <Input defaultValue={editAircraftModal.owner || ''} />
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editAircraftModal.status}>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editAircraftModal.status || 'active'}>
                   <option value="active">Active</option>
                   <option value="maintenance">Maintenance</option>
                   <option value="grounded">Grounded</option>
