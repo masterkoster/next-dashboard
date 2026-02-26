@@ -75,6 +75,7 @@ function LogbookContent() {
   const [startingTotals, setStartingTotals] = useState<StartingTotals | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
 
   const [authority, setAuthority] = useState<Authority>('FAA')
   const [formData, setFormData] = useState({
@@ -264,35 +265,26 @@ function LogbookContent() {
     setLoading(true)
     setError(null)
     try {
-      if (!formData.date || !formData.totalTime) {
-        setError('Date and total time are required.')
+      const nextErrors: Record<string, string> = {}
+      if (!formData.date) nextErrors.date = 'Required'
+      if (!formData.totalTime) nextErrors.totalTime = 'Required'
+      if (!formData.isSimulator && !formData.routeFrom) nextErrors.routeFrom = 'Required'
+      if (!formData.isSimulator && !formData.routeTo) nextErrors.routeTo = 'Required'
+      if (formData.isSimulator && !formData.trainingDeviceId) nextErrors.trainingDeviceId = 'Required'
+      if (formData.isSimulator && !formData.trainingDeviceLocation) nextErrors.trainingDeviceLocation = 'Required'
+      if (formData.requiresSafetyPilot && !formData.safetyPilotName) nextErrors.safetyPilotName = 'Required'
+      if (parseFloat(formData.instrumentTime) > 0 && !formData.actualInstrumentTime && !formData.simulatedInstrumentTime) {
+        nextErrors.instrumentBreakdown = 'Required'
+      }
+
+      if (Object.keys(nextErrors).length > 0) {
+        setFieldErrors(nextErrors)
+        setError('Please complete required fields.')
         setLoading(false)
         return
       }
 
-      if (!formData.isSimulator && (!formData.routeFrom || !formData.routeTo)) {
-        setError('Departure and arrival airports are required for aircraft flights.')
-        setLoading(false)
-        return
-      }
-
-      if (formData.isSimulator && (!formData.trainingDeviceId || !formData.trainingDeviceLocation)) {
-        setError('Simulator/FTD ID and location are required for sim sessions.')
-        setLoading(false)
-        return
-      }
-
-      if (formData.requiresSafetyPilot && !formData.safetyPilotName) {
-        setError('Safety pilot name is required when a safety pilot is used.')
-        setLoading(false)
-        return
-      }
-
-      if (parseFloat(formData.instrumentTime) > 0 && (!formData.actualInstrumentTime && !formData.simulatedInstrumentTime)) {
-        setError('Provide actual or simulated instrument time breakdown.')
-        setLoading(false)
-        return
-      }
+      setFieldErrors({})
 
       const res = await fetch('/api/logbook', {
         method: 'POST',
@@ -927,63 +919,95 @@ function LogbookContent() {
             <DialogTitle>Add Flight</DialogTitle>
             <DialogDescription>Log a new flight with FAA/EASA fields.</DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
-            <Input placeholder="Aircraft / Device" value={formData.aircraft} onChange={(e) => setFormData({ ...formData, aircraft: e.target.value })} />
-            <label className="flex items-center gap-2 text-sm md:col-span-2">
-              <input type="checkbox" checked={formData.isSimulator} onChange={(e) => setFormData({ ...formData, isSimulator: e.target.checked })} />
-              Simulator / Flight Training Device session
-            </label>
-            {!formData.isSimulator && (
-              <>
-                <Input placeholder="From" value={formData.routeFrom} onChange={(e) => setFormData({ ...formData, routeFrom: e.target.value })} />
-                <Input placeholder="To" value={formData.routeTo} onChange={(e) => setFormData({ ...formData, routeTo: e.target.value })} />
-              </>
-            )}
-            {formData.isSimulator && (
-              <>
-                <Input placeholder="Training Device ID" value={formData.trainingDeviceId} onChange={(e) => setFormData({ ...formData, trainingDeviceId: e.target.value })} />
-                <Input placeholder="Training Location" value={formData.trainingDeviceLocation} onChange={(e) => setFormData({ ...formData, trainingDeviceLocation: e.target.value })} />
-              </>
-            )}
-            <Input placeholder="Total Time" value={formData.totalTime} onChange={(e) => setFormData({ ...formData, totalTime: e.target.value })} />
-            <Input placeholder="PIC" value={formData.picTime} onChange={(e) => setFormData({ ...formData, picTime: e.target.value })} />
-            <Input placeholder="SIC" value={formData.sicTime} onChange={(e) => setFormData({ ...formData, sicTime: e.target.value })} />
-            <Input placeholder="Solo" value={formData.soloTime} onChange={(e) => setFormData({ ...formData, soloTime: e.target.value })} />
-            <Input placeholder="Dual Received" value={formData.dualReceived} onChange={(e) => setFormData({ ...formData, dualReceived: e.target.value })} />
-            <Input placeholder="Ground Training" value={formData.groundTrainingReceived} onChange={(e) => setFormData({ ...formData, groundTrainingReceived: e.target.value })} />
-            <Input placeholder="Sim Training" value={formData.simTrainingReceived} onChange={(e) => setFormData({ ...formData, simTrainingReceived: e.target.value })} />
-            <Input placeholder="Night" value={formData.nightTime} onChange={(e) => setFormData({ ...formData, nightTime: e.target.value })} />
-            <Input placeholder="Instrument" value={formData.instrumentTime} onChange={(e) => setFormData({ ...formData, instrumentTime: e.target.value })} />
-            <Input placeholder="Actual Instrument" value={formData.actualInstrumentTime} onChange={(e) => setFormData({ ...formData, actualInstrumentTime: e.target.value })} />
-            <Input placeholder="Simulated Instrument" value={formData.simulatedInstrumentTime} onChange={(e) => setFormData({ ...formData, simulatedInstrumentTime: e.target.value })} />
-            <Input placeholder="Cross Country" value={formData.crossCountryTime} onChange={(e) => setFormData({ ...formData, crossCountryTime: e.target.value })} />
-            <Input placeholder="Day Landings" value={formData.dayLandings} onChange={(e) => setFormData({ ...formData, dayLandings: e.target.value })} />
-            <Input placeholder="Night Landings" value={formData.nightLandings} onChange={(e) => setFormData({ ...formData, nightLandings: e.target.value })} />
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={formData.isDay} onChange={(e) => setFormData({ ...formData, isDay: e.target.checked })} />
-              Day
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" checked={formData.isNight} onChange={(e) => setFormData({ ...formData, isNight: e.target.checked })} />
-              Night
-            </label>
-            <label className="flex items-center gap-2 text-sm md:col-span-2">
-              <input type="checkbox" checked={formData.requiresSafetyPilot} onChange={(e) => setFormData({ ...formData, requiresSafetyPilot: e.target.checked })} />
-              Safety pilot required
-            </label>
-            {formData.requiresSafetyPilot && (
-              <Input placeholder="Safety Pilot Name" value={formData.safetyPilotName} onChange={(e) => setFormData({ ...formData, safetyPilotName: e.target.value })} />
-            )}
-            <Textarea placeholder="Remarks" value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} className="md:col-span-2" />
-            <label className="flex items-center gap-2 text-sm md:col-span-2">
-              <input type="checkbox" checked={formData.isPending} onChange={(e) => setFormData({ ...formData, isPending: e.target.checked })} />
-              Mark as pending (instructor approval)
-            </label>
+          <div className="space-y-6">
+            {error && <p className="text-sm text-destructive">{error}</p>}
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">General</p>
+              <div className="mt-3 grid gap-4 md:grid-cols-2">
+                <Input type="date" value={formData.date} className={fieldErrors.date ? 'border-destructive' : ''} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+                <Input placeholder="Aircraft / Device" value={formData.aircraft} onChange={(e) => setFormData({ ...formData, aircraft: e.target.value })} />
+                <label className="flex items-center gap-2 text-sm md:col-span-2">
+                  <input type="checkbox" checked={formData.isSimulator} onChange={(e) => setFormData({ ...formData, isSimulator: e.target.checked })} />
+                  Simulator / Flight Training Device session
+                </label>
+                {!formData.isSimulator && (
+                  <>
+                    <Input placeholder="From" value={formData.routeFrom} className={fieldErrors.routeFrom ? 'border-destructive' : ''} onChange={(e) => setFormData({ ...formData, routeFrom: e.target.value })} />
+                    <Input placeholder="To" value={formData.routeTo} className={fieldErrors.routeTo ? 'border-destructive' : ''} onChange={(e) => setFormData({ ...formData, routeTo: e.target.value })} />
+                  </>
+                )}
+                {formData.isSimulator && (
+                  <>
+                    <Input placeholder="Training Device ID" value={formData.trainingDeviceId} className={fieldErrors.trainingDeviceId ? 'border-destructive' : ''} onChange={(e) => setFormData({ ...formData, trainingDeviceId: e.target.value })} />
+                    <Input placeholder="Training Location" value={formData.trainingDeviceLocation} className={fieldErrors.trainingDeviceLocation ? 'border-destructive' : ''} onChange={(e) => setFormData({ ...formData, trainingDeviceLocation: e.target.value })} />
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Experience & Training</p>
+              <div className="mt-3 grid gap-4 md:grid-cols-2">
+                <Input placeholder="Total Time" value={formData.totalTime} className={fieldErrors.totalTime ? 'border-destructive' : ''} onChange={(e) => setFormData({ ...formData, totalTime: e.target.value })} />
+                <Input placeholder="PIC" value={formData.picTime} onChange={(e) => setFormData({ ...formData, picTime: e.target.value })} />
+                <Input placeholder="SIC" value={formData.sicTime} onChange={(e) => setFormData({ ...formData, sicTime: e.target.value })} />
+                <Input placeholder="Solo" value={formData.soloTime} onChange={(e) => setFormData({ ...formData, soloTime: e.target.value })} />
+                <Input placeholder="Dual Received" value={formData.dualReceived} onChange={(e) => setFormData({ ...formData, dualReceived: e.target.value })} />
+                <Input placeholder="Ground Training" value={formData.groundTrainingReceived} onChange={(e) => setFormData({ ...formData, groundTrainingReceived: e.target.value })} />
+                <Input placeholder="Sim Training" value={formData.simTrainingReceived} onChange={(e) => setFormData({ ...formData, simTrainingReceived: e.target.value })} />
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Conditions & Landings</p>
+              <div className="mt-3 grid gap-4 md:grid-cols-2">
+                <Input placeholder="Night" value={formData.nightTime} onChange={(e) => setFormData({ ...formData, nightTime: e.target.value })} />
+                <Input placeholder="Instrument" value={formData.instrumentTime} onChange={(e) => setFormData({ ...formData, instrumentTime: e.target.value })} />
+                <Input placeholder="Actual Instrument" value={formData.actualInstrumentTime} className={fieldErrors.instrumentBreakdown ? 'border-destructive' : ''} onChange={(e) => setFormData({ ...formData, actualInstrumentTime: e.target.value })} />
+                <Input placeholder="Simulated Instrument" value={formData.simulatedInstrumentTime} className={fieldErrors.instrumentBreakdown ? 'border-destructive' : ''} onChange={(e) => setFormData({ ...formData, simulatedInstrumentTime: e.target.value })} />
+                <Input placeholder="Cross Country" value={formData.crossCountryTime} onChange={(e) => setFormData({ ...formData, crossCountryTime: e.target.value })} />
+                <Input placeholder="Day Landings" value={formData.dayLandings} onChange={(e) => setFormData({ ...formData, dayLandings: e.target.value })} />
+                <Input placeholder="Night Landings" value={formData.nightLandings} onChange={(e) => setFormData({ ...formData, nightLandings: e.target.value })} />
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={formData.isDay} onChange={(e) => setFormData({ ...formData, isDay: e.target.checked })} />
+                  Day
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={formData.isNight} onChange={(e) => setFormData({ ...formData, isNight: e.target.checked })} />
+                  Night
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Safety Pilot</p>
+              <div className="mt-3 grid gap-4 md:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm md:col-span-2">
+                  <input type="checkbox" checked={formData.requiresSafetyPilot} onChange={(e) => setFormData({ ...formData, requiresSafetyPilot: e.target.checked })} />
+                  Safety pilot required
+                </label>
+                {formData.requiresSafetyPilot && (
+                  <Input placeholder="Safety Pilot Name" value={formData.safetyPilotName} className={fieldErrors.safetyPilotName ? 'border-destructive' : ''} onChange={(e) => setFormData({ ...formData, safetyPilotName: e.target.value })} />
+                )}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Notes</p>
+              <div className="mt-3 grid gap-4">
+                <Textarea placeholder="Remarks" value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} />
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" checked={formData.isPending} onChange={(e) => setFormData({ ...formData, isPending: e.target.checked })} />
+                  Mark as pending (instructor approval)
+                </label>
+              </div>
+            </div>
+
             <Button onClick={async () => {
               await submitEntry()
               setOpenDialog(null)
-            }} disabled={loading} className="md:col-span-2">
+            }} disabled={loading} className="w-full">
               <Plus className="mr-2 h-4 w-4" /> Save Flight
             </Button>
           </div>
