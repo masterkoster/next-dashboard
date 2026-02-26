@@ -1,4 +1,5 @@
 const CACHE_NAME = 'aviation-dash-v1';
+const CACHE_NAME = 'aviationhub-cache-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
@@ -43,6 +44,12 @@ self.addEventListener('fetch', (event) => {
 
   // API calls: network-first (try network, fall back to cache)
   if (url.pathname.startsWith('/api/')) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+
+  // HTML pages: network-first to avoid stale shell
+  if (request.headers.get('accept')?.includes('text/html')) {
     event.respondWith(networkFirst(request));
     return;
   }
