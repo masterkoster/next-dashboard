@@ -170,25 +170,27 @@ type PipelineModule = 'totals' | 'logbook' | 'training' | 'currency' | 'plan' | 
 
 type PipelineStage = {
   stage: string
-  value: number
+  value?: number
+  total?: number
+  breakdown?: Record<string, number>
 }
 
-type PipelineTotalsStage = {
-  stage: string
-  total: number
-  breakdown: Record<string, number>
+type PipelineModuleSummary = {
+  name: string
+  key: string
+  ingestion: number
+  validation: number
+  storage: number
+  analytics: number
+  outputs: number
 }
 
-type PipelineResponse =
-  | {
-      module: 'totals'
-      stages: PipelineTotalsStage[]
-    }
-  | {
-      module: Exclude<PipelineModule, 'totals'>
-      stages: PipelineStage[]
-      usedBy?: string[]
-    }
+type PipelineResponse = {
+  module: PipelineModule
+  stages: PipelineStage[]
+  usedBy?: string[]
+  modules?: PipelineModuleSummary[]
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
