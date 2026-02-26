@@ -914,7 +914,7 @@ function LogbookContent() {
       </Tabs>
 
       <Dialog open={openDialog === 'add'} onOpenChange={(open) => setOpenDialog(open ? 'add' : null)}>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Flight</DialogTitle>
             <DialogDescription>Log a new flight with FAA/EASA fields.</DialogDescription>
