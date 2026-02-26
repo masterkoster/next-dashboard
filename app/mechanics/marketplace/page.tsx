@@ -420,23 +420,26 @@ export default function MechanicMarketplacePage() {
           </div>
 
           <div className="mt-6 flex gap-0">
-            {VIEWS.map(v => (
-              <button
-                key={v.id}
-                onClick={() => setView(v.id)}
-                className={`flex items-center gap-2 border-b-2 px-5 py-2.5 text-xs font-medium transition-colors ${
-                  view === v.id
-                    ? "border-primary text-foreground"
-                    : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <v.icon className="h-3.5 w-3.5" />
-                {v.label}
-                {v.id === "my-requests" && (
-                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{myRequests.length}</Badge>
-                )}
-              </button>
-            ))}
+            {VIEWS.map((v) => {
+              const Icon = v.icon
+              return (
+                <button
+                  key={v.id}
+                  onClick={() => setView(v.id)}
+                  className={`flex items-center gap-2 border-b-2 px-5 py-2.5 text-xs font-medium transition-colors ${
+                    view === v.id
+                      ? "border-primary text-foreground"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  {v.label}
+                  {v.id === "my-requests" && (
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{myRequests.length}</Badge>
+                  )}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>
