@@ -138,6 +138,7 @@ type MarketplaceListingSummary = {
   price?: number | null
   status?: string | null
   createdAt?: string | Date | null
+  seller?: string | null
 }
 
 type BillingTransaction = {
