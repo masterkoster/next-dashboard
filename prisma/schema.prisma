@@ -538,7 +538,6 @@ model LogbookEntry {
   nightTime        Float @default(0)
   instrumentTime   Float @default(0)
   simulatedInstrumentTime Float @default(0)
-  actualInstrumentTime Float @default(0)
   crossCountryTime Float @default(0)
   ifrTime          Float @default(0)
   vfrTime          Float @default(0)
