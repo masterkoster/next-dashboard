@@ -88,6 +88,7 @@ export default function SquawkLogPage() {
       const aircraftTypeMatch = newSquawk.aircraft.match(/\(([^)]+)\)/)
       const aircraftType = aircraftTypeMatch ? aircraftTypeMatch[1] : null
       try {
+        const normalizedSize = newSquawk.jobSize || (newSquawk.description.toLowerCase().includes('overhaul') || newSquawk.description.toLowerCase().includes('rebuild') ? 'LARGE' : 'MEDIUM')
         await fetch('/api/mechanics/listings', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -100,7 +101,7 @@ export default function SquawkLogPage() {
             source: 'squawk',
             anonymous: newSquawk.postAnonymously,
             neededBy: newSquawk.neededBy || null,
-            jobSize: newSquawk.jobSize,
+            jobSize: normalizedSize,
             allowTailNumber: newSquawk.allowTailNumber,
           }),
         })

@@ -18,6 +18,7 @@ export default function PilotFileRequestsPage() {
   const { data: session, status } = useSession()
   const [requests, setRequests] = useState<FileRequest[]>([])
   const [loading, setLoading] = useState(false)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   useEffect(() => {
     let active = true
@@ -35,6 +36,21 @@ export default function PilotFileRequestsPage() {
       active = false
     }
   }, [session?.user])
+
+  const updateStatus = async (requestId: string, status: 'SENT' | 'DECLINED') => {
+    setUpdatingId(requestId)
+    await fetch('/api/mechanics/file-requests', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId, status }),
+    })
+    const res = await fetch('/api/mechanics/requests/files')
+    if (res.ok) {
+      const data = await res.json()
+      setRequests(Array.isArray(data.requests) ? data.requests : [])
+    }
+    setUpdatingId(null)
+  }
 
   if (status === 'loading' || loading) {
     return <div className="min-h-screen bg-background p-6">Loading…</div>
@@ -74,7 +90,14 @@ export default function PilotFileRequestsPage() {
                       ))}
                     </div>
                   </div>
-                  <Button size="sm" variant="outline">Upload</Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => updateStatus(request.id, 'SENT')} disabled={updatingId === request.id}>
+                      Upload
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => updateStatus(request.id, 'DECLINED')} disabled={updatingId === request.id}>
+                      Decline
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

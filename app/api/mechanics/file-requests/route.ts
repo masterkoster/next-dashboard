@@ -41,3 +41,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Failed to create file request' }, { status: 500 })
   }
 }
+
+export async function PUT(request: Request) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { requestId, status } = body || {}
+
+    if (!requestId || !['SENT', 'DECLINED'].includes(status)) {
+      return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
+    }
+
+    const fileRequest = await prisma.mechanicFileRequest.findUnique({
+      where: { id: requestId },
+      include: { maintenanceRequest: true },
+    })
+
+    if (!fileRequest || fileRequest.maintenanceRequest.postedByUserId !== session.user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    const updated = await prisma.mechanicFileRequest.update({
+      where: { id: requestId },
+      data: { status },
+    })
+
+    return NextResponse.json({ request: updated })
+  } catch (error) {
+    console.error('Failed to update file request', error)
+    return NextResponse.json({ error: 'Failed to update file request' }, { status: 500 })
+  }
+}

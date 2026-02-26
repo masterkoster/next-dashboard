@@ -71,6 +71,7 @@ export async function POST(request: Request) {
         where: { userId: user.id },
         orderBy: { date: 'desc' },
       })
+      const normalizedSize = jobSize || (description?.toLowerCase().includes('overhaul') || description?.toLowerCase().includes('rebuild') ? 'LARGE' : 'MEDIUM')
       await prisma.maintenanceRequest.create({
         data: {
           title: description.slice(0, 120),
@@ -78,7 +79,7 @@ export async function POST(request: Request) {
           category: 'OTHER',
           urgency: isGrounded ? 'URGENT' : 'NORMAL',
           neededBy: neededBy ? new Date(neededBy) : null,
-          jobSize: jobSize || 'MEDIUM',
+          jobSize: normalizedSize,
           aircraftType: [aircraft?.make, aircraft?.model].filter(Boolean).join(' ') || null,
           airportIcao: null,
           city: null,
