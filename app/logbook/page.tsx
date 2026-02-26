@@ -365,21 +365,18 @@ function LogbookContent() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2"><Plane className="h-6 w-6" /> Logbook</h1>
-          <p className="text-sm text-muted-foreground">FAA + EASA logbook with endorsements, currency, and reports.</p>
+          <h1 className="text-2xl font-semibold">Logbook</h1>
+          <p className="text-xs text-muted-foreground">FAA + EASA logbook with endorsements, currency, and reports.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => setOpenDialog('add')}>Add Flight</Button>
-          <Button variant="outline" onClick={() => setOpenDialog('import')}>Import</Button>
-          <Button variant="outline" onClick={() => setOpenDialog('print')}>Print</Button>
-          <Button variant="outline" onClick={async () => {
+          <Button size="sm" onClick={() => setOpenDialog('add')}>Add Flight</Button>
+          <Button size="sm" variant="outline" onClick={() => setOpenDialog('import')}>Import</Button>
+          <Button size="sm" variant="outline" onClick={() => setOpenDialog('print')}>Print</Button>
+          <Button size="sm" variant="outline" onClick={async () => {
             await fetch('/api/logbook/currency/calc', { method: 'POST' })
             await loadCurrencyProgress()
             setActiveTab('currency')
           }}>Refresh Currency</Button>
-          <Button variant={authority === 'FAA' ? 'default' : 'outline'} size="sm" onClick={() => setAuthority('FAA')}>FAA</Button>
-          <Button variant={authority === 'EASA' ? 'default' : 'outline'} size="sm" onClick={() => setAuthority('EASA')}>EASA</Button>
-          <Button variant={authority === 'BOTH' ? 'default' : 'outline'} size="sm" onClick={() => setAuthority('BOTH')}>Both</Button>
         </div>
       </div>
 
@@ -422,7 +419,7 @@ function LogbookContent() {
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
+        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
           <TabsList className="flex flex-wrap">
             <TabsTrigger value="add">Add Flights</TabsTrigger>
             <TabsTrigger value="search">Search</TabsTrigger>
@@ -433,10 +430,10 @@ function LogbookContent() {
             <TabsTrigger value="import">Import</TabsTrigger>
             <TabsTrigger value="starting-totals">Starting Totals</TabsTrigger>
             <TabsTrigger value="check-flights">Check Flights</TabsTrigger>
-          <TabsTrigger value="print-view">Print View</TabsTrigger>
-          <TabsTrigger value="pending">Pending Flights</TabsTrigger>
-          <TabsTrigger value="preferences">Preferences</TabsTrigger>
-        </TabsList>
+            <TabsTrigger value="print-view">Print View</TabsTrigger>
+            <TabsTrigger value="pending">Pending Flights</TabsTrigger>
+            <TabsTrigger value="preferences">Preferences</TabsTrigger>
+          </TabsList>
 
           <TabsContent value="add" className="space-y-4">
             <Card>
