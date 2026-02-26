@@ -1438,7 +1438,6 @@ model Mechanic {
   
   // Relations
   quotes          MechanicQuote[]
-  schedules       MechanicJobSchedule[]
   reviews         MechanicReview[]
   fileRequests    MechanicFileRequest[]
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1571,8 +1570,8 @@ model MechanicJobSchedule {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
-  mechanicQuote       MechanicQuote      @relation(fields: [mechanicQuoteId], references: [id], onDelete: Cascade)
+  maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mechanicQuote       MechanicQuote      @relation(fields: [mechanicQuoteId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([maintenanceRequestId])
   @@index([mechanicQuoteId])
@@ -1589,8 +1588,8 @@ model MechanicReview {
   comment      String?  @db.NVarChar(Max)
   createdAt    DateTime @default(now())
 
-  mechanic     Mechanic            @relation(fields: [mechanicId], references: [id], onDelete: Cascade)
-  maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
+  mechanic     Mechanic            @relation(fields: [mechanicId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([mechanicId])
   @@index([maintenanceRequestId])
@@ -1606,8 +1605,8 @@ model MechanicFileRequest {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
-  mechanic         Mechanic            @relation(fields: [mechanicId], references: [id], onDelete: Cascade)
+  maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  mechanic         Mechanic            @relation(fields: [mechanicId], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([maintenanceRequestId])
   @@index([mechanicId])
