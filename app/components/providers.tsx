@@ -34,6 +34,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
             }
           });
         });
+        navigator.serviceWorker.ready.then(async () => {
+          const registrations = await navigator.serviceWorker.getRegistrations();
+          await Promise.all(registrations.map((reg) => reg.update()));
+        });
       }).catch((err) => {
         console.log("SW registration failed:", err);
       });

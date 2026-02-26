@@ -1,7 +1,6 @@
 const CACHE_NAME = 'aviation-dash-v1';
 const CACHE_NAME = 'aviationhub-cache-v3';
 const STATIC_ASSETS = [
-  '/',
   '/manifest.json',
   '/icons/icon-192.svg',
   '/icons/icon-512.svg',
