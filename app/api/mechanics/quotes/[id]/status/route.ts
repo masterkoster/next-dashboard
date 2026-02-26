@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth, prisma } from '@/lib/auth'
 import { sendQuoteStatusEmail } from '@/lib/email'
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -17,7 +18,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
 
     const quote = await prisma.mechanicQuote.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { maintenanceRequest: true, mechanic: true },
     })
 
@@ -30,7 +31,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
 
     const updated = await prisma.mechanicQuote.update({
-      where: { id: params.id },
+      where: { id },
       data: { status },
     })
 

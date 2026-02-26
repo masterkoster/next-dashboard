@@ -1,9 +1,10 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { auth, prisma } from '@/lib/auth'
 import { sendMechanicResponseEmail } from '@/lib/email'
 
-export async function POST(request: Request, { params }: { params: { id: string } }) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await params
     const session = await auth()
     if (!session?.user?.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -21,7 +22,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     }
 
     const listing = await prisma.maintenanceRequest.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { postedBy: true },
     })
 
