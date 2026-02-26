@@ -1,0 +1,86 @@
+import { NextResponse } from 'next/server'
+import { auth, prisma } from '@/lib/auth'
+
+export async function GET() {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    if (session.user.role !== 'mechanic') {
+      return NextResponse.json({ error: 'Mechanic access only' }, { status: 403 })
+    }
+
+    const listings = await prisma.maintenanceRequest.findMany({
+      where: { status: 'OPEN' },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    })
+
+    return NextResponse.json({ listings })
+  } catch (error) {
+    console.error('Failed to fetch mechanic listings', error)
+    return NextResponse.json({ error: 'Failed to fetch listings' }, { status: 500 })
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await auth()
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const {
+      title,
+      description,
+      category,
+      urgency,
+      aircraftType,
+      airportIcao,
+      airportName,
+      city,
+      state,
+      locationLat,
+      locationLng,
+      locationPrivacy,
+      source,
+      requestedWork,
+      anonymous,
+    } = body || {}
+
+    if (!title || !description || !category) {
+      return NextResponse.json({ error: 'Title, description, and category required' }, { status: 400 })
+    }
+
+    const listing = await prisma.maintenanceRequest.create({
+      data: {
+        title,
+        description,
+        category,
+        urgency: urgency || 'NORMAL',
+        aircraftType: aircraftType ?? null,
+        airportIcao: airportIcao ?? null,
+        airportName: airportName ?? null,
+        city: city ?? null,
+        state: state ?? null,
+        locationLat: typeof locationLat === 'number' ? locationLat : null,
+        locationLng: typeof locationLng === 'number' ? locationLng : null,
+        locationPrivacy: locationPrivacy ?? 'CITY',
+        source: source || 'manual',
+        requestedWork: requestedWork ?? null,
+        anonymous: typeof anonymous === 'boolean' ? anonymous : true,
+        postedByUserId: session.user.id,
+        postedByName: anonymous ? null : session.user.name || null,
+        postedByEmail: anonymous ? null : session.user.email || null,
+      },
+    })
+
+    return NextResponse.json({ listing })
+  } catch (error) {
+    console.error('Failed to create mechanic listing', error)
+    return NextResponse.json({ error: 'Failed to create listing' }, { status: 500 })
+  }
+}

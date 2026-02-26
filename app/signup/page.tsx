@@ -12,6 +12,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [accountType, setAccountType] = useState<'pilot' | 'mechanic'>('pilot');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [created, setCreated] = useState(false);
   const router = useRouter();
@@ -35,7 +36,8 @@ export default function SignupPage() {
           name, 
           username: username || undefined,
           email, 
-          password 
+          password,
+          role: accountType === 'mechanic' ? 'mechanic' : 'user',
         }),
       });
 
@@ -129,6 +131,33 @@ export default function SignupPage() {
             className="mt-8 space-y-4"
             autoComplete="on"
           >
+            <div>
+              <label className="block text-sm font-medium text-foreground">Account type</label>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAccountType('pilot')}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium ${
+                    accountType === 'pilot'
+                      ? 'border-primary bg-primary/10 text-foreground'
+                      : 'border-border text-muted-foreground'
+                  }`}
+                >
+                  Pilot
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAccountType('mechanic')}
+                  className={`rounded-xl border px-3 py-2 text-sm font-medium ${
+                    accountType === 'mechanic'
+                      ? 'border-primary bg-primary/10 text-foreground'
+                      : 'border-border text-muted-foreground'
+                  }`}
+                >
+                  Mechanic
+                </button>
+              </div>
+            </div>
             {error && (
               <div 
                 className="rounded-xl border border-destructive/50 bg-destructive/10 px-4 py-3 text-sm text-destructive"

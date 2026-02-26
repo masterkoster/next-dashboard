@@ -1,7 +1,9 @@
 import { Resend } from 'resend';
 import { 
   verificationEmailTemplate, 
-  resetPasswordEmailTemplate 
+  resetPasswordEmailTemplate,
+  mechanicResponseEmailTemplate,
+  quoteStatusEmailTemplate,
 } from './email-templates';
 
 const resendApiKey = process.env.RESEND_API_KEY;
@@ -172,4 +174,27 @@ export async function sendEmail(
       error: err instanceof Error ? err.message : 'Unknown error' 
     };
   }
+}
+
+export async function sendMechanicResponseEmail(
+  to: string,
+  listingTitle: string
+): Promise<SendEmailResult> {
+  return sendEmail(
+    to,
+    `New mechanic response - ${APP_NAME}`,
+    mechanicResponseEmailTemplate(listingTitle)
+  )
+}
+
+export async function sendQuoteStatusEmail(
+  to: string,
+  listingTitle: string,
+  status: string
+): Promise<SendEmailResult> {
+  return sendEmail(
+    to,
+    `Quote ${status.toLowerCase()} - ${APP_NAME}`,
+    quoteStatusEmailTemplate(listingTitle, status)
+  )
 }

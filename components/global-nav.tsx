@@ -60,6 +60,17 @@ const NAV_ITEMS: NavItem[] = [
     label: "Marketplace",
     href: "/marketplace",
   },
+  {
+    label: "Mechanics",
+    children: [
+      { label: "Find a Mechanic", href: "/mechanics", description: "Search mechanics by location" },
+      { label: "Mechanic Marketplace", href: "/mechanics/marketplace", description: "Browse maintenance requests" },
+      { label: "Mechanic Profile", href: "/mechanics/profile", description: "Manage your mechanic profile" },
+      { label: "Mechanic Inbox", href: "/mechanics/inbox", description: "Quotes from mechanics" },
+      { label: "Mechanic Onboarding", href: "/mechanics/onboarding", description: "Set up your mechanic account" },
+      { label: "Demo Marketplace", href: "/mechanics/demo", description: "Preview with demo data" },
+    ],
+  },
 ]
 
 type SubNavConfig = {

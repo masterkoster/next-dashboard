@@ -27,7 +27,7 @@ export async function POST(request: Request) {
       )
     }
     
-    const { name, email, password, username } = body
+    const { name, email, password, username, role } = body
     
     if (!email || !password || !username) {
       return NextResponse.json(
@@ -107,6 +107,8 @@ export async function POST(request: Request) {
     const verifyToken = crypto.randomBytes(32).toString("hex")
     const verifyTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
     
+    const allowedRole = role === 'mechanic' ? 'mechanic' : 'user'
+
     const user = await prisma.user.create({
       data: {
         username: normalizedUsername,
@@ -115,6 +117,7 @@ export async function POST(request: Request) {
         password: hashedPassword,
         purchasedModules: "[]",
         credits: 10,
+        role: allowedRole,
         verifyToken,
         verifyTokenExpiry,
         // emailVerified is null by default (not verified)

@@ -127,55 +127,53 @@ export default function FlyingClubPage() {
 
   return (
     <div className="min-h-screen bg-background pt-[44px]">
-      {/* Page sub-header: group selector + tab strip */}
-      <div className="fixed top-[44px] left-0 right-0 z-40 border-b border-border bg-card">
-        <div className="mx-auto max-w-[1600px] flex items-center justify-between gap-4 px-6 pt-4">
-          <h1 className="text-xl font-semibold">Flying Club</h1>
-          <div className="flex items-center gap-3">
-            {mockGroups.length > 1 && (
-              <select
-                value={selectedGroup}
-                onChange={(e) => setSelectedGroup(e.target.value)}
-                className="h-8 rounded-md border border-input bg-background px-3 text-sm"
+      {/* Main Content */}
+      <main className="mx-auto max-w-[1600px] p-6">
+        <div className="flex flex-col gap-4 pb-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <h1 className="text-xl font-semibold">Flying Club</h1>
+            <div className="flex flex-wrap items-center gap-3">
+              {mockGroups.length > 1 && (
+                <select
+                  value={selectedGroup}
+                  onChange={(e) => setSelectedGroup(e.target.value)}
+                  className="h-8 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="all">All Groups</option>
+                  {mockGroups.map(group => (
+                    <option key={group.id} value={group.id}>{group.name}</option>
+                  ))}
+                </select>
+              )}
+              <Button size="sm" variant="outline" onClick={() => window.location.href = '/flying-club/admin'}>
+                <Settings className="mr-2 h-4 w-4" />
+                Club Admin
+              </Button>
+              <Button 
+                size="sm"
+                onClick={() => alert('Create new group functionality - Coming soon!')}
               >
-                <option value="all">All Groups</option>
-                {mockGroups.map(group => (
-                  <option key={group.id} value={group.id}>{group.name}</option>
-                ))}
-              </select>
-            )}
-            <Button size="sm" variant="outline" onClick={() => window.location.href = '/flying-club/admin'}>
-              <Settings className="mr-2 h-4 w-4" />
-              Club Admin
-            </Button>
-            <Button 
-              size="sm"
-              onClick={() => alert('Create new group functionality - Coming soon!')}
-            >
-              <Plus className="mr-2 h-4 w-4" />
-              New Group
-            </Button>
+                <Plus className="mr-2 h-4 w-4" />
+                New Group
+              </Button>
+            </div>
+          </div>
+          <div className="flex gap-0 overflow-x-auto rounded-md border border-border bg-card">
+            {(['dashboard', 'calendar', 'bookings', 'aircraft', 'flights', 'maintenance', 'billing', 'members'] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`relative shrink-0 px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors border-b-2 ${
+                  activeTab === tab
+                    ? 'border-primary text-foreground'
+                    : 'border-transparent text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="mx-auto max-w-[1600px] flex gap-0 overflow-x-auto px-6">
-          {(['dashboard', 'calendar', 'bookings', 'aircraft', 'flights', 'maintenance', 'billing', 'members'] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`relative shrink-0 px-4 py-2.5 text-xs font-medium whitespace-nowrap transition-colors border-b-2 ${
-                activeTab === tab
-                  ? 'border-primary text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <main className="mx-auto max-w-[1600px] p-6 mt-[130px]">
         {activeTab === 'dashboard' && (
           <div className="space-y-6">
             {/* Stats Overview */}

@@ -43,7 +43,8 @@ import {
   Loader2,
   Navigation,
   User,
-  ExternalLink
+  ExternalLink,
+  Mail
 } from "lucide-react"
 import { AreaChart, Area, ResponsiveContainer, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip } from "recharts"
 import { FlightCompleteWizard } from "@/components/flight-complete/FlightCompleteWizard"
@@ -160,6 +161,9 @@ export default function PilotDashboard() {
   const [communityFuelUpdatedAt, setCommunityFuelUpdatedAt] = useState<string | null>(null)
   const [communityFuelError, setCommunityFuelError] = useState<string | null>(null)
   const [communityFuelLoading, setCommunityFuelLoading] = useState(false)
+  const [mechanicUnread, setMechanicUnread] = useState(0)
+  const [showMechanicNotice, setShowMechanicNotice] = useState(false)
+  const [lastMechanicUnread, setLastMechanicUnread] = useState(0)
 
   const flightHoursData = logbookEntries.reduce((acc: any[], entry: any) => {
     const date = entry?.date ? new Date(entry.date) : null
@@ -422,27 +426,15 @@ export default function PilotDashboard() {
         setFuelPriceLoading(true)
         setFuelPriceError(null)
         const communityRes = fetch(`/api/fuel-prices/community?icaos=${encodeURIComponent(homeAirportIcao ?? '')}`)
-        const dbRes = fetch(`/api/fuel/nearest?icao=${encodeURIComponent(homeAirportIcao ?? '')}&radius=0`)
+        const priceRes = fetch(`/api/fuel-price?icao=${encodeURIComponent(homeAirportIcao ?? '')}`)
 
-        const [dbResponse, communityResponse] = await Promise.all([dbRes, communityRes])
+        const [priceResponse, communityResponse] = await Promise.all([priceRes, communityRes])
 
-        if (dbResponse.ok) {
-          const data = await dbResponse.json()
-          let exact = Array.isArray(data?.results)
-            ? data.results.find((r: any) => r.icao === homeAirportIcao)
-            : null
-
-          if (!exact) {
-            const fallbackRes = await fetch(`/api/fuel/nearest?icao=${encodeURIComponent(homeAirportIcao ?? '')}&radius=50`)
-            if (fallbackRes.ok) {
-              const fallbackData = await fallbackRes.json()
-              exact = Array.isArray(fallbackData?.results) ? fallbackData.results[0] : null
-            }
-          }
-
+        if (priceResponse.ok) {
+          const data = await priceResponse.json()
           if (!cancelled) {
-            setFuelPrice(typeof exact?.price100ll === 'number' ? exact.price100ll : null)
-            setFuelPriceUpdatedAt(exact?.lastReported || null)
+            setFuelPrice(typeof data?.price100ll === 'number' ? data.price100ll : null)
+            setFuelPriceUpdatedAt(data?.lastReported || data?.updatedAt || null)
           }
         } else if (!cancelled) {
           setFuelPriceError('Failed to load airport fuel price')
@@ -477,6 +469,35 @@ export default function PilotDashboard() {
       cancelled = true
     }
   }, [homeAirportIcao])
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadUnread() {
+      try {
+        const res = await fetch('/api/mechanics/quotes/unread')
+        if (!res.ok) return
+        const data = await res.json()
+        if (!cancelled) {
+          const unread = typeof data?.unread === 'number' ? data.unread : 0
+          setMechanicUnread(unread)
+          if (unread > lastMechanicUnread) {
+            setShowMechanicNotice(true)
+          }
+          setLastMechanicUnread(unread)
+        }
+      } catch (error) {
+        console.error('Failed to load mechanic unread count', error)
+      }
+    }
+
+    loadUnread()
+    const interval = setInterval(loadUnread, 60000)
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+    }
+  }, [lastMechanicUnread])
 
   useEffect(() => {
     if (!session?.user?.id) return
@@ -641,7 +662,9 @@ export default function PilotDashboard() {
             </Button>
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="h-5 w-5" />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
+              {mechanicUnread > 0 && (
+                <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-destructive" />
+              )}
             </Button>
             <Button variant="ghost" size="sm" asChild>
               <Link href="/profile" className="gap-2">
@@ -668,6 +691,27 @@ export default function PilotDashboard() {
               {"Here's your flight status and what needs your attention."}
             </p>
           </div>
+
+          {showMechanicNotice && mechanicUnread > 0 && (
+            <Card className="border-primary/40 bg-primary/5">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <CardTitle className="text-sm">New mechanic responses</CardTitle>
+                    <CardDescription>
+                      You have {mechanicUnread} unread response{mechanicUnread > 1 ? 's' : ''}.
+                    </CardDescription>
+                  </div>
+                  <Button variant="ghost" size="icon" onClick={() => setShowMechanicNotice(false)}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Button size="sm" onClick={() => router.push('/mechanics/inbox')}>Open Inbox</Button>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Demo Data Notice */}
           {showDemoNotice && <DemoNotice />}
@@ -925,6 +969,36 @@ export default function PilotDashboard() {
                   <div className="text-xs text-muted-foreground">
                     Use the icons above to view details or open full page.
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/40 bg-primary/5">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-base">Mechanic Inbox</CardTitle>
+                    {mechanicUnread > 0 && (
+                      <Badge variant="destructive" className="text-[10px]">
+                        {mechanicUnread} new
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => router.push('/mechanics/inbox')}>
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="text-sm">Review mechanic quotes and messages.</p>
+                  <p className="text-xs text-muted-foreground">Accept or decline responses from mechanics.</p>
+                  <Button size="sm" variant="outline" className="w-full" onClick={() => router.push('/mechanics/inbox')}>
+                    Open Inbox
+                  </Button>
                 </div>
               </CardContent>
             </Card>

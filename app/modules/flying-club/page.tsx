@@ -290,6 +290,8 @@ export default function FlyingClubPage() {
   const [maintenanceDescription, setMaintenanceDescription] = useState('')
   const [maintenanceNotes, setMaintenanceNotes] = useState('')
   const [maintenanceGrounded, setMaintenanceGrounded] = useState(false)
+  const [maintenancePostToMarketplace, setMaintenancePostToMarketplace] = useState(false)
+  const [maintenancePostAnonymously, setMaintenancePostAnonymously] = useState(true)
   
   // Flight Log form
   const [logAircraftId, setLogAircraftId] = useState('')
@@ -686,6 +688,8 @@ export default function FlyingClubPage() {
           notes: maintenanceNotes || null,
           groupId: selectedView,
           isGrounded: maintenanceGrounded,
+          postToMarketplace: maintenancePostToMarketplace,
+          postAnonymously: maintenancePostAnonymously,
         })
       })
       
@@ -854,6 +858,8 @@ export default function FlyingClubPage() {
     setMaintenanceDescription('')
     setMaintenanceNotes('')
     setMaintenanceGrounded(false)
+    setMaintenancePostToMarketplace(false)
+    setMaintenancePostAnonymously(true)
     setFormError('')
   }
   
@@ -1651,6 +1657,32 @@ export default function FlyingClubPage() {
                             Ground aircraft (prevents new bookings)
                           </Label>
                         </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            id="postToMarketplace"
+                            checked={maintenancePostToMarketplace}
+                            onChange={(e) => setMaintenancePostToMarketplace(e.target.checked)}
+                            className="h-4 w-4"
+                          />
+                          <Label htmlFor="postToMarketplace" className="text-sm font-normal">
+                            Post to mechanic marketplace
+                          </Label>
+                        </div>
+                        {maintenancePostToMarketplace && (
+                          <div className="flex items-center gap-2 pl-6">
+                            <input
+                              type="checkbox"
+                              id="postAnonymous"
+                              checked={maintenancePostAnonymously}
+                              onChange={(e) => setMaintenancePostAnonymously(e.target.checked)}
+                              className="h-4 w-4"
+                            />
+                            <Label htmlFor="postAnonymous" className="text-sm font-normal">
+                              Hide my identity
+                            </Label>
+                          </div>
+                        )}
                         {formError && (
                           <p className="text-sm text-destructive">{formError}</p>
                         )}

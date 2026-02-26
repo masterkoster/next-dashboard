@@ -67,6 +67,7 @@ model User {
   userPreferences     UserPreferences?
   userNotificationSettings UserNotificationSettings?
   groupMemberSettings GroupMemberSettings[]
+  mechanicProfile    Mechanic?
   friendRequestsSent     FriendRequest[]       @relation("FriendRequestRequester")
   friendRequestsReceived FriendRequest[]       @relation("FriendRequestRecipient")
   conversationParticipants ConversationParticipant[]
@@ -252,6 +253,7 @@ model UserPreferences {
   temperatureUnit  String   @default("fahrenheit") @db.NVarChar(20)
   timeFormat       String   @default("24h") @db.NVarChar(10)
   dateFormat       String   @default("MM/DD/YYYY") @db.NVarChar(20)
+  mechanicInboxLastViewed DateTime?
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -1385,6 +1387,7 @@ model NotificationPreference {
 
 model Mechanic {
   id              String   @id @default(uuid()) @db.NVarChar(36)
+  userId          String   @unique @db.NVarChar(36)
   
   // Contact info
   email           String   @unique @db.NVarChar(255)
@@ -1395,6 +1398,11 @@ model Mechanic {
   businessName    String?  @db.NVarChar(255)
   city            String?  @db.NVarChar(100)
   state           String?  @db.NVarChar(50)
+  locationIcao    String?  @db.NVarChar(10)
+  locationLat     Float?
+  locationLng     Float?
+  locationPrivacy String   @default("CITY") @db.NVarChar(20) // CITY, ICAO
+  serviceRadiusNm Int?
   serviceArea     String?  @db.NVarChar(500) // Areas they service (comma-separated)
   
   // Specialties (JSON array)
@@ -1428,8 +1436,10 @@ model Mechanic {
   
   // Relations
   quotes          MechanicQuote[]
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([city, state])
+  @@index([locationIcao])
   @@index([isActive])
   @@map("Mechanic")
 }
@@ -1437,6 +1447,7 @@ model Mechanic {
 // Public maintenance requests (shown in marketplace)
 model MaintenanceRequest {
   id              String   @id @default(uuid()) @db.NVarChar(36)
+  postedByUserId  String?  @db.NVarChar(36)
   
   // Reference to internal maintenance if from club
   maintenanceId   String?  @db.NVarChar(36)
@@ -1454,6 +1465,9 @@ model MaintenanceRequest {
   airportName     String?  @db.NVarChar(255)
   city            String?  @db.NVarChar(100)
   state           String?  @db.NVarChar(50)
+  locationLat     Float?
+  locationLng     Float?
+  locationPrivacy String   @default("CITY") @db.NVarChar(20) // CITY, ICAO
   
   // Category
   category        String   @db.NVarChar(50) // Engine, Avionics, Airframe, Oil, Prop, Electrical, OTHER
@@ -1465,6 +1479,9 @@ model MaintenanceRequest {
   
   // Status
   status          String   @default("OPEN") @db.NVarChar(20) // OPEN, IN_PROGRESS, COMPLETED, CANCELLED
+  source          String   @default("manual") @db.NVarChar(20) // squawk, manual, scheduled
+  anonymous       Boolean  @default(true)
+  requestedWork   String?  @db.NVarChar(Max)
   
   // User info (who posted)
   postedByName    String?  @db.NVarChar(255)
@@ -1476,10 +1493,12 @@ model MaintenanceRequest {
   
   // Relations
   quotes          MechanicQuote[]
+  postedBy        User?             @relation(fields: [postedByUserId], references: [id], onDelete: SetNull)
   
   @@index([category])
   @@index([status])
   @@index([city, state])
+  @@index([locationIcao])
   @@map("MaintenanceRequest")
 }
 
@@ -1492,7 +1511,7 @@ model MechanicQuote {
   mechanicId      String   @db.NVarChar(36)
   
   // Quote details
-  amount          Decimal  @db.Decimal(10, 2)
+  amount          Decimal? @db.Decimal(10, 2)
   description     String   @db.NVarChar(Max)
   
   // Timeline

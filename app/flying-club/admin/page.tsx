@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
   Plane, Users, Wrench, DollarSign, Clock, AlertTriangle, CheckCircle2,
   ChevronRight, Search, Download, Plus, Settings, Bell, Shield,
@@ -241,6 +242,9 @@ export default function ClubAdminPage() {
   const [memberSearch, setMemberSearch] = useState("")
   const [selectedAircraft, setSelectedAircraft] = useState<string | null>(null)
   const [groupId, setGroupId] = useState<string | null>(null)
+  const [adminGroups, setAdminGroups] = useState<any[]>([])
+  const [showGroupPicker, setShowGroupPicker] = useState(false)
+  const [isGroupsLoading, setIsGroupsLoading] = useState(false)
 
   // Live data state (with mock fallbacks)
   const [club, setClub] = useState(mockClub)
@@ -281,23 +285,51 @@ export default function ClubAdminPage() {
 
     async function loadGroups() {
       try {
+        setIsGroupsLoading(true)
         const res = await fetch("/api/groups")
         if (!res.ok) return
         const data = await res.json()
         if (!Array.isArray(data) || data.length === 0) return
 
-        const adminGroup =
-          data.find((g: any) => g.role === "ADMIN" || g.role === "OWNER") ?? data[0]
-        if (!adminGroup || cancelled) return
+        const eligible = data.filter((g: any) => g.role === "ADMIN" || g.role === "OWNER")
+        const candidates = eligible.length > 0 ? eligible : data
+        if (cancelled) return
 
-        setGroupId(adminGroup.id)
+        setAdminGroups(candidates)
 
-        setClub(prev => ({
-          ...prev,
-          name: adminGroup.name ?? prev.name,
-        }))
+        const storedGroupId = typeof window !== 'undefined'
+          ? window.localStorage.getItem('clubAdminGroupId')
+          : null
+        const storedGroup = storedGroupId
+          ? candidates.find((g: any) => g.id === storedGroupId)
+          : null
+
+        if (storedGroup) {
+          setGroupId(storedGroup.id)
+          setClub(prev => ({
+            ...prev,
+            name: storedGroup.name ?? prev.name,
+          }))
+          return
+        }
+
+        if (candidates.length === 1) {
+          const selected = candidates[0]
+          setGroupId(selected.id)
+          setClub(prev => ({
+            ...prev,
+            name: selected.name ?? prev.name,
+          }))
+          if (typeof window !== 'undefined') {
+            window.localStorage.setItem('clubAdminGroupId', selected.id)
+          }
+        } else if (candidates.length > 1) {
+          setShowGroupPicker(true)
+        }
       } catch (err) {
         console.error("Failed to load groups for admin page", err)
+      } finally {
+        if (!cancelled) setIsGroupsLoading(false)
       }
     }
 
@@ -306,6 +338,18 @@ export default function ClubAdminPage() {
       cancelled = true
     }
   }, [])
+
+  function handleSelectGroup(group: any) {
+    setGroupId(group.id)
+    setClub(prev => ({
+      ...prev,
+      name: group.name ?? prev.name,
+    }))
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('clubAdminGroupId', group.id)
+    }
+    setShowGroupPicker(false)
+  }
 
   // Members
   useEffect(() => {
@@ -618,6 +662,38 @@ export default function ClubAdminPage() {
 
   return (
     <div className="flex min-h-screen bg-background pt-[44px]">
+
+      <Dialog
+        open={showGroupPicker}
+        onOpenChange={(open) => {
+          if (!open && !groupId) return
+          setShowGroupPicker(open)
+        }}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Select a club to manage</DialogTitle>
+            <DialogDescription>
+              You have admin access to multiple clubs. Choose the one you want to manage.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {adminGroups.map((group) => (
+              <button
+                key={group.id}
+                onClick={() => handleSelectGroup(group)}
+                className="flex w-full items-center justify-between rounded-md border border-border px-3 py-2 text-left text-sm transition-colors hover:bg-muted"
+              >
+                <span className="font-medium">{group.name}</span>
+                <Badge variant="outline" className="text-[10px]">{group.role}</Badge>
+              </button>
+            ))}
+            {isGroupsLoading && (
+              <p className="text-xs text-muted-foreground">Loading clubs…</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── SIDEBAR ────────────────────────────────────────────────────────────── */}
       <aside className="fixed top-[44px] left-0 h-[calc(100vh-44px)] w-56 shrink-0 overflow-y-auto border-r border-border bg-card">

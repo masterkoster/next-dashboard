@@ -149,34 +149,19 @@ async function getFuelPrice(icao: string): Promise<FuelPrice | undefined> {
   
   // Try API
   try {
-    const res = await fetch(`/api/fuel?icao=${icao}`);
+    const res = await fetch(`/api/fuel-price?icao=${icao.toUpperCase()}`);
     if (res.ok) {
       const data = await res.json();
-      // New API format returns prices array with average
-      if (data.prices && data.prices.length > 0) {
-        const llPrice = data.prices.find((p: any) => p.fuelType === '100LL');
-        const jetPrice = data.prices.find((p: any) => p.fuelType === 'JetA');
-        
-        const fp: FuelPrice = {
-          icao: data.icao,
-          price100ll: llPrice?.price || null,
-          priceJetA: jetPrice?.price || null,
-          lastUpdated: data.scrapedAt || '',
-          source: 'airnav',
-          sourceUrl: llPrice?.sourceUrl || '',
-          lastReported: llPrice?.lastReported || ''
-        };
-        fuelPriceCache[icao] = fp;
-        return fp;
-      }
       // Fallback to old format
-      if (data.price100ll) {
+      if (typeof data?.price100ll === 'number' || typeof data?.priceJetA === 'number') {
         const fp: FuelPrice = {
           icao: data.icao,
-          price100ll: data.price100ll,
-          priceJetA: data.priceJetA,
-          lastUpdated: data.lastUpdated || '',
-          source: data.source
+          price100ll: data.price100ll ?? null,
+          priceJetA: data.priceJetA ?? null,
+          lastUpdated: data.updatedAt || data.lastReported || '',
+          source: data.source,
+          sourceUrl: data.sourceUrl,
+          lastReported: data.lastReported
         };
         fuelPriceCache[icao] = fp;
         return fp;

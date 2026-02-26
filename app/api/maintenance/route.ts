@@ -43,7 +43,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { aircraftId, description, notes, groupId, isGrounded } = body;
+    const { aircraftId, description, notes, groupId, isGrounded, postToMarketplace, postAnonymously } = body;
 
     if (!aircraftId || !description) {
       return NextResponse.json({ error: 'Aircraft and description required' }, { status: 400 });
@@ -53,6 +53,32 @@ export async function POST(request: Request) {
       INSERT INTO Maintenance (id, aircraftId, userId, groupId, description, notes, status, isGrounded, reportedDate, createdAt, updatedAt)
       VALUES (NEWID(), ${aircraftId}, ${user.id}, ${groupId || null}, ${description}, ${notes || null}, 'NEEDED', ${isGrounded ? 1 : 0}, GETDATE(), GETDATE(), GETDATE())
     `;
+
+    if (postToMarketplace) {
+      const aircraft = await prisma.clubAircraft.findUnique({
+        where: { id: aircraftId },
+      })
+
+      const isAnonymous = typeof postAnonymously === 'boolean' ? postAnonymously : true
+      await prisma.maintenanceRequest.create({
+        data: {
+          title: description.slice(0, 120),
+          description,
+          category: 'OTHER',
+          urgency: isGrounded ? 'URGENT' : 'NORMAL',
+          aircraftType: [aircraft?.make, aircraft?.model].filter(Boolean).join(' ') || null,
+          airportIcao: aircraft?.homeBase || null,
+          city: null,
+          state: null,
+          locationPrivacy: 'CITY',
+          source: 'scheduled',
+          anonymous: isAnonymous,
+          postedByUserId: user.id,
+          postedByName: isAnonymous ? null : user.name,
+          postedByEmail: isAnonymous ? null : user.email,
+        },
+      })
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -39,11 +39,18 @@ export default function SquawkLogPage() {
   const [filter, setFilter] = useState<string>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [newSquawk, setNewSquawk] = useState({ aircraft: '', description: '', isGrounded: false, maintenanceType: 'CLUB' as 'PERSONAL' | 'CLUB' })
+  const [newSquawk, setNewSquawk] = useState({
+    aircraft: '',
+    description: '',
+    isGrounded: false,
+    maintenanceType: 'CLUB' as 'PERSONAL' | 'CLUB',
+    postToMarketplace: false,
+    postAnonymously: true,
+  })
 
   useEffect(() => { setSquawks(demoSquawks); setLoading(false) }, [session])
 
-  const handleAddSquawk = () => {
+  const handleAddSquawk = async () => {
     const squawk: Squawk = { 
       id: crypto.randomUUID(), 
       aircraftName: newSquawk.aircraft, 
@@ -58,7 +65,29 @@ export default function SquawkLogPage() {
     }
     setSquawks([squawk, ...squawks])
     setIsDialogOpen(false)
-    setNewSquawk({ aircraft: '', description: '', isGrounded: false, maintenanceType: 'CLUB' })
+    setNewSquawk({ aircraft: '', description: '', isGrounded: false, maintenanceType: 'CLUB', postToMarketplace: false, postAnonymously: true })
+
+    if (newSquawk.postToMarketplace) {
+      const aircraftTypeMatch = newSquawk.aircraft.match(/\(([^)]+)\)/)
+      const aircraftType = aircraftTypeMatch ? aircraftTypeMatch[1] : null
+      try {
+        await fetch('/api/mechanics/listings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: newSquawk.description.slice(0, 120),
+            description: newSquawk.description,
+            category: 'OTHER',
+            urgency: newSquawk.isGrounded ? 'URGENT' : 'NORMAL',
+            aircraftType,
+            source: 'squawk',
+            anonymous: newSquawk.postAnonymously,
+          }),
+        })
+      } catch (error) {
+        console.error('Failed to post squawk to marketplace', error)
+      }
+    }
   }
 
   const handleStatusChange = (id: string, newStatus: 'NEEDED' | 'IN_PROGRESS' | 'COMPLETED') => {
@@ -95,6 +124,13 @@ export default function SquawkLogPage() {
                 <div><Label>Aircraft</Label><select className="w-full mt-1 p-2 border rounded-md" value={newSquawk.aircraft} onChange={(e) => setNewSquawk({ ...newSquawk, aircraft: e.target.value })}><option value="">Select...</option><option>N123AB (C172)</option><option>N456CD (C182)</option><option>N789EF (PA28)</option></select></div>
                 <div><Label>Description</Label><Textarea placeholder="Describe..." value={newSquawk.description} onChange={(e) => setNewSquawk({ ...newSquawk, description: e.target.value })} /></div>
                 <div className="flex items-center gap-2"><input type="checkbox" checked={newSquawk.isGrounded} onChange={(e) => setNewSquawk({ ...newSquawk, isGrounded: e.target.checked })} /><Label>Ground aircraft</Label></div>
+                <div className="flex items-center gap-2"><input type="checkbox" checked={newSquawk.postToMarketplace} onChange={(e) => setNewSquawk({ ...newSquawk, postToMarketplace: e.target.checked })} /><Label>Post to mechanic marketplace</Label></div>
+                {newSquawk.postToMarketplace && (
+                  <div className="flex items-center gap-2 pl-6">
+                    <input type="checkbox" checked={newSquawk.postAnonymously} onChange={(e) => setNewSquawk({ ...newSquawk, postAnonymously: e.target.checked })} />
+                    <Label>Hide my identity</Label>
+                  </div>
+                )}
                 <Button onClick={handleAddSquawk} className="w-full">Submit</Button>
               </div>
             </DialogContent>

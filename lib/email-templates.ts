@@ -178,3 +178,35 @@ export function welcomeEmailTemplate(username: string): string {
   
   return baseTemplate(content);
 }
+
+export function mechanicResponseEmailTemplate(listingTitle: string): string {
+  const content = `
+    <p style="margin: 0 0 8px; font-size: 16px; color: #f8fafc;">
+      You have a new mechanic response.
+    </p>
+    <p style="margin: 0 0 24px; font-size: 14px; color: #94a3b8; line-height: 1.6;">
+      A mechanic replied to your maintenance request: <strong>${listingTitle}</strong>.
+    </p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/mechanics/inbox" style="display: inline-block; background-color: ${PRIMARY_COLOR}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+      View Responses
+    </a>
+  `;
+
+  return baseTemplate(content);
+}
+
+export function quoteStatusEmailTemplate(listingTitle: string, status: string): string {
+  const content = `
+    <p style="margin: 0 0 8px; font-size: 16px; color: #f8fafc;">
+      Your quote was ${status.toLowerCase()}.
+    </p>
+    <p style="margin: 0 0 24px; font-size: 14px; color: #94a3b8; line-height: 1.6;">
+      The pilot updated the status of the request: <strong>${listingTitle}</strong>.
+    </p>
+    <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/mechanics/marketplace" style="display: inline-block; background-color: ${PRIMARY_COLOR}; color: white; padding: 14px 32px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px;">
+      View Request
+    </a>
+  `;
+
+  return baseTemplate(content);
+}
