@@ -420,20 +420,6 @@ function LogbookContent() {
       {error && <p className="text-sm text-destructive">{error}</p>}
 
         <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as TabKey)}>
-          <TabsList className="flex flex-wrap">
-            <TabsTrigger value="add">Add Flights</TabsTrigger>
-            <TabsTrigger value="search">Search</TabsTrigger>
-            <TabsTrigger value="totals">Totals</TabsTrigger>
-            <TabsTrigger value="currency">Currency</TabsTrigger>
-            <TabsTrigger value="analysis">Analysis</TabsTrigger>
-            <TabsTrigger value="download">Download</TabsTrigger>
-            <TabsTrigger value="import">Import</TabsTrigger>
-            <TabsTrigger value="starting-totals">Starting Totals</TabsTrigger>
-            <TabsTrigger value="check-flights">Check Flights</TabsTrigger>
-            <TabsTrigger value="print-view">Print View</TabsTrigger>
-            <TabsTrigger value="pending">Pending Flights</TabsTrigger>
-            <TabsTrigger value="preferences">Preferences</TabsTrigger>
-          </TabsList>
 
           <TabsContent value="add" className="space-y-4">
             <Card>
@@ -963,17 +949,19 @@ function LogbookContent() {
             <DialogDescription>Set your baseline totals.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
-            <Input placeholder="Total Time" defaultValue={startingTotals?.totalTime ?? ''} onBlur={(e) => saveStartingTotals({
-              totalTime: parseFloat(e.target.value) || 0,
-              picTime: startingTotals?.picTime || 0,
-              sicTime: startingTotals?.sicTime || 0,
-              nightTime: startingTotals?.nightTime || 0,
-              instrumentTime: startingTotals?.instrumentTime || 0,
-              crossCountryTime: startingTotals?.crossCountryTime || 0,
-              landingsDay: startingTotals?.landingsDay || 0,
-              landingsNight: startingTotals?.landingsNight || 0,
-              asOfDate: startingTotals?.asOfDate || null,
-            })} />
+            <Input placeholder="Total Time" defaultValue={startingTotals?.totalTime ?? ''} onBlur={async (e) => {
+              await saveStartingTotals({
+                totalTime: parseFloat(e.target.value) || 0,
+                picTime: startingTotals?.picTime || 0,
+                sicTime: startingTotals?.sicTime || 0,
+                nightTime: startingTotals?.nightTime || 0,
+                instrumentTime: startingTotals?.instrumentTime || 0,
+                crossCountryTime: startingTotals?.crossCountryTime || 0,
+                landingsDay: startingTotals?.landingsDay || 0,
+                landingsNight: startingTotals?.landingsNight || 0,
+                asOfDate: startingTotals?.asOfDate || null,
+              })
+            }} />
           </div>
         </DialogContent>
       </Dialog>
