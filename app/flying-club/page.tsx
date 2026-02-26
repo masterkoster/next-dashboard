@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -94,15 +95,74 @@ const mockMaintenance = [
   { id: 'm2', aircraft: 'N172SP', description: 'Oil change', status: 'Needed', dueDate: '2024-03-01', priority: 'medium' }
 ]
 
+// Types for real bookings
+interface Booking {
+  id: string
+  aircraftId: string
+  aircraftName?: string
+  userId: string
+  userName?: string
+  date: string
+  startTime: string
+  endTime: string
+  purpose?: string
+  status?: string
+}
+
 export default function FlyingClubPage() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedGroup, setSelectedGroup] = useState('all')
   const [viewingGroupDetails, setViewingGroupDetails] = useState<string | null>(null)
   
+  // Bookings state
+  const [bookings, setBookings] = useState<Booking[]>([])
+  const [bookingsLoading, setBookingsLoading] = useState(false)
+  
   // Flight completion wizard state
   const [showFlightComplete, setShowFlightComplete] = useState(false)
-  const [activeFlight, setActiveFlight] = useState<{id: string; aircraftId: string; aircraftName: string; userId: string; userName: string; hobbsStart?: number} | null>(null)
+  const [activeFlight, setActiveFlight] = useState<{id: string; aircraftId: string; aircraftName: string; userId: string; userName: string; hobbsStart?: number; date?: string; time?: string} | null>(null)
+
+  // Fetch bookings
+  useEffect(() => {
+    async function fetchBookings() {
+      setBookingsLoading(true)
+      try {
+        const res = await fetch('/api/bookings')
+        const data = await res.json()
+        if (data.bookings) {
+          // Transform API bookings to our format
+          const transformed: Booking[] = data.bookings.map((b: any) => ({
+            id: b.id,
+            aircraftId: b.aircraftId || '',
+            aircraftName: b.aircraftName || b.aircraft || '',
+            userId: b.userId || '',
+            userName: b.userName || b.pilot || '',
+            date: b.date || b.startTime?.split('T')[0] || '',
+            startTime: b.startTime || '',
+            endTime: b.endTime || '',
+            purpose: b.purpose || '',
+            status: b.status || 'scheduled'
+          }))
+          setBookings(transformed)
+        }
+      } catch (err) {
+        console.error('Failed to fetch bookings:', err)
+      } finally {
+        setBookingsLoading(false)
+      }
+    }
+    fetchBookings()
+  }, [])
+
+  // Get today's date string
+  const today = new Date().toISOString().split('T')[0]
+  
+  // Get flights scheduled for today (or that should have started today)
+  const todaysFlights = bookings.filter(booking => {
+    const bookingDate = booking.date || booking.startTime?.split('T')[0]
+    return bookingDate === today
+  })
 
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
@@ -133,6 +193,16 @@ export default function FlyingClubPage() {
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <h1 className="text-xl font-semibold">Flying Club</h1>
             <div className="flex flex-wrap items-center gap-3">
+              {/* Quick link to Active Flights */}
+              <Link href="/flying-club/active">
+                <Button variant="outline" size="sm">
+                  <Plane className="mr-2 h-4 w-4" />
+                  Active Flights
+                  {todaysFlights.length > 0 && (
+                    <Badge variant="default" className="ml-2 bg-emerald-500">{todaysFlights.length}</Badge>
+                  )}
+                </Button>
+              </Link>
               {mockGroups.length > 1 && (
                 <select
                   value={selectedGroup}
@@ -393,24 +463,41 @@ export default function FlyingClubPage() {
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
-                  <Button 
-                    className="ml-2 bg-emerald-500 hover:bg-emerald-600"
-                    size="sm"
-                    onClick={() => {
-                      setActiveFlight({
-                        id: 'calendar-flight-1',
-                        aircraftId: 'aircraft-1',
-                        aircraftName: 'N172SP (C172)',
-                        userId: 'user-1',
-                        userName: 'John Doe',
-                        hobbsStart: 1250.5
-                      });
-                      setShowFlightComplete(true);
-                    }}
-                  >
-                    <Plane className="mr-2 h-4 w-4" />
-                    Complete Flight
-                  </Button>
+                  {/* Complete Flight - only show if there are flights today */}
+                  {todaysFlights.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <select 
+                        className="h-8 rounded-md border border-input bg-background px-2 text-xs"
+                        onChange={(e) => {
+                          const flight = todaysFlights.find(f => f.id === e.target.value)
+                          if (flight) {
+                            setActiveFlight({
+                              id: flight.id,
+                              aircraftId: flight.aircraftId,
+                              aircraftName: flight.aircraftName || flight.aircraft || 'Unknown Aircraft',
+                              userId: flight.userId,
+                              userName: flight.userName || 'Unknown Pilot',
+                              hobbsStart: 0,
+                              date: flight.date,
+                              time: flight.startTime
+                            })
+                            setShowFlightComplete(true)
+                          }
+                        }}
+                        defaultValue=""
+                      >
+                        <option value="" disabled>Complete flight...</option>
+                        {todaysFlights.map(flight => (
+                          <option key={flight.id} value={flight.id}>
+                            {flight.aircraftName || flight.aircraft || 'Aircraft'} - {flight.userName || flight.pilot || 'Pilot'} ({flight.startTime || flight.time})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {todaysFlights.length === 0 && !bookingsLoading && (
+                    <span className="text-xs text-muted-foreground">No flights scheduled today</span>
+                  )}
                 </div>
               </div>
             </CardHeader>
