@@ -487,9 +487,9 @@ export default function FlyingClubPage() {
                         defaultValue=""
                       >
                         <option value="" disabled>Complete flight...</option>
-                        {todaysFlights.map(flight => (
+                          {todaysFlights.map(flight => (
                           <option key={flight.id} value={flight.id}>
-                            {flight.aircraftName || flight.aircraft || 'Aircraft'} - {flight.userName || flight.pilot || 'Pilot'} ({flight.startTime || flight.time})
+                            {flight.aircraftName || 'Aircraft'} - {flight.userName || 'Pilot'} ({flight.startTime || flight.time})
                           </option>
                         ))}
                       </select>
