@@ -274,8 +274,7 @@ function LogbookContent() {
   const years = Array.from({ length: 10 }, (_, i) => new Date().getFullYear() - i)
 
   return (
-    <div className="min-h-screen bg-background p-6">
-      <div className="mx-auto max-w-6xl space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2"><Plane className="h-6 w-6" /> Logbook</h1>
@@ -541,7 +540,6 @@ function LogbookContent() {
             </Card>
           </TabsContent>
         </Tabs>
-      </div>
     </div>
   )
 }
