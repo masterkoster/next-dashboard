@@ -1181,7 +1181,7 @@ export default function AdminDashboard() {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm">Data Pipeline</CardTitle>
-                  <Tabs value={pipelineModule} onValueChange={setPipelineModule}>
+                  <Tabs value={pipelineModule} onValueChange={(v) => setPipelineModule(v as PipelineModule)}>
                     <TabsList className="h-7">
                       {['totals','logbook','training','currency','plan','marketplace','mechanic','club'].map((key) => (
                         <TabsTrigger key={key} value={key} className="text-[10px] px-2">
