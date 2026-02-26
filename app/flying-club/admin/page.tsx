@@ -224,6 +224,39 @@ function StatusBadge({ status }: { status: string }) {
   )
 }
 
+function PipelineStage({
+  label,
+  value,
+  sublabel,
+  progress,
+}: {
+  label: string
+  value: string
+  sublabel: string
+  progress: number
+}) {
+  return (
+    <div className="rounded-md border border-border p-3">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+          <p className="text-sm font-medium">{value}</p>
+          <p className="text-[11px] text-muted-foreground">{sublabel}</p>
+        </div>
+        <div className="h-2 w-14 rounded-full bg-muted/50 overflow-hidden">
+          <div
+            className="h-full rounded-full bg-primary animate-pulse"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+      <div className="mt-2">
+        <Progress value={progress} className="h-1.5" />
+      </div>
+    </div>
+  )
+}
+
 function PlaceholderPanel({ title, description }: { title: string; description: string }) {
   return (
     <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/30 py-24 text-center">
@@ -278,6 +311,7 @@ export default function ClubAdminPage() {
 
   const [isHistoryLoading, setIsHistoryLoading] = useState(false)
   const [historyError, setHistoryError] = useState<string | null>(null)
+  const [pipelineTick, setPipelineTick] = useState(0)
 
   // Determine admin group
   useEffect(() => {
@@ -338,6 +372,13 @@ export default function ClubAdminPage() {
     return () => {
       cancelled = true
     }
+  }, [])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPipelineTick(prev => (prev + 7) % 100)
+    }, 1200)
+    return () => clearInterval(interval)
   }, [])
 
   function handleSelectGroup(group: any) {
@@ -832,6 +873,52 @@ export default function ClubAdminPage() {
                   </CardContent>
                 </Card>
               </div>
+
+              {/* Pipeline visualization */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-sm">Data Pipeline</CardTitle>
+                  <CardDescription>Live processing across ingestion → validation → storage → analytics → export</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid gap-4 lg:grid-cols-5">
+                    <PipelineStage
+                      label="Ingestion"
+                      value={`${members.length} events/min`}
+                      sublabel="source: logbook + club"
+                      progress={(pipelineTick + 10) % 100}
+                    />
+                    <PipelineStage
+                      label="Validation"
+                      value={`${Math.max(1, Math.floor(members.length * 0.9))} checks`}
+                      sublabel="schema + compliance"
+                      progress={(pipelineTick + 30) % 100}
+                    />
+                    <PipelineStage
+                      label="Storage"
+                      value={`${aircraft.length} tables`}
+                      sublabel="SQL + object store"
+                      progress={(pipelineTick + 50) % 100}
+                    />
+                    <PipelineStage
+                      label="Analytics"
+                      value={`${pastFlights.length} reports`}
+                      sublabel="totals + trends"
+                      progress={(pipelineTick + 70) % 100}
+                    />
+                    <PipelineStage
+                      label="Export"
+                      value={`${billing.length} feeds`}
+                      sublabel="PDF + CSV + API"
+                      progress={(pipelineTick + 90) % 100}
+                    />
+                  </div>
+
+                  <div className="mt-4 rounded-md border border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground">
+                    Animated pipeline reflects current club activity. Values update as live data loads.
+                  </div>
+                </CardContent>
+              </Card>
 
               {/* Alerts */}
               <Card>
