@@ -629,6 +629,7 @@ model AircraftProfile {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   model AircraftModel? @relation(fields: [modelId], references: [id])
   logbookEntries LogbookEntry[]
+  logbookDeadlines LogbookDeadline[]
 
   @@index([userId])
   @@map("AircraftProfile")
