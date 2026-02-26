@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ElementType } from "react"
 import { useSession } from "next-auth/react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -350,7 +350,7 @@ export default function MechanicMarketplacePage() {
     )
   }, [mechanics, searchQuery])
 
-  const VIEWS: { id: View; label: string; icon: React.ElementType }[] = [
+  const VIEWS: { id: View; label: string; icon: ElementType }[] = [
     { id: "browse", label: "Browse Mechanics", icon: Search },
     { id: "post-squawk", label: "Post a Squawk", icon: Plus },
     { id: "my-requests", label: "My Requests", icon: FileText },
