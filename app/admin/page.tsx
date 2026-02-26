@@ -129,6 +129,7 @@ type AdminClub = {
   id: string
   name?: string | null
   createdAt?: string | Date | null
+  joined?: string | Date | null
   members?: number | null
   aircraft?: number | null
   revenue?: number | null
@@ -2105,10 +2106,10 @@ export default function AdminDashboard() {
               <div className="grid grid-cols-2 gap-3 text-sm">
                 <div><span className="text-muted-foreground">Name:</span> <span className="font-medium">{viewClubModal.name}</span></div>
                 <div><span className="text-muted-foreground">Plan:</span> <Badge variant="outline">{viewClubModal.plan}</Badge></div>
-                <div><span className="text-muted-foreground">Members:</span> <span className="font-medium">{viewClubModal.members}</span></div>
-                <div><span className="text-muted-foreground">Aircraft:</span> <span className="font-medium">{viewClubModal.aircraft}</span></div>
-                <div><span className="text-muted-foreground">Revenue:</span> <span className="font-medium">${viewClubModal.revenue}/mo</span></div>
-                <div><span className="text-muted-foreground">Joined:</span> <span className="font-medium">{viewClubModal.joined}</span></div>
+                <div><span className="text-muted-foreground">Members:</span> <span className="font-medium">{viewClubModal.members || 0}</span></div>
+                <div><span className="text-muted-foreground">Aircraft:</span> <span className="font-medium">{viewClubModal.aircraft || 0}</span></div>
+                <div><span className="text-muted-foreground">Revenue:</span> <span className="font-medium">${viewClubModal.revenue || 0}/mo</span></div>
+                <div><span className="text-muted-foreground">Joined:</span> <span className="font-medium">{viewClubModal.joined ? new Date(viewClubModal.joined).toLocaleDateString() : '—'}</span></div>
               </div>
             </div>
           )}
@@ -2128,11 +2129,11 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Club Name</Label>
-                <Input defaultValue={editClubModal.name} />
+                <Input defaultValue={editClubModal.name || ''} />
               </div>
               <div className="space-y-2">
                 <Label>Plan</Label>
-                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editClubModal.plan}>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editClubModal.plan || 'Free'}>
                   <option value="Free">Free</option>
                   <option value="Pro">Pro</option>
                   <option value="Enterprise">Enterprise</option>
