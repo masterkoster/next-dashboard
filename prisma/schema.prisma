@@ -1438,6 +1438,9 @@ model Mechanic {
   
   // Relations
   quotes          MechanicQuote[]
+  schedules       MechanicJobSchedule[]
+  reviews         MechanicReview[]
+  fileRequests    MechanicFileRequest[]
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([city, state])
@@ -1501,6 +1504,8 @@ model MaintenanceRequest {
   
   // Relations
   quotes          MechanicQuote[]
+  schedules       MechanicJobSchedule[]
+  reviews         MechanicReview[]
   postedBy        User?             @relation("UserMaintenanceRequests", fields: [postedByUserId], references: [id], onDelete: SetNull)
   fileRequests    MechanicFileRequest[]
   
@@ -1546,6 +1551,7 @@ model MechanicQuote {
   // Relations
   maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
   mechanic          Mechanic            @relation(fields: [mechanicId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  schedules         MechanicJobSchedule[]
   
   @@index([maintenanceRequestId])
   @@index([mechanicId])
