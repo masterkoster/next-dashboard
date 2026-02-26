@@ -1532,7 +1532,7 @@ model MechanicQuote {
   
   // Relations
   maintenanceRequest MaintenanceRequest @relation(fields: [maintenanceRequestId], references: [id], onDelete: Cascade)
-  mechanic          Mechanic            @relation(fields: [mechanicId], references: [id], onDelete: Cascade)
+  mechanic          Mechanic            @relation(fields: [mechanicId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   
   @@index([maintenanceRequestId])
   @@index([mechanicId])
