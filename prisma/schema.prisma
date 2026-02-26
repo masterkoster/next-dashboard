@@ -1148,7 +1148,7 @@ model OutreachContact {
 
   @@index([organizationType])
   @@index([state])
-  @@index([locationIcao])
+  @@index([airportIcao])
   @@index([contactEmail])
   @@map("OutreachContact")
 }
@@ -1439,7 +1439,7 @@ model Mechanic {
   user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@index([city, state])
-  @@index([airportIcao])
+  @@index([locationIcao])
   @@index([isActive])
   @@map("Mechanic")
 }
