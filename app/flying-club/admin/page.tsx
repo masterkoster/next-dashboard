@@ -289,10 +289,11 @@ export default function ClubAdminPage() {
         const res = await fetch("/api/groups")
         if (!res.ok) return
         const data = await res.json()
-        if (!Array.isArray(data) || data.length === 0) return
+        const groups = Array.isArray(data) ? data : data?.groups
+        if (!Array.isArray(groups) || groups.length === 0) return
 
-        const eligible = data.filter((g: any) => g.role === "ADMIN" || g.role === "OWNER")
-        const candidates = eligible.length > 0 ? eligible : data
+        const eligible = groups.filter((g: any) => g.role === "ADMIN" || g.role === "OWNER")
+        const candidates = eligible.length > 0 ? eligible : groups
         if (cancelled) return
 
         setAdminGroups(candidates)
