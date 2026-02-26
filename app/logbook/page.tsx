@@ -96,11 +96,13 @@ function LogbookContent() {
   })
 
   const [filters, setFilters] = useState({ year: 'all', aircraft: 'all', search: '' })
+  const [currencyProgress, setCurrencyProgress] = useState<any[]>([])
 
   useEffect(() => {
     if (status !== 'authenticated') return
     loadEntries()
     loadStartingTotals()
+    loadCurrencyProgress()
   }, [status])
 
   useEffect(() => {
@@ -130,6 +132,17 @@ function LogbookContent() {
       setStartingTotals(data.totals ?? null)
     } catch {
       setStartingTotals(null)
+    }
+  }
+
+  const loadCurrencyProgress = async () => {
+    try {
+      const res = await fetch('/api/logbook/currency/progress')
+      if (!res.ok) return
+      const data = await res.json()
+      setCurrencyProgress(data.progress || [])
+    } catch {
+      setCurrencyProgress([])
     }
   }
 
@@ -409,9 +422,37 @@ function LogbookContent() {
               <CardContent>
                 <Button variant="outline" onClick={async () => {
                   await fetch('/api/logbook/currency/calc', { method: 'POST' })
+                  await loadCurrencyProgress()
                 }}>
                   <ShieldCheck className="mr-2 h-4 w-4" /> Refresh Currency
                 </Button>
+                <div className="mt-4 space-y-3">
+                  {currencyProgress.length === 0 && (
+                    <p className="text-sm text-muted-foreground">No currency data yet.</p>
+                  )}
+                  {currencyProgress.map((rule) => (
+                    <div key={rule.code} className="rounded-md border border-border p-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{rule.name}</p>
+                          <p className="text-xs text-muted-foreground">{rule.authority}</p>
+                        </div>
+                        <Badge variant={rule.status === 'current' ? 'secondary' : 'outline'}>{rule.status}</Badge>
+                      </div>
+                      <div className="mt-2 space-y-1 text-xs">
+                        {rule.progress.map((p: any, idx: number) => (
+                          <div key={idx} className="flex justify-between">
+                            <span>{p.unit}</span>
+                            <span>{p.completed} / {p.required}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {rule.nextDueAt && (
+                        <p className="mt-2 text-xs text-muted-foreground">Next due: {new Date(rule.nextDueAt).toLocaleDateString()}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

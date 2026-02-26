@@ -47,6 +47,8 @@ export default function TrainingPage() {
   })
   const [completedGoals, setCompletedGoals] = useState<GoalType[]>([])
 
+  const [currencyProgress, setCurrencyProgress] = useState<any[]>([])
+
   // Fetch data on mount
   useEffect(() => {
     if (status === 'loading') return
@@ -82,6 +84,12 @@ export default function TrainingPage() {
               dualGiven: progressData.dualGiven || 0,
             })
           }
+        }
+
+        const currencyRes = await fetch('/api/logbook/currency/progress')
+        if (currencyRes.ok) {
+          const currencyData = await currencyRes.json()
+          setCurrencyProgress(currencyData.progress || [])
         }
       } catch (error) {
         console.error('Error fetching data:', error)
@@ -179,6 +187,7 @@ export default function TrainingPage() {
             <TabsTrigger value="goals">Goals</TabsTrigger>
             <TabsTrigger value="roadmap">Roadmap</TabsTrigger>
             <TabsTrigger value="progress">Progress</TabsTrigger>
+            <TabsTrigger value="currency">Currency</TabsTrigger>
             <TabsTrigger value="costs">Costs</TabsTrigger>
           </TabsList>
 
@@ -263,3 +272,37 @@ export default function TrainingPage() {
     </div>
   )
 }
+          <TabsContent value="currency" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Currency Progress</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {currencyProgress.length === 0 && (
+                  <p className="text-sm text-muted-foreground">No currency data yet.</p>
+                )}
+                {currencyProgress.map((rule) => (
+                  <div key={rule.code} className="rounded-md border border-border p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{rule.name}</p>
+                        <p className="text-xs text-muted-foreground">{rule.authority}</p>
+                      </div>
+                      <span className="text-xs rounded-md border px-2 py-0.5">{rule.status}</span>
+                    </div>
+                    <div className="mt-2 space-y-1 text-xs">
+                      {rule.progress.map((p: any, idx: number) => (
+                        <div key={idx} className="flex justify-between">
+                          <span>{p.unit}</span>
+                          <span>{p.completed} / {p.required}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {rule.nextDueAt && (
+                      <p className="mt-2 text-xs text-muted-foreground">Next due: {new Date(rule.nextDueAt).toLocaleDateString()}</p>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </TabsContent>
