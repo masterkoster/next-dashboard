@@ -1696,7 +1696,7 @@ export default function AdminDashboard() {
                 {pipelineData?.module === 'totals' && (
                   <div className="grid gap-4 lg:grid-cols-5">
                     {pipelineData.stages?.map((stage) => (
-                      <StackedStage key={stage.stage} label={stage.stage} breakdown={stage.breakdown} />
+                      <StackedStage key={stage.stage} label={stage.stage} breakdown={stage.breakdown || {}} />
                     ))}
                   </div>
                 )}
@@ -1707,7 +1707,7 @@ export default function AdminDashboard() {
                       <PipelineStageCard
                         key={stage.stage}
                         label={stage.stage}
-                        value={stage.value}
+                        value={stage.value || 0}
                         usedBy={pipelineData.usedBy}
                       />
                     ))}
