@@ -68,6 +68,7 @@ model User {
   userNotificationSettings UserNotificationSettings?
   groupMemberSettings GroupMemberSettings[]
   mechanicProfile    Mechanic?
+  maintenanceRequests MaintenanceRequest[] @relation("UserMaintenanceRequests")
   friendRequestsSent     FriendRequest[]       @relation("FriendRequestRequester")
   friendRequestsReceived FriendRequest[]       @relation("FriendRequestRecipient")
   conversationParticipants ConversationParticipant[]
@@ -1493,7 +1494,7 @@ model MaintenanceRequest {
   
   // Relations
   quotes          MechanicQuote[]
-  postedBy        User?             @relation(fields: [postedByUserId], references: [id], onDelete: SetNull)
+  postedBy        User?             @relation("UserMaintenanceRequests", fields: [postedByUserId], references: [id], onDelete: SetNull)
   
   @@index([category])
   @@index([status])
