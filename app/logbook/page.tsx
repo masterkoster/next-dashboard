@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Plane, Download, Plus, FileText, ShieldCheck, Upload } from 'lucide-react'
 
@@ -97,6 +98,7 @@ function LogbookContent() {
 
   const [filters, setFilters] = useState({ year: 'all', aircraft: 'all', search: '' })
   const [currencyProgress, setCurrencyProgress] = useState<any[]>([])
+  const [openDialog, setOpenDialog] = useState<null | 'add' | 'import' | 'starting-totals' | 'print'>(null)
 
   useEffect(() => {
     if (status !== 'authenticated') return
@@ -301,9 +303,9 @@ function LogbookContent() {
           <p className="text-sm text-muted-foreground">FAA + EASA logbook with endorsements, currency, and reports.</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Button onClick={() => setActiveTab('add')}>Add Flight</Button>
-          <Button variant="outline" onClick={() => setActiveTab('import')}>Import</Button>
-          <Button variant="outline" onClick={() => setActiveTab('print-view')}>Print</Button>
+          <Button onClick={() => setOpenDialog('add')}>Add Flight</Button>
+          <Button variant="outline" onClick={() => setOpenDialog('import')}>Import</Button>
+          <Button variant="outline" onClick={() => setOpenDialog('print')}>Print</Button>
           <Button variant="outline" onClick={async () => {
             await fetch('/api/logbook/currency/calc', { method: 'POST' })
             await loadCurrencyProgress()
@@ -372,33 +374,24 @@ function LogbookContent() {
           <TabsContent value="add" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Add Flight</CardTitle>
-                <CardDescription>Log a new flight with FAA/EASA fields.</CardDescription>
+                <CardTitle>Add Flights</CardTitle>
+                <CardDescription>Recent flight history.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
-                <Input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
-                <Input placeholder="Aircraft" value={formData.aircraft} onChange={(e) => setFormData({ ...formData, aircraft: e.target.value })} />
-                <Input placeholder="From" value={formData.routeFrom} onChange={(e) => setFormData({ ...formData, routeFrom: e.target.value })} />
-                <Input placeholder="To" value={formData.routeTo} onChange={(e) => setFormData({ ...formData, routeTo: e.target.value })} />
-                <Input placeholder="Total Time" value={formData.totalTime} onChange={(e) => setFormData({ ...formData, totalTime: e.target.value })} />
-                <Input placeholder="PIC" value={formData.picTime} onChange={(e) => setFormData({ ...formData, picTime: e.target.value })} />
-                <Input placeholder="SIC" value={formData.sicTime} onChange={(e) => setFormData({ ...formData, sicTime: e.target.value })} />
-                <Input placeholder="Solo" value={formData.soloTime} onChange={(e) => setFormData({ ...formData, soloTime: e.target.value })} />
-                <Input placeholder="Dual Given" value={formData.dualGiven} onChange={(e) => setFormData({ ...formData, dualGiven: e.target.value })} />
-                <Input placeholder="Dual Received" value={formData.dualReceived} onChange={(e) => setFormData({ ...formData, dualReceived: e.target.value })} />
-                <Input placeholder="Night" value={formData.nightTime} onChange={(e) => setFormData({ ...formData, nightTime: e.target.value })} />
-                <Input placeholder="Instrument" value={formData.instrumentTime} onChange={(e) => setFormData({ ...formData, instrumentTime: e.target.value })} />
-                <Input placeholder="Cross Country" value={formData.crossCountryTime} onChange={(e) => setFormData({ ...formData, crossCountryTime: e.target.value })} />
-                <Input placeholder="Day Landings" value={formData.dayLandings} onChange={(e) => setFormData({ ...formData, dayLandings: e.target.value })} />
-                <Input placeholder="Night Landings" value={formData.nightLandings} onChange={(e) => setFormData({ ...formData, nightLandings: e.target.value })} />
-                <Textarea placeholder="Remarks" value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} className="md:col-span-2" />
-                <label className="flex items-center gap-2 text-sm md:col-span-2">
-                  <input type="checkbox" checked={formData.isPending} onChange={(e) => setFormData({ ...formData, isPending: e.target.checked })} />
-                  Mark as pending (instructor approval)
-                </label>
-                <Button onClick={submitEntry} disabled={loading} className="md:col-span-2">
-                  <Plus className="mr-2 h-4 w-4" /> Save Flight
-                </Button>
+              <CardContent className="space-y-3">
+                {entries.slice(0, 6).map((entry) => (
+                  <div key={entry.id} className="rounded-md border border-border p-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{entry.aircraft} · {entry.routeFrom} → {entry.routeTo}</p>
+                        <p className="text-xs text-muted-foreground">{new Date(entry.date).toLocaleDateString()} · {entry.totalTime.toFixed(1)} hrs</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {entry.authority && <Badge variant="secondary">{entry.authority}</Badge>}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+                <Button onClick={() => setOpenDialog('add')}><Plus className="mr-2 h-4 w-4" /> Add Flight</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -554,26 +547,11 @@ function LogbookContent() {
             <Card>
               <CardHeader>
                 <CardTitle>Import</CardTitle>
-                <CardDescription>Upload CSV, MyFlightbook, ForeFlight, or Garmin exports.</CardDescription>
+                <CardDescription>Review recent imports and statuses.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                <select className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm" id="import-source">
-                  <option value="CSV">CSV/Excel</option>
-                  <option value="MYFLIGHTBOOK">MyFlightbook</option>
-                  <option value="FOREFLIGHT">ForeFlight</option>
-                  <option value="GARMIN">Garmin</option>
-                </select>
-                <Input type="file" />
-                <Button onClick={async () => {
-                  const source = (document.getElementById('import-source') as HTMLSelectElement)?.value
-                  await fetch('/api/logbook/imports', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ source, summaryJson: '{}' }),
-                  })
-                }}>
-                  <Upload className="mr-2 h-4 w-4" />Start Import
-                </Button>
+                <p className="text-sm text-muted-foreground">No recent imports. Start a new import to see history.</p>
+                <Button onClick={() => setOpenDialog('import')}><Upload className="mr-2 h-4 w-4" />Start Import</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -585,17 +563,8 @@ function LogbookContent() {
                 <CardDescription>Set your baseline totals before digital logging.</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3 md:grid-cols-2">
-                <Input placeholder="Total Time" defaultValue={startingTotals?.totalTime ?? ''} onBlur={(e) => saveStartingTotals({
-                  totalTime: parseFloat(e.target.value) || 0,
-                  picTime: startingTotals?.picTime || 0,
-                  sicTime: startingTotals?.sicTime || 0,
-                  nightTime: startingTotals?.nightTime || 0,
-                  instrumentTime: startingTotals?.instrumentTime || 0,
-                  crossCountryTime: startingTotals?.crossCountryTime || 0,
-                  landingsDay: startingTotals?.landingsDay || 0,
-                  landingsNight: startingTotals?.landingsNight || 0,
-                  asOfDate: startingTotals?.asOfDate || null,
-                })} />
+                <Input placeholder="Total Time" defaultValue={startingTotals?.totalTime ?? ''} readOnly />
+                <Button onClick={() => setOpenDialog('starting-totals')}>Update Starting Totals</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -619,12 +588,8 @@ function LogbookContent() {
                 <CardDescription>FAA and EASA formatted print layouts.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-2">
-                {filteredEntries.slice(0, 20).map((entry) => (
-                  <div key={entry.id} className="border-b border-border py-2 text-sm">
-                    {entry.date} · {entry.aircraft} · {entry.routeFrom} → {entry.routeTo} · {entry.totalTime.toFixed(1)} hrs
-                  </div>
-                ))}
-                <Button variant="outline" onClick={() => window.print()}><FileText className="mr-2 h-4 w-4" />Print</Button>
+                <p className="text-sm text-muted-foreground">Preview available in the print dialog.</p>
+                <Button variant="outline" onClick={() => setOpenDialog('print')}><FileText className="mr-2 h-4 w-4" />Open Print</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -648,7 +613,112 @@ function LogbookContent() {
               </CardContent>
             </Card>
           </TabsContent>
-        </Tabs>
+      </Tabs>
+
+      <Dialog open={openDialog === 'add'} onOpenChange={(open) => setOpenDialog(open ? 'add' : null)}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Add Flight</DialogTitle>
+            <DialogDescription>Log a new flight with FAA/EASA fields.</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input type="date" value={formData.date} onChange={(e) => setFormData({ ...formData, date: e.target.value })} />
+            <Input placeholder="Aircraft" value={formData.aircraft} onChange={(e) => setFormData({ ...formData, aircraft: e.target.value })} />
+            <Input placeholder="From" value={formData.routeFrom} onChange={(e) => setFormData({ ...formData, routeFrom: e.target.value })} />
+            <Input placeholder="To" value={formData.routeTo} onChange={(e) => setFormData({ ...formData, routeTo: e.target.value })} />
+            <Input placeholder="Total Time" value={formData.totalTime} onChange={(e) => setFormData({ ...formData, totalTime: e.target.value })} />
+            <Input placeholder="PIC" value={formData.picTime} onChange={(e) => setFormData({ ...formData, picTime: e.target.value })} />
+            <Input placeholder="SIC" value={formData.sicTime} onChange={(e) => setFormData({ ...formData, sicTime: e.target.value })} />
+            <Input placeholder="Solo" value={formData.soloTime} onChange={(e) => setFormData({ ...formData, soloTime: e.target.value })} />
+            <Input placeholder="Dual Given" value={formData.dualGiven} onChange={(e) => setFormData({ ...formData, dualGiven: e.target.value })} />
+            <Input placeholder="Dual Received" value={formData.dualReceived} onChange={(e) => setFormData({ ...formData, dualReceived: e.target.value })} />
+            <Input placeholder="Night" value={formData.nightTime} onChange={(e) => setFormData({ ...formData, nightTime: e.target.value })} />
+            <Input placeholder="Instrument" value={formData.instrumentTime} onChange={(e) => setFormData({ ...formData, instrumentTime: e.target.value })} />
+            <Input placeholder="Cross Country" value={formData.crossCountryTime} onChange={(e) => setFormData({ ...formData, crossCountryTime: e.target.value })} />
+            <Input placeholder="Day Landings" value={formData.dayLandings} onChange={(e) => setFormData({ ...formData, dayLandings: e.target.value })} />
+            <Input placeholder="Night Landings" value={formData.nightLandings} onChange={(e) => setFormData({ ...formData, nightLandings: e.target.value })} />
+            <Textarea placeholder="Remarks" value={formData.remarks} onChange={(e) => setFormData({ ...formData, remarks: e.target.value })} className="md:col-span-2" />
+            <label className="flex items-center gap-2 text-sm md:col-span-2">
+              <input type="checkbox" checked={formData.isPending} onChange={(e) => setFormData({ ...formData, isPending: e.target.checked })} />
+              Mark as pending (instructor approval)
+            </label>
+            <Button onClick={async () => {
+              await submitEntry()
+              setOpenDialog(null)
+            }} disabled={loading} className="md:col-span-2">
+              <Plus className="mr-2 h-4 w-4" /> Save Flight
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openDialog === 'import'} onOpenChange={(open) => setOpenDialog(open ? 'import' : null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Start Import</DialogTitle>
+            <DialogDescription>Upload CSV, MyFlightbook, ForeFlight, or Garmin exports.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <select className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm" id="import-source">
+              <option value="CSV">CSV/Excel</option>
+              <option value="MYFLIGHTBOOK">MyFlightbook</option>
+              <option value="FOREFLIGHT">ForeFlight</option>
+              <option value="GARMIN">Garmin</option>
+            </select>
+            <Input type="file" />
+            <Button onClick={async () => {
+              const source = (document.getElementById('import-source') as HTMLSelectElement)?.value
+              await fetch('/api/logbook/imports', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ source, summaryJson: '{}' }),
+              })
+              setOpenDialog(null)
+            }}>
+              <Upload className="mr-2 h-4 w-4" />Start Import
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openDialog === 'starting-totals'} onOpenChange={(open) => setOpenDialog(open ? 'starting-totals' : null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Starting Totals</DialogTitle>
+            <DialogDescription>Set your baseline totals.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Input placeholder="Total Time" defaultValue={startingTotals?.totalTime ?? ''} onBlur={(e) => saveStartingTotals({
+              totalTime: parseFloat(e.target.value) || 0,
+              picTime: startingTotals?.picTime || 0,
+              sicTime: startingTotals?.sicTime || 0,
+              nightTime: startingTotals?.nightTime || 0,
+              instrumentTime: startingTotals?.instrumentTime || 0,
+              crossCountryTime: startingTotals?.crossCountryTime || 0,
+              landingsDay: startingTotals?.landingsDay || 0,
+              landingsNight: startingTotals?.landingsNight || 0,
+              asOfDate: startingTotals?.asOfDate || null,
+            })} />
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={openDialog === 'print'} onOpenChange={(open) => setOpenDialog(open ? 'print' : null)}>
+        <DialogContent className="sm:max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Print Preview</DialogTitle>
+            <DialogDescription>FAA and EASA formatted print layouts.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            {filteredEntries.slice(0, 20).map((entry) => (
+              <div key={entry.id} className="border-b border-border py-2 text-sm">
+                {entry.date} · {entry.aircraft} · {entry.routeFrom} → {entry.routeTo} · {entry.totalTime.toFixed(1)} hrs
+              </div>
+            ))}
+            <Button variant="outline" onClick={() => window.print()}><FileText className="mr-2 h-4 w-4" />Print</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
