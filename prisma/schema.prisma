@@ -1148,7 +1148,7 @@ model OutreachContact {
 
   @@index([organizationType])
   @@index([state])
-  @@index([airportIcao])
+  @@index([locationIcao])
   @@index([contactEmail])
   @@map("OutreachContact")
 }
@@ -1498,7 +1498,7 @@ model MaintenanceRequest {
   @@index([category])
   @@index([status])
   @@index([city, state])
-  @@index([locationIcao])
+  @@index([airportIcao])
   @@map("MaintenanceRequest")
 }
 
