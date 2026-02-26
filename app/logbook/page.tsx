@@ -319,6 +319,15 @@ function LogbookContent() {
     }
   }
 
+  const isSaveDisabled = () => {
+    if (!formData.date || !formData.totalTime) return true
+    if (!formData.isSimulator && (!formData.routeFrom || !formData.routeTo)) return true
+    if (formData.isSimulator && (!formData.trainingDeviceId || !formData.trainingDeviceLocation)) return true
+    if (formData.requiresSafetyPilot && !formData.safetyPilotName) return true
+    if (parseFloat(formData.instrumentTime) > 0 && !formData.actualInstrumentTime && !formData.simulatedInstrumentTime) return true
+    return false
+  }
+
   const saveStartingTotals = async (totals: StartingTotals) => {
     await fetch('/api/logbook/starting-totals', {
       method: 'POST',
@@ -1007,7 +1016,7 @@ function LogbookContent() {
             <Button onClick={async () => {
               await submitEntry()
               setOpenDialog(null)
-            }} disabled={loading} className="w-full">
+            }} disabled={loading || isSaveDisabled()} className="w-full">
               <Plus className="mr-2 h-4 w-4" /> Save Flight
             </Button>
           </div>
