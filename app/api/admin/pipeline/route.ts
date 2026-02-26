@@ -122,7 +122,18 @@ export async function GET(request: Request) {
       return { stage, total, breakdown }
     })
 
-    return NextResponse.json({ module: moduleKey, stages: totals })
+    // Return all modules summary for table view
+    const modulesSummary = Object.entries(modules).map(([key, value]) => ({
+      name: key.charAt(0).toUpperCase() + key.slice(1),
+      key,
+      ingestion: (value as any).ingestion,
+      validation: (value as any).validation,
+      storage: (value as any).storage,
+      analytics: (value as any).analytics,
+      outputs: (value as any).outputs,
+    }))
+
+    return NextResponse.json({ module: moduleKey, stages: totals, modules: modulesSummary })
   }
 
   const selected = modules[moduleKey]
@@ -131,5 +142,21 @@ export async function GET(request: Request) {
     value: (selected as any)[stage],
   }))
 
-  return NextResponse.json({ module: moduleKey, stages, usedBy: selected.usedBy })
+  // Return all modules summary for table view
+  const modulesSummary = Object.entries(modules).map(([key, value]) => ({
+    name: key.charAt(0).toUpperCase() + key.slice(1),
+    key,
+    ingestion: (value as any).ingestion,
+    validation: (value as any).validation,
+    storage: (value as any).storage,
+    analytics: (value as any).analytics,
+    outputs: (value as any).outputs,
+  }))
+
+  return NextResponse.json({ 
+    module: moduleKey, 
+    stages, 
+    usedBy: selected.usedBy,
+    modules: modulesSummary 
+  })
 }

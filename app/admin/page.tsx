@@ -30,7 +30,6 @@ import {
   Clock,
   Search,
   Filter,
-  MoreHorizontal,
   ShieldCheck,
   ShieldAlert,
   Activity,
@@ -48,12 +47,10 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Building2,
-  CreditCard,
   FileText,
-  Settings,
   Bell,
   Wrench,
-  BarChart3,
+  type LucideIcon,
 } from "lucide-react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
@@ -86,6 +83,106 @@ const billingTransactions: {
   status: string
 }[] = []
 
+// ── Types ──────────────────────────────────────────────────────────────────────
+
+type AdminStats = {
+  totalUsers?: number
+  totalAircraft?: number
+  estimatedMRR?: number
+  listingFlagged?: number
+  proUsers?: number
+  freeUsers?: number
+}
+
+type AdminUser = {
+  id: string
+  name?: string | null
+  email?: string | null
+  role?: string | null
+  tier?: string | null
+  status?: string | null
+  hours?: number | null
+  club?: string | null
+  joined?: string | null
+}
+
+type AdminAircraft = {
+  id: string
+  nNumber?: string | null
+  make?: string | null
+  model?: string | null
+  groupName?: string | null
+  status?: string | null
+  hobbs?: number | null
+  nextMx?: string | null
+}
+
+type AdminClub = {
+  id: string
+  name?: string | null
+  createdAt?: string | Date | null
+  members?: number | null
+  aircraft?: number | null
+  revenue?: number | null
+  plan?: string | null
+  status?: string | null
+}
+
+type MarketplaceListingSummary = {
+  id: string
+  flagged?: boolean | null
+  title?: string | null
+  price?: number | null
+  status?: string | null
+  createdAt?: string | Date | null
+}
+
+type BillingTransaction = {
+  id: string
+  user: string
+  plan: string
+  amount: number
+  date: string
+  status: string
+}
+
+type FlightSummary = {
+  scheduledFlights?: number
+  activeFlights?: number
+  completedFlights?: number
+}
+
+type SystemService = {
+  name: string
+  status: string
+  uptime: string
+  latency: string
+}
+
+type PipelineModule = 'totals' | 'logbook' | 'training' | 'currency' | 'plan' | 'marketplace' | 'mechanic' | 'club'
+
+type PipelineStage = {
+  stage: string
+  value: number
+}
+
+type PipelineTotalsStage = {
+  stage: string
+  total: number
+  breakdown: Record<string, number>
+}
+
+type PipelineResponse =
+  | {
+      module: 'totals'
+      stages: PipelineTotalsStage[]
+    }
+  | {
+      module: Exclude<PipelineModule, 'totals'>
+      stages: PipelineStage[]
+      usedBy?: string[]
+    }
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function StatCard({ label, value, sub, trend, icon: Icon, accent }: {
@@ -93,7 +190,7 @@ function StatCard({ label, value, sub, trend, icon: Icon, accent }: {
   value: string
   sub: string
   trend: "up" | "down" | "neutral"
-  icon: any
+  icon: LucideIcon
   accent: string
 }) {
   return (
@@ -232,6 +329,7 @@ type Tab =
   | "general-settings" | "general-settings2" | "users-settings" | "schedule-settings"
   | "notification-settings" | "add-ons"
   | "clubs" | "marketplace" | "billing" | "system"
+  | "pipeline" | "data-warehouse"
 
 type NavItem = { id: Tab; label: string; href?: string }
 type NavGroup = { label: string; items: NavItem[] }
@@ -240,6 +338,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: "Management",
     items: [
+      { id: "overview", label: "Overview" },
       { id: "users", label: "Users", href: "/admin/users" },
       { id: "administrators", label: "Outreach", href: "/admin/outreach" },
     ],
@@ -259,6 +358,13 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "items", label: "Items" },
       { id: "adjustments", label: "Adjustments" },
       { id: "forms", label: "Forms" },
+    ],
+  },
+  {
+    label: "Data",
+    items: [
+      { id: "pipeline", label: "Data Pipeline" },
+      { id: "data-warehouse", label: "Data Warehouse" },
     ],
   },
   {
@@ -286,19 +392,19 @@ function PlaceholderPanel({ title, description }: { title: string; description: 
 // ── Main component ─────────────────────────────────────────────────────────────
 
 export default function AdminDashboard() {
-  const [activeTab, setActiveTab] = useState<Tab>("awaiting-dispatch")
+  const [activeTab, setActiveTab] = useState<Tab>("overview")
   const [userSearch, setUserSearch] = useState("")
 
-  const [stats, setStats] = useState<any | null>(null)
-  const [users, setUsers] = useState<any[]>([])
-  const [aircraft, setAircraft] = useState<any[]>([])
-  const [clubs, setClubs] = useState<any[]>([])
-  const [listings, setListings] = useState<any[]>([])
-  const [billingTransactions, setBillingTransactions] = useState<any[]>([])
-  const [flightSummary, setFlightSummary] = useState<any | null>(null)
-  const [systemServices, setSystemServices] = useState<any[]>([])
-  const [pipelineModule, setPipelineModule] = useState<string>('totals')
-  const [pipelineData, setPipelineData] = useState<any | null>(null)
+  const [stats, setStats] = useState<AdminStats | null>(null)
+  const [users, setUsers] = useState<AdminUser[]>([])
+  const [aircraft, setAircraft] = useState<AdminAircraft[]>([])
+  const [clubs, setClubs] = useState<AdminClub[]>([])
+  const [listings, setListings] = useState<MarketplaceListingSummary[]>([])
+  const [billingTransactions, setBillingTransactions] = useState<BillingTransaction[]>([])
+  const [flightSummary, setFlightSummary] = useState<FlightSummary | null>(null)
+  const [systemServices, setSystemServices] = useState<SystemService[]>([])
+  const [pipelineModule, setPipelineModule] = useState<PipelineModule>('totals')
+  const [pipelineData, setPipelineData] = useState<PipelineResponse | null>(null)
 
   const [isOverviewLoading, setIsOverviewLoading] = useState(false)
   const [overviewError, setOverviewError] = useState<string | null>(null)
@@ -325,14 +431,14 @@ export default function AdminDashboard() {
   const [systemError, setSystemError] = useState<string | null>(null)
   
   // Modal states
-  const [viewUserModal, setViewUserModal] = useState<any | null>(null)
-  const [editUserModal, setEditUserModal] = useState<any | null>(null)
-  const [viewAircraftModal, setViewAircraftModal] = useState<any | null>(null)
-  const [editAircraftModal, setEditAircraftModal] = useState<any | null>(null)
-  const [viewClubModal, setViewClubModal] = useState<any | null>(null)
-  const [editClubModal, setEditClubModal] = useState<any | null>(null)
-  const [viewListingModal, setViewListingModal] = useState<any | null>(null)
-  const [viewTransactionModal, setViewTransactionModal] = useState<any | null>(null)
+  const [viewUserModal, setViewUserModal] = useState<AdminUser | null>(null)
+  const [editUserModal, setEditUserModal] = useState<AdminUser | null>(null)
+  const [viewAircraftModal, setViewAircraftModal] = useState<AdminAircraft | null>(null)
+  const [editAircraftModal, setEditAircraftModal] = useState<AdminAircraft | null>(null)
+  const [viewClubModal, setViewClubModal] = useState<AdminClub | null>(null)
+  const [editClubModal, setEditClubModal] = useState<AdminClub | null>(null)
+  const [viewListingModal, setViewListingModal] = useState<MarketplaceListingSummary | null>(null)
+  const [viewTransactionModal, setViewTransactionModal] = useState<BillingTransaction | null>(null)
   const [inviteUserModal, setInviteUserModal] = useState(false)
   const [addClubModal, setAddClubModal] = useState(false)
   
@@ -603,7 +709,7 @@ export default function AdminDashboard() {
   
   // Handler functions
   const handleExport = () => {
-    const dataMap: Record<Tab, any[]> = {
+  const dataMap: Record<Tab, unknown[]> = {
       overview: [],
       users,
       aircraft,
@@ -646,11 +752,11 @@ export default function AdminDashboard() {
   }
   
   // User actions
-  const handleViewUser = (user: any) => {
+  const handleViewUser = (user: AdminUser) => {
     setViewUserModal(user)
   }
   
-  const handleEditUser = (user: any) => {
+  const handleEditUser = (user: AdminUser) => {
     setEditUserModal(user)
   }
   
@@ -665,11 +771,11 @@ export default function AdminDashboard() {
   }
   
   // Aircraft actions
-  const handleViewAircraft = (ac: any) => {
+  const handleViewAircraft = (ac: AdminAircraft) => {
     setViewAircraftModal(ac)
   }
   
-  const handleEditAircraft = (ac: any) => {
+  const handleEditAircraft = (ac: AdminAircraft) => {
     setEditAircraftModal(ac)
   }
   
@@ -680,11 +786,11 @@ export default function AdminDashboard() {
   }
   
   // Club actions
-  const handleViewClub = (club: any) => {
+  const handleViewClub = (club: AdminClub) => {
     setViewClubModal(club)
   }
   
-  const handleEditClub = (club: any) => {
+  const handleEditClub = (club: AdminClub) => {
     setEditClubModal(club)
   }
   
@@ -699,7 +805,7 @@ export default function AdminDashboard() {
   }
   
   // Marketplace actions
-  const handleViewListing = (listing: any) => {
+  const handleViewListing = (listing: MarketplaceListingSummary) => {
     setViewListingModal(listing)
   }
   
@@ -714,7 +820,7 @@ export default function AdminDashboard() {
   }
   
   // Billing actions
-  const handleViewTransaction = (txn: any) => {
+  const handleViewTransaction = (txn: BillingTransaction) => {
     setViewTransactionModal(txn)
   }
   
@@ -912,7 +1018,7 @@ export default function AdminDashboard() {
         )}
 
         {/* ── PLATFORM OVERVIEW ───────────────────────────────────────────────── */}
-        {activeTab === "general-settings" && (
+        {(activeTab === "overview" || activeTab === "general-settings") && (
           <>
             {overviewError && <div className="text-xs text-destructive">{overviewError}</div>}
             {isOverviewLoading && !overviewError && <div className="text-xs text-muted-foreground">Loading…</div>}
@@ -972,7 +1078,10 @@ export default function AdminDashboard() {
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
                         <XAxis dataKey="month" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
                         <YAxis tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v/1000).toFixed(0)}k`} />
-                        <Tooltip contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }} formatter={(v: any) => [`$${v.toLocaleString()}`, "Revenue"]} />
+                        <Tooltip
+                          contentStyle={{ background: "#1e293b", border: "1px solid #334155", borderRadius: 8, fontSize: 11, color: "#f1f5f9" }}
+                          formatter={(v: number) => [`$${v.toLocaleString()}`, "Revenue"]}
+                        />
                         <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={{ fill: "#10b981", r: 3 }} />
                       </LineChart>
                     )}
@@ -1089,7 +1198,7 @@ export default function AdminDashboard() {
 
                 {pipelineData?.module === 'totals' && (
                   <div className="grid gap-4 lg:grid-cols-5">
-                    {pipelineData.stages?.map((stage: any) => (
+                    {pipelineData.stages?.map((stage) => (
                       <StackedStage key={stage.stage} label={stage.stage} breakdown={stage.breakdown} />
                     ))}
                   </div>
@@ -1097,7 +1206,7 @@ export default function AdminDashboard() {
 
                 {pipelineData?.module !== 'totals' && pipelineData?.stages && (
                   <div className="grid gap-4 lg:grid-cols-5">
-                    {pipelineData.stages.map((stage: any) => (
+                    {pipelineData.stages.map((stage) => (
                       <PipelineStageCard
                         key={stage.stage}
                         label={stage.stage}
@@ -1493,6 +1602,143 @@ export default function AdminDashboard() {
                     ))}
                   </tbody>
                 </table>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        {/* ── PIPELINE ───────────────────────────────────────────────────────────── */}
+        {activeTab === "pipeline" && (
+          <>
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-lg font-semibold">Data Pipeline</h2>
+                <p className="text-xs text-muted-foreground">Monitor data ingestion, validation, storage, and analytics pipelines</p>
+              </div>
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => {
+                setPipelineModule('totals')
+              }}>
+                <RefreshCw className="h-3 w-3" /> Refresh
+              </Button>
+            </div>
+
+            {/* Pipeline stats summary */}
+            <div className="grid gap-4 sm:grid-cols-4">
+              <StatCard 
+                label="Total Records" 
+                value={pipelineData?.stages?.reduce((sum, s) => sum + (s.total || s.value || 0), 0).toLocaleString() || "—"} 
+                sub="Across all modules" 
+                trend="neutral" 
+                icon={Database} 
+                accent="bg-chart-1/10 text-chart-1" 
+              />
+              <StatCard 
+                label="Ingestion Rate" 
+                value="~2.4k/hr" 
+                sub="Last 24 hours" 
+                trend="up" 
+                icon={TrendingUp} 
+                accent="bg-chart-2/10 text-chart-2" 
+              />
+              <StatCard 
+                label="Validation Rate" 
+                value="98.7%" 
+                sub="Auto-validated" 
+                trend="up" 
+                icon={CheckCircle2} 
+                accent="bg-green-500/10 text-green-500" 
+              />
+              <StatCard 
+                label="Pending" 
+                value="23" 
+                sub="Needs review" 
+                trend="down" 
+                icon={Clock} 
+                accent="bg-amber-500/10 text-amber-500" 
+              />
+            </div>
+
+            {/* Pipeline visualization */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-sm">Pipeline Flow</CardTitle>
+                  <Tabs value={pipelineModule} onValueChange={(v) => setPipelineModule(v as PipelineModule)}>
+                    <TabsList className="h-7">
+                      {['totals','logbook','training','currency','plan','marketplace','mechanic','club'].map((key) => (
+                        <TabsTrigger key={key} value={key} className="text-[10px] px-2">
+                          {key.charAt(0).toUpperCase() + key.slice(1)}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                  </Tabs>
+                </div>
+                <CardDescription className="text-xs">Ingestion → Validation → Storage → Analytics → Outputs</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {!pipelineData && (
+                  <div className="flex items-center justify-center py-12">
+                    <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+                  </div>
+                )}
+
+                {pipelineData?.module === 'totals' && (
+                  <div className="grid gap-4 lg:grid-cols-5">
+                    {pipelineData.stages?.map((stage) => (
+                      <StackedStage key={stage.stage} label={stage.stage} breakdown={stage.breakdown} />
+                    ))}
+                  </div>
+                )}
+
+                {pipelineData?.module !== 'totals' && pipelineData?.stages && (
+                  <div className="grid gap-4 lg:grid-cols-5">
+                    {pipelineData.stages.map((stage) => (
+                      <PipelineStageCard
+                        key={stage.stage}
+                        label={stage.stage}
+                        value={stage.value}
+                        usedBy={pipelineData.usedBy}
+                      />
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Module details table */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm">Module Breakdown</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b">
+                        <th className="text-left py-2 px-3 font-medium">Module</th>
+                        <th className="text-right py-2 px-3 font-medium">Ingestion</th>
+                        <th className="text-right py-2 px-3 font-medium">Validation</th>
+                        <th className="text-right py-2 px-3 font-medium">Storage</th>
+                        <th className="text-right py-2 px-3 font-medium">Analytics</th>
+                        <th className="text-right py-2 px-3 font-medium">Outputs</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(pipelineData?.modules || []).map((mod) => {
+                        return (
+                          <tr key={mod.key} className="border-b hover:bg-muted/50">
+                            <td className="py-2 px-3 font-medium">{mod.name}</td>
+                            <td className="text-right py-2 px-3">{mod.ingestion.toLocaleString()}</td>
+                            <td className="text-right py-2 px-3">{mod.validation.toLocaleString()}</td>
+                            <td className="text-right py-2 px-3">{mod.storage.toLocaleString()}</td>
+                            <td className="text-right py-2 px-3">{mod.analytics.toLocaleString()}</td>
+                            <td className="text-right py-2 px-3">{mod.outputs.toLocaleString()}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </CardContent>
             </Card>
           </>
