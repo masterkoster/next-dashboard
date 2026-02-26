@@ -13,16 +13,16 @@ export async function GET(request: Request) {
         ...(query
           ? {
               OR: [
-                { city: { contains: query, mode: 'insensitive' } },
-                { state: { contains: query, mode: 'insensitive' } },
-                { locationIcao: { contains: query, mode: 'insensitive' } },
-                { businessName: { contains: query, mode: 'insensitive' } },
+                { city: { contains: query } },
+                { state: { contains: query } },
+                { locationIcao: { contains: query } },
+                { businessName: { contains: query } },
               ],
             }
           : {}),
         ...(cert
           ? {
-              certifications: { contains: cert, mode: 'insensitive' },
+              certifications: { contains: cert },
             }
           : {}),
       },
