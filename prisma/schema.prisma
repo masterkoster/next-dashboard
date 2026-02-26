@@ -554,6 +554,7 @@ model LogbookEntry {
   isVMC         Boolean @default(true)
   isCrossCountry Boolean @default(false)
   isNight       Boolean @default(false)
+  isDay         Boolean @default(true)
   isSolo        Boolean @default(false)
   isDual        Boolean @default(false)
   isInstructionGiven Boolean @default(false)
@@ -568,6 +569,16 @@ model LogbookEntry {
   crewRole     String?  @db.NVarChar(50) // PIC, SIC, DUAL, INSTRUCTOR, STUDENT
   faaType      String?  @db.NVarChar(50)
   easaType     String?  @db.NVarChar(50)
+
+  // Training & compliance
+  safetyPilotName String? @db.NVarChar(100)
+  requiresSafetyPilot Boolean @default(false)
+  groundTrainingReceived Float @default(0)
+  simTrainingReceived Float @default(0)
+  actualInstrumentTime Float @default(0)
+  trainingDeviceId String? @db.NVarChar(100)
+  trainingDeviceLocation String? @db.NVarChar(100)
+  isSimulator Boolean @default(false)
 
   // Additional Info
   remarks    String? @db.NVarChar(Max)
