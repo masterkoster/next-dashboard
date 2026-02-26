@@ -474,7 +474,7 @@ export default function FlyingClubPage() {
                             setActiveFlight({
                               id: flight.id,
                               aircraftId: flight.aircraftId,
-                              aircraftName: flight.aircraftName || flight.aircraft || 'Unknown Aircraft',
+                              aircraftName: flight.aircraftName || 'Unknown Aircraft',
                               userId: flight.userId,
                               userName: flight.userName || 'Unknown Pilot',
                               hobbsStart: 0,
