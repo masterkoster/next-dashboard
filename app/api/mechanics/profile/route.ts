@@ -8,7 +8,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (session.user.role !== 'mechanic') {
+    if (session.user.role !== 'mechanic' && session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Mechanic access only' }, { status: 403 })
     }
 
@@ -34,7 +34,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (session.user.role !== 'mechanic') {
+    if (session.user.role !== 'mechanic' && session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Mechanic access only' }, { status: 403 })
     }
 

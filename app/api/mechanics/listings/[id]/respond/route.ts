@@ -10,7 +10,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    if (session.user.role !== 'mechanic') {
+    if (session.user.role !== 'mechanic' && session.user.role !== 'admin') {
       return NextResponse.json({ error: 'Mechanic access only' }, { status: 403 })
     }
 

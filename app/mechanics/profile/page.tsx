@@ -68,7 +68,7 @@ export default function MechanicProfilePage() {
       setLoading(false)
     }
 
-    if (session?.user?.role === 'mechanic') {
+    if (session?.user?.role === 'mechanic' || session?.user?.role === 'admin') {
       loadProfile()
     }
     return () => {
@@ -123,7 +123,7 @@ export default function MechanicProfilePage() {
     return <div className="min-h-screen bg-background p-6">Please sign in.</div>
   }
 
-  if (session.user.role !== 'mechanic') {
+  if (session.user.role !== 'mechanic' && session.user.role !== 'admin') {
     return <div className="min-h-screen bg-background p-6">Mechanic access only.</div>
   }
 

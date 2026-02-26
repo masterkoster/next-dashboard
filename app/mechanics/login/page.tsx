@@ -18,7 +18,7 @@ export default function MechanicLoginPage() {
     fetch('/api/auth/session')
       .then(res => res.json())
       .then(data => {
-        if (data?.user?.role === 'mechanic') {
+        if (data?.user?.role === 'mechanic' || data?.user?.role === 'admin') {
           router.push('/mechanics/marketplace')
         }
       })
@@ -46,7 +46,7 @@ export default function MechanicLoginPage() {
 
     const sessionRes = await fetch('/api/auth/session')
     const session = await sessionRes.json()
-    if (session?.user?.role !== 'mechanic') {
+    if (session?.user?.role !== 'mechanic' && session?.user?.role !== 'admin') {
       setError('This account is not a mechanic account.')
       return
     }

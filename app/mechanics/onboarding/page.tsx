@@ -31,7 +31,7 @@ export default function MechanicOnboardingPage() {
       router.push('/mechanics/login')
       return
     }
-    if (session.user.role !== 'mechanic') {
+    if (session.user.role !== 'mechanic' && session.user.role !== 'admin') {
       router.push('/mechanics')
     }
   }, [session, status, router])

@@ -58,7 +58,7 @@ export default function MechanicMarketplacePage() {
   useEffect(() => {
     let active = true
     async function ensureProfile() {
-      if (!session?.user || session.user.role !== 'mechanic') return
+      if (!session?.user || (session.user.role !== 'mechanic' && session.user.role !== 'admin')) return
       const res = await fetch('/api/mechanics/profile')
       if (active && res.status === 404) {
         router.push('/mechanics/onboarding')
@@ -97,7 +97,7 @@ export default function MechanicMarketplacePage() {
     return <div className="min-h-screen bg-background p-6">Please sign in.</div>
   }
 
-  if (session.user.role !== 'mechanic') {
+  if (session.user.role !== 'mechanic' && session.user.role !== 'admin') {
     return <div className="min-h-screen bg-background p-6">Mechanic access only.</div>
   }
 
