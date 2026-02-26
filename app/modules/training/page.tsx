@@ -259,19 +259,6 @@ export default function TrainingPage() {
             </Card>
           </TabsContent>
 
-          {/* Costs Tab */}
-          <TabsContent value="costs">
-            <FinancialTracker 
-              goalType={currentGoal?.goalType}
-              totalHours={progress.totalHours}
-              hoursRemaining={hoursRemaining}
-            />
-          </TabsContent>
-        </Tabs>
-      </div>
-    </div>
-  )
-}
           <TabsContent value="currency" className="space-y-6">
             <Card>
               <CardHeader>
@@ -306,3 +293,17 @@ export default function TrainingPage() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Costs Tab */}
+          <TabsContent value="costs">
+            <FinancialTracker 
+              goalType={currentGoal?.goalType}
+              totalHours={progress.totalHours}
+              hoursRemaining={hoursRemaining}
+            />
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  )
+}
