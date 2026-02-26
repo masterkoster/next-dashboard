@@ -1999,15 +1999,15 @@ export default function AdminDashboard() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Name</Label>
-                <Input defaultValue={editUserModal.name} />
+                <Input defaultValue={editUserModal.name || ''} />
               </div>
               <div className="space-y-2">
                 <Label>Email</Label>
-                <Input type="email" defaultValue={editUserModal.email} />
+                <Input type="email" defaultValue={editUserModal.email || ''} />
               </div>
               <div className="space-y-2">
                 <Label>Plan</Label>
-                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editUserModal.plan}>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editUserModal.plan || 'Free'}>
                   <option value="Free">Free</option>
                   <option value="Pro">Pro</option>
                   <option value="Enterprise">Enterprise</option>
@@ -2015,7 +2015,7 @@ export default function AdminDashboard() {
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editUserModal.status}>
+                <select className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" defaultValue={editUserModal.status || 'active'}>
                   <option value="active">Active</option>
                   <option value="suspended">Suspended</option>
                   <option value="pending">Pending</option>
