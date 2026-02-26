@@ -13,11 +13,14 @@ type Listing = {
   category: string
   jobSize?: string | null
   neededBy?: string | null
+  logbookSnapshot?: string | null
+  aircraftSnapshot?: string | null
 }
 
 export default function PilotRequestsPage() {
   const { data: session, status } = useSession()
   const [listings, setListings] = useState<Listing[]>([])
+  const [expandedId, setExpandedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
@@ -91,10 +94,25 @@ export default function PilotRequestsPage() {
                         <Badge variant="outline" className="text-[10px]">Needed by {new Date(listing.neededBy).toLocaleDateString()}</Badge>
                       )}
                     </div>
+                    {expandedId === listing.id && listing.aircraftSnapshot && (
+                      <pre className="mt-2 rounded-md bg-muted p-2 text-[10px] text-muted-foreground overflow-auto">
+                        {listing.aircraftSnapshot}
+                      </pre>
+                    )}
+                    {expandedId === listing.id && listing.logbookSnapshot && (
+                      <pre className="mt-2 rounded-md bg-muted p-2 text-[10px] text-muted-foreground overflow-auto">
+                        {listing.logbookSnapshot}
+                      </pre>
+                    )}
                   </div>
-                  <Button size="sm" variant="outline" onClick={() => revoke(listing.id)}>
-                    Revoke
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setExpandedId(expandedId === listing.id ? null : listing.id)}>
+                      {expandedId === listing.id ? 'Hide details' : 'View details'}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => revoke(listing.id)}>
+                      Revoke
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}

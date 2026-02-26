@@ -213,6 +213,22 @@ export default function MechanicMarketplacePage() {
                       {[listing.city, listing.state, listing.airportIcao].filter(Boolean).join(' • ') || 'Location hidden'}
                     </p>
                     <p className="text-sm text-muted-foreground">{listing.description}</p>
+                    {listing.aircraftSnapshot && (
+                      <details className="text-xs text-muted-foreground">
+                        <summary className="cursor-pointer">View aircraft details</summary>
+                        <pre className="mt-2 rounded-md bg-muted p-2 text-[10px] overflow-auto">
+                          {listing.aircraftSnapshot}
+                        </pre>
+                      </details>
+                    )}
+                    {listing.logbookSnapshot && (
+                      <details className="text-xs text-muted-foreground">
+                        <summary className="cursor-pointer">View logbook snapshot</summary>
+                        <pre className="mt-2 rounded-md bg-muted p-2 text-[10px] overflow-auto">
+                          {listing.logbookSnapshot}
+                        </pre>
+                      </details>
+                    )}
                     <div className="flex flex-wrap gap-2">
                       {listing.jobSize && <Badge variant="secondary" className="text-[10px]">{listing.jobSize} job</Badge>}
                       <Badge variant="outline" className="text-[10px]">{listing.category}</Badge>

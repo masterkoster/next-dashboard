@@ -68,6 +68,7 @@ const NAV_ITEMS: NavItem[] = [
       { label: "Mechanic Profile", href: "/mechanics/profile", description: "Manage your mechanic profile" },
       { label: "Mechanic Inbox", href: "/mechanics/inbox", description: "Quotes from mechanics" },
       { label: "My Requests", href: "/mechanics/requests", description: "Your Service Bay postings" },
+      { label: "File Requests", href: "/mechanics/requests/files", description: "Mechanic document requests" },
       { label: "Mechanic Onboarding", href: "/mechanics/onboarding", description: "Set up your mechanic account" },
       { label: "Demo Marketplace", href: "/mechanics/demo", description: "Preview with demo data" },
     ],
